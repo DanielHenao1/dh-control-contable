@@ -280,12 +280,17 @@ def configuracion(request):
 @requiere("administrar")
 def parametro_editar(request, pk=None):
     obj = get_object_or_404(Parametro, pk=pk) if pk else None
-    form = ParametroForm(request.POST or None, instance=obj)
+    datos = None
+    if request.method == "POST":
+        datos = request.POST.copy()
+        if "verificar" in datos:  # «Guardar y marcar como verificado»
+            datos["estado"] = Parametro.Estado.VERIFICADO
+    form = ParametroForm(datos, instance=obj)
     if request.method == "POST" and form.is_valid():
         form.save()
-        messages.success(request, "Parámetro guardado.")
+        messages.success(request, "Parámetro guardado" + (" y marcado como verificado." if "verificar" in request.POST else "."))
         return redirect("configuracion")
-    return render(request, "empresa/formulario.html", {"form": form, "titulo": "Parámetro con vigencia"})
+    return render(request, "empresa/formulario.html", {"form": form, "titulo": "Parámetro con vigencia", "boton_verificar": True})
 
 
 def _invitar(request, usuario):

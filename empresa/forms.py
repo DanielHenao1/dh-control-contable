@@ -86,6 +86,11 @@ class ParametroForm(forms.ModelForm):
             "vigente_desde": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
             "vigente_hasta": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
         }
+        help_texts = {
+            "estado": "Cambiar el valor no basta: mientras siga «Por verificar» el aviso de parámetros pendientes se mantiene. "
+                      "Ponlo en «Verificado» cuando el contador lo confirme, o usa el botón «Guardar y marcar como verificado».",
+            "fuente": "De dónde sale o quién lo confirmó (por ejemplo: «Confirmado por la contadora, 09-oct-2026»).",
+        }
 
 
 class UsuarioForm(forms.ModelForm):

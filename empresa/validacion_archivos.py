@@ -20,6 +20,7 @@ from .importacion import (
 TABULARES = ("balance", "auxiliar", "facturas_dian", "retenciones", "extracto_banco")
 EXTENSIONES = {
     **{t: (".xlsx", ".xlsm", ".xls", ".csv", ".txt") for t in TABULARES},
+    "extracto_banco": (".xlsx", ".xlsm", ".xls", ".csv", ".txt", ".pdf"),
     "facturas_xml": (".xml", ".zip"),
     "declaracion": (".pdf",),
 }
@@ -79,7 +80,31 @@ def _tipos_probables(columnas):
     return probables
 
 
+def _revisar_lector_propio(lectura, nombre_tipo, periodo, res):
+    res.avisos.extend(lectura.bloqueos + lectura.avisos)
+    if not lectura.filas:
+        res.errores.append(f"No hay filas de {nombre_tipo} con cifras para importar.")
+        return
+    _revisar_periodo(lectura.filas, periodo, res)
+
+
 def _revisar_tabular(tipo, nombre, contenido, perfil, periodo, sentido, empresa, res, varios_meses=False):
+    if tipo == "extracto_banco" and nombre.lower().endswith(".pdf"):
+        from .lectores_reales import leer_extracto_bancolombia_pdf
+
+        pdf = leer_extracto_bancolombia_pdf(contenido)
+        if pdf is None:
+            res.errores.append("El PDF no es un extracto de cuenta de Bancolombia con texto legible. Descárgalo en Excel/CSV.")
+        else:
+            _revisar_lector_propio(pdf, "extracto bancario", periodo, res)
+        return
+    if tipo == "auxiliar" and not (perfil and perfil.mapeo) and nombre.lower().endswith((".xlsx", ".xlsm")):
+        from .lectores_reales import leer_auxiliar_world_office
+
+        aux = leer_auxiliar_world_office(contenido)
+        if aux is not None:
+            _revisar_lector_propio(aux, "libro auxiliar", periodo, res)
+            return
     if tipo == "balance" and not (perfil and perfil.mapeo) and nombre.lower().endswith((".xlsx", ".xlsm")):
         jerarquico = leer_balance_world_office(contenido)
         if jerarquico is not None:  # balance de World Office con terceros: se lee con su propio lector

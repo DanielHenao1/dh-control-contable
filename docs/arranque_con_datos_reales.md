@@ -58,3 +58,15 @@ Los nombres de columna no tienen que coincidir: si no se reconocen, se mapean un
 
 ## 7. Cuándo encender el asistente de IA
 Después de pasar P1 y P2 (los datos cuadran con World Office y con lo declarado). Con tope de gasto en la consola de Anthropic. Ver `docs/asistente_ia.md`.
+
+
+## Qué escoger al subir los exportes reales de septiembre
+
+| Archivo | Tipo | Año / mes | Perfil de mapeo | Otras casillas |
+|---|---|---|---|---|
+| Balance de prueba con terceros (.xlsx de World Office) | Balance de prueba (World Office) | 2026 / 9 | En blanco (lo lee el lector jerárquico) | — |
+| Libro auxiliar (.xlsx de World Office) | Auxiliares | 2026 / 9 | En blanco | — |
+| Extracto Bancolombia (.pdf) | Extracto bancario | 2026 / 9 | En blanco | — |
+| Facturas emitidas y recibidas de la DIAN (enero–septiembre) | Facturas electrónicas (Excel DIAN) | 2026 / 9 (último mes del rango) | «DIAN · libro de facturas (una hoja por mes)» | Marcar «El archivo trae varios meses» |
+
+Cada lector comprueba que las cifras cuadran con los totales del propio archivo; si no cuadran, bloquea la importación y dice la diferencia.

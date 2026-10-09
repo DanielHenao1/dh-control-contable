@@ -5,6 +5,18 @@ from .models import ArchivoCargado, Parametro, PerfilImportacion, Periodo, Usuar
 from .validacion_archivos import FORMULARIOS
 
 
+class SelectPerfil(forms.Select):
+    """Select de perfiles que marca cada opción con su tipo (data-tipo) para filtrarlas en pantalla."""
+
+    def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
+        opcion = super().create_option(name, value, label, selected, index, subindex=subindex, attrs=attrs)
+        pk = getattr(value, "value", value)
+        if pk not in ("", None):
+            tipo = PerfilImportacion.objects.filter(pk=pk).values_list("tipo", flat=True).first()
+            opcion["attrs"]["data-tipo"] = tipo or ""
+        return opcion
+
+
 class CargaForm(forms.Form):
     tipo = forms.ChoiceField(choices=[c for c in ArchivoCargado.Tipo.choices])
     anio = forms.IntegerField(label="Año", min_value=2015, max_value=2100)
@@ -14,7 +26,8 @@ class CargaForm(forms.Form):
         choices=[("", "—"), ("recibida", "Recibidas (compras)"), ("emitida", "Emitidas (ventas)")],
     )
     perfil = forms.ModelChoiceField(queryset=PerfilImportacion.objects.filter(activo=True), required=False,
-                                    label="Perfil de mapeo", empty_label="Detectar por nombre de columna")
+                                    label="Perfil de mapeo", empty_label="Detectar por nombre de columna",
+                                    widget=SelectPerfil)
     formulario = forms.ChoiceField(
         label="Formulario (solo declaraciones)", required=False,
         choices=[("", "—")] + [(k, v[0]) for k, v in FORMULARIOS.items()],
@@ -44,6 +57,9 @@ class CargaForm(forms.Form):
         if d.get("tipo") == "declaracion" and not d.get("formulario"):
             self.add_error("formulario", "Elige qué formulario es la declaración.")
         perfil = d.get("perfil")
+        if perfil and d.get("tipo") and perfil.tipo != d["tipo"]:
+            self.add_error("perfil", "Ese perfil es de otro tipo de archivo. Elige uno del mismo tipo o déjalo en blanco.")
+            perfil = None
         trae_sentido = bool(perfil and (perfil.mapeo or {}).get("sentido"))  # el archivo trae la columna Emitido/Recibido
         if d.get("tipo") in ("facturas_dian", "facturas_xml") and not d.get("sentido") and not trae_sentido:
             self.add_error("sentido", "Indica si son facturas emitidas o recibidas.")

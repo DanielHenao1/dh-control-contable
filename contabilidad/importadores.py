@@ -59,7 +59,7 @@ def importar_auxiliar(archivo, filas):
             Movimiento(
                 periodo=archivo.periodo, archivo=archivo, fecha=f["fecha"],
                 comprobante=f.get("comprobante", ""), documento=f.get("documento", ""),
-                cuenta=_cuenta(f["cuenta"], cache=cache), nit=nit,
+                cuenta=_cuenta(f["cuenta"], f.get("cuenta_nombre", ""), cache=cache), nit=nit,
                 tercero_nombre=f.get("tercero_nombre", "")[:250], descripcion=f.get("descripcion", "")[:300],
                 debito=f["debito"], credito=f["credito"],
             )

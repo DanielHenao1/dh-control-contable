@@ -31,7 +31,7 @@ def _importadores():
 TIPOS_CON_FILAS = {"balance", "auxiliar", "facturas_dian", "facturas_xml", "retenciones", "extracto_banco"}
 
 
-def registrar_archivo(subido, tipo, periodo: Periodo, usuario, perfil=None, sentido=""):
+def registrar_archivo(subido, tipo, periodo: Periodo, usuario, perfil=None, sentido="", formulario="", verificaciones=None):
     contenido = subido.read()
     huella = ArchivoCargado.calcular_hash(contenido)
     existente = ArchivoCargado.objects.filter(tipo=tipo, hash_sha256=huella).first()
@@ -41,6 +41,7 @@ def registrar_archivo(subido, tipo, periodo: Periodo, usuario, perfil=None, sent
     a = ArchivoCargado(
         tipo=tipo, nombre_original=subido.name, hash_sha256=huella, tamano=len(contenido),
         periodo=periodo, perfil=perfil, usuario=usuario, sentido=sentido, origen="web",
+        formulario=formulario, verificaciones=verificaciones or {},
     )
     a.archivo.save(subido.name, ContentFile(contenido), save=True)
     RegistroAuditoria.registrar(
@@ -48,6 +49,16 @@ def registrar_archivo(subido, tipo, periodo: Periodo, usuario, perfil=None, sent
         detalle={"hash": huella, "periodo": str(periodo)}, usuario=usuario,
     )
     return a
+
+
+def verificar_subido(subido, tipo, periodo, perfil=None, sentido="", formulario=""):
+    """Revisión previa (tipo, empresa, periodo) del archivo que se va a subir. No guarda nada."""
+    from .models import Empresa
+    from .validacion_archivos import verificar
+
+    contenido = subido.read()
+    subido.seek(0)
+    return verificar(tipo, subido.name, contenido, periodo, Empresa.actual(), perfil, sentido, formulario)
 
 
 def leer_archivo(archivo: ArchivoCargado, max_filas=None):

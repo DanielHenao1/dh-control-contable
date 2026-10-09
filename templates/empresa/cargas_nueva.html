@@ -2,10 +2,25 @@
 {% block contenido %}
 <h1>Nueva carga</h1>
 <div class="tarjeta">
-<p style="color:var(--gris-600)">El archivo se guarda con su huella (SHA-256) y nunca se sobrescribe. Primero verás una vista previa; nada se importa hasta que confirmes.</p>
+<p style="color:var(--gris-600)">El archivo se guarda con su huella (SHA-256) y nunca se sobrescribe. Antes de guardarlo se revisa que sea del tipo, la empresa y el periodo que elegiste. Primero verás una vista previa; nada se importa hasta que confirmes.</p>
+{% if form.non_field_errors %}<div class="error" role="alert"><strong>La revisión encontró problemas y no se guardó el archivo:</strong><ul>{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+{% if not puede_forzar %}<p style="margin:6px 0 0">Corrige el archivo o el tipo elegido. Si crees que es un error de la revisión, pídele al administrador que lo suba.</p>{% endif %}</div>{% endif %}
+{% for a in avisos %}<div class="aviso">{{ a }}</div>{% endfor %}
 <form method="post" enctype="multipart/form-data">{% csrf_token %}
-  {{ form.as_p }}
-  <button class="btn" type="submit">Subir y previsualizar</button>
+  <p>{{ form.tipo.label_tag }} {{ form.tipo }}</p>
+  <p>{{ form.anio.label_tag }} {{ form.anio }} {{ form.mes.label_tag }} {{ form.mes }}</p>
+  <p id="fila-sentido">{{ form.sentido.label_tag }} {{ form.sentido }}</p>
+  <p id="fila-formulario">{{ form.formulario.label_tag }} {{ form.formulario }}<br><small>{{ form.formulario.help_text }}</small>{{ form.formulario.errors }}</p>
+  <p>{{ form.perfil.label_tag }} {{ form.perfil }}</p>
+  <p>{{ form.archivo.label_tag }} {{ form.archivo }}{{ form.archivo.errors }}</p>
+  {% if puede_forzar and form.non_field_errors %}<p><label>{{ form.subir_igual }} {{ form.subir_igual.label }}</label></p>{% endif %}
+  <button class="btn" type="submit">Revisar y subir</button>
 </form>
 </div>
+<script>
+(function(){var t=document.getElementById('id_tipo');if(!t)return;
+function ver(){var v=t.value;document.getElementById('fila-formulario').style.display=v==='declaracion'?'':'none';
+document.getElementById('fila-sentido').style.display=(v==='facturas_dian'||v==='facturas_xml')?'':'none';}
+t.addEventListener('change',ver);ver();})();
+</script>
 {% endblock %}

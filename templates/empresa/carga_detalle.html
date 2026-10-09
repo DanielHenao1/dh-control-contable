@@ -6,6 +6,8 @@
   <p style="font-size:13px;color:var(--gris-600)">Huella SHA-256: <code>{{ a.hash_sha256 }}</code></p>
   {% if a.resumen %}<p>Resumen: {% for k, v in a.resumen.items %}<span class="chip">{{ k }}: {{ v }}</span> {% endfor %}</p>{% endif %}
 </div>
+{% if a.verificaciones.errores_ignorados %}<div class="error"><strong>Se subió pese a errores de la revisión previa:</strong><ul>{% for e in a.verificaciones.errores_ignorados %}<li>{{ e }}</li>{% endfor %}</ul></div>{% endif %}
+{% if a.verificaciones.avisos %}<div class="aviso"><strong>Avisos de la revisión previa:</strong><ul>{% for e in a.verificaciones.avisos %}<li>{{ e }}</li>{% endfor %}</ul></div>{% endif %}
 {% if a.errores %}<div class="error"><strong>Problemas encontrados:</strong><ul>{% for e in a.errores|slice:":30" %}<li>Fila {{ e.fila }}: {{ e.problemas|join:"; " }}</li>{% endfor %}</ul></div>{% endif %}
 {% if lectura %}
   {% if lectura.faltantes %}<div class="error">Faltan columnas por mapear: {{ lectura.faltantes|join:", " }}. <a href="{% url 'carga_mapear' a.pk %}">Configurar el mapeo de columnas</a>.</div>{% endif %}

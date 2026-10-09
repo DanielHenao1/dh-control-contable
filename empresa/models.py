@@ -258,6 +258,8 @@ class ArchivoCargado(models.Model):
     vigente = models.BooleanField(default=False)
     resumen = models.JSONField(default=dict, blank=True)
     errores = models.JSONField(default=list, blank=True)
+    formulario = models.CharField(max_length=10, blank=True)  # declaraciones: 300, 350, 110, ica, otro
+    verificaciones = models.JSONField(default=dict, blank=True)  # avisos de la revisión previa y si se forzó
 
     class Meta:
         ordering = ["-creado"]

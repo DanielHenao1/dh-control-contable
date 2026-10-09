@@ -108,16 +108,36 @@ def cargas_nueva(request):
     if request.method == "POST" and form.is_valid():
         d = form.cleaned_data
         p = Periodo.obtener(d["anio"], d["mes"])
+        sentido, formulario = d.get("sentido") or "", d.get("formulario") or ""
+        revision = cargas.verificar_subido(d["archivo"], d["tipo"], p, d.get("perfil"), sentido, formulario)
+        forzada = False
+        if not revision.ok:
+            if d.get("subir_igual") and request.user.puede("administrar"):
+                forzada = True
+            else:
+                for e in revision.errores:
+                    form.add_error(None, e)
+                return render(request, "empresa/cargas_nueva.html", {
+                    "form": form, "titulo": "Nueva carga", "avisos": revision.avisos,
+                    "puede_forzar": request.user.puede("administrar"), **contexto_selector(periodo)})
+        verificaciones = {"avisos": revision.avisos, "errores_ignorados": revision.errores if forzada else []}
         try:
-            a = cargas.registrar_archivo(d["archivo"], d["tipo"], p, request.user, d.get("perfil"), d.get("sentido") or "")
+            a = cargas.registrar_archivo(d["archivo"], d["tipo"], p, request.user, d.get("perfil"), sentido, formulario, verificaciones)
         except cargas.ArchivoDuplicado as dup:
             messages.warning(request, "Ese archivo ya fue cargado antes (misma huella).")
             return redirect("carga_detalle", pk=dup.existente.pk)
         except PeriodoCerrado as exc:
             messages.error(request, str(exc))
         else:
+            if forzada:
+                RegistroAuditoria.registrar(
+                    "carga_forzada", objeto=a, descripcion=f"Carga forzada pese a la revisión: {a.nombre_original}",
+                    detalle={"errores": revision.errores}, usuario=request.user)
+            for aviso in revision.avisos:
+                messages.warning(request, aviso)
             return redirect("carga_detalle", pk=a.pk)
-    return render(request, "empresa/cargas_nueva.html", {"form": form, "titulo": "Nueva carga", **contexto_selector(periodo)})
+    return render(request, "empresa/cargas_nueva.html", {
+        "form": form, "titulo": "Nueva carga", "puede_forzar": request.user.puede("administrar"), **contexto_selector(periodo)})
 
 
 @requiere("cargar")

@@ -2,6 +2,7 @@ from django import forms
 
 from .importacion import CAMPOS_POR_TIPO
 from .models import ArchivoCargado, Parametro, PerfilImportacion, Periodo, Usuario
+from .validacion_archivos import FORMULARIOS
 
 
 class CargaForm(forms.Form):
@@ -14,7 +15,15 @@ class CargaForm(forms.Form):
     )
     perfil = forms.ModelChoiceField(queryset=PerfilImportacion.objects.filter(activo=True), required=False,
                                     label="Perfil de mapeo", empty_label="Detectar por nombre de columna")
+    formulario = forms.ChoiceField(
+        label="Formulario (solo declaraciones)", required=False,
+        choices=[("", "—")] + [(k, v[0]) for k, v in FORMULARIOS.items()],
+        help_text="IVA es el formulario 300; la retención en la fuente es el 350.",
+    )
     archivo = forms.FileField()
+    subir_igual = forms.BooleanField(
+        label="Subir de todas formas aunque la revisión encuentre errores", required=False,
+    )
 
     def clean_archivo(self):
         f = self.cleaned_data["archivo"]
@@ -26,6 +35,8 @@ class CargaForm(forms.Form):
 
     def clean(self):
         d = super().clean()
+        if d.get("tipo") == "declaracion" and not d.get("formulario"):
+            self.add_error("formulario", "Elige qué formulario es la declaración.")
         if d.get("tipo") in ("facturas_dian", "facturas_xml") and not d.get("sentido"):
             self.add_error("sentido", "Indica si son facturas emitidas o recibidas.")
         return d

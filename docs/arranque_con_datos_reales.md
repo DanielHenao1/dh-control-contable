@@ -8,13 +8,15 @@ Nada real entra antes de esto. Ahora es el mejor momento para probar la restaura
 2. **Probar la restauración** (paso 6 del mismo documento): `./deploy/restore.sh <copia>` y entrar a verificar que todo sigue ahí.
 3. Guardar la `BACKUP_PASSPHRASE` en tu gestor de contraseñas. Sin ella la copia no se abre.
 
-## 2. Confirmar con Ideako (una sola conversación)
-Mientras estos datos estén «por verificar», el tablero lo avisa y los cálculos que dependen de ellos salen marcados. Pídele a Ideako:
-- **Plan de cuentas de World Office**: códigos de IVA generado y descontable, retención en la fuente (2365), ReteIVA (2367), bancos, cartera, proveedores, activo y pasivo corriente, gastos no deducibles.
-- **Conceptos de retención** con base mínima en UVT y tarifas (declarante y no declarante) que aplica la empresa.
-- **ICA**: actividad y tarifa de Bogotá; aclarar el CIIU (5210 en la Cámara de Comercio, 9511 en el RUT).
-- **Por escrito**: que la retención de septiembre (22-oct-2026) está incluida en su servicio, y quién presenta la exógena distrital que vence el **26-oct-2026**.
-Con esas respuestas se llenan los parámetros en Configuración y se marcan *Verificados*. Lo demás (renta, topes de exógena, ReteIVA) se puede completar durante el primer mes.
+## 2. Configurar los parámetros (sin depender de Ideako)
+Mientras estos datos estén «por verificar», el tablero lo avisa y los cálculos que dependen de ellos salen marcados. Los valores ya están en tu World Office y en tus documentos; los llenas tú en Configuración y los marcas *Verificados*:
+- **Cuentas** (IVA generado y descontable, retención 2365, ReteIVA 2367, bancos, cartera, proveedores, activo y pasivo corriente): del plan de cuentas de World Office. Solo los códigos.
+- **Conceptos de retención** con tarifa y base mínima en UVT: de la parametrización de retenciones de World Office (Renta, ICA, exógena → Conceptos).
+- **Tarifa de ICA**: de la declaración del 4.º bimestre ya presentada (tarifa por mil).
+- **CIIU**: el del RUT vigente de la DIAN (la Cámara de Comercio dice 5210 y el RUT 9511; si difieren, se actualiza el RUT).
+Si quieres una segunda mirada, el contador puede revisarlos una vez; es opcional.
+
+**Ideako presenta** la retención de septiembre (22-oct-2026) y la exógena distrital (26-oct-2026), según la empresa. Ambas quedan en el calendario con Ideako como responsable. Cuando las presente, pídele el **acuse**, súbelo como evidencia en la obligación y márcala presentada o pagada.
 
 ## 3. Pedir los exportes de un mes (septiembre de 2026)
 A quien lleva World Office (Ideako o la empresa), en Excel o CSV:
@@ -49,7 +51,7 @@ Los nombres de columna no tienen que coincidir: si no se reconocen, se mapean un
 - Los exportes se suben **directo al sistema**: no por WhatsApp ni por correo con otras claves.
 - Cada persona con su usuario y su doble factor; el asistente de carga solo ve y sube.
 - Nunca pegues datos reales ni contraseñas en el chat conmigo ni en GitHub.
-- No confirmes parámetros como *Verificados* sin que Ideako los valide.
+- Confirma los parámetros como *Verificados* solo con valores que salgan de World Office o de un documento oficial (RUT, declaración presentada); ante la duda, pregunta.
 - No mezcles varios meses en un mismo archivo y no uses «Otro soporte» para evitar la revisión previa.
 
 ## 7. Cuándo encender el asistente de IA

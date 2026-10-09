@@ -2,6 +2,7 @@ from datetime import date
 
 import pytest
 from django.core import mail
+from django.core.management import call_command
 
 from calendario.alertas import enviar_alertas, obligaciones_a_alertar
 from calendario.generador import generar_obligaciones
@@ -211,3 +212,16 @@ def test_selector_desplegable_de_anio_y_mes(cliente_dueno, datos_iniciales):
     # Valores fuera de rango no rompen la página
     assert cliente_dueno.get("/calendario/?anio=2026&mes=13").status_code == 200
     assert cliente_dueno.get("/calendario/?anio=abc&mes=x").status_code == 200
+
+
+@pytest.mark.django_db
+def test_ideako_presenta_la_retencion_y_la_exogena_distrital(datos_iniciales):
+    for tipo, clave in (("retefuente", "2026-09"), ("exogena_distrital", "2025")):
+        o = Obligacion.objects.get(tipo=tipo, clave=clave)
+        assert o.estado == "pendiente" and o.elabora == "Ideako" and "Ideako la presenta" in o.notas, tipo
+    # No pisa lo que el dueño edite a mano
+    o.elabora = "Otra persona"
+    o.save()
+    call_command("cargar_datos_iniciales", verbosity=0)
+    o.refresh_from_db()
+    assert o.elabora == "Otra persona"

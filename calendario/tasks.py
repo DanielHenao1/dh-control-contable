@@ -1,12 +1,17 @@
 from celery import shared_task
 from django.utils import timezone
 
-from .alertas import enviar_alertas
+from .alertas import enviar_alertas, enviar_resumen_semanal
 
 
 @shared_task
 def enviar_alertas_vencimiento():
     return enviar_alertas()
+
+
+@shared_task
+def resumen_semanal_pendientes():
+    return enviar_resumen_semanal()
 
 
 @shared_task

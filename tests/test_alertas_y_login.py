@@ -92,6 +92,7 @@ def test_probar_correo_sin_configurar_falla_claro(settings):
         call_command("probar_correo", "a@ejemplo.com")
 
 
+@pytest.mark.django_db
 def test_probar_correo_envia(settings, mailoutbox):
     from django.core.management import call_command
 

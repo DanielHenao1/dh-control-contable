@@ -39,3 +39,20 @@ El comando imprime servidor, puerto y cifrado (nunca la contraseña) y confirma 
 - Al crear un usuario en Configuración se pide su correo y su rol, no su contraseña: le llega una invitación con un enlace (vale 3 días) para crearla. Si el correo falla, aparece el error y el botón «Reenviar invitación» en la lista de usuarios.
 - Quien olvidó su contraseña entra a «¿Olvidaste tu contraseña?» en el ingreso (`/recuperar/`). Recibe el mismo tipo de enlace. El doble factor no cambia.
 - Si el puerto es 465 y el `.env` no tiene `EMAIL_USE_SSL=1`, la conexión se queda esperando; el sistema corta a los 20 segundos (`EMAIL_TIMEOUT`) y `probar_correo` avisa de la causa.
+
+## Correos que envía el sistema
+Todos son HTML con el logo de DH Store, una etiqueta de color que dice qué es y una línea que explica por qué se recibe, más una versión de texto plano:
+| Etiqueta | Cuándo llega | A quién |
+|---|---|---|
+| INVITACIÓN (verde) | Al crear un usuario o «Reenviar invitación» | La persona invitada |
+| RECUPERAR CONTRASEÑA (azul) | Desde «¿Olvidaste tu contraseña?» | Quien lo pide |
+| ALERTA DE VENCIMIENTO (rojo) | Diario, cuando una obligación vence en 15, 7, 3 o 1 día, o ya venció | `ALERTAS_DESTINATARIOS` (o dueño y contador) |
+| RESUMEN SEMANAL (azul oscuro) | Cada lunes a las 7:00 (hora de Bogotá) | `RESUMEN_SEMANAL_DESTINATARIOS` (si está vacío, los de las alertas) |
+| PRUEBA DE CORREO (gris) | Al correr `probar_correo` | El correo indicado |
+
+Variables del `.env` para el resumen y los enlaces:
+```
+RESUMEN_SEMANAL_DESTINATARIOS=ventas2@dhtransstorage.com.co,gerencia@dhtransstorage.com.co
+SITE_URL=https://contabilidad.dhstore.com.co
+```
+El resumen incluye todo lo pendiente del año en curso: vencidas, próximos 30 días y lo que viene después, con el conteo de obligaciones cumplidas. Para enviarlo ahora, sin esperar al lunes: `docker compose exec web python manage.py enviar_resumen_semanal` (o `--a correo@ejemplo.com` para probar con otro destino).

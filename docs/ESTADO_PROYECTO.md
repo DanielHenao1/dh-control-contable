@@ -2,6 +2,14 @@
 
 Archivo de continuidad entre sesiones. Léelo junto con `CLAUDE.md`, `docs/PROGRESO.md` (checklist por fases) y `docs/decisiones.md`. **Actualízalo al cerrar cada sesión de trabajo.** Última actualización: 9-oct-2026 (decisiones de despliegue).
 
+## Despliegue (9-oct-2026): el sistema ya corre en el VPS
+- **En vivo:** `https://contabilidad.dhstore.com.co` (VPS Hostinger KVM 4, Ubuntu 26.04 LTS, IP 31.97.136.172). Docker Compose con `db`, `redis`, `web`, `worker`, `beat` y `caddy`; HTTPS con Let's Encrypt; doble factor funcionando; usuario `DanielH` con rol dueño. Servidor endurecido con `deploy/bootstrap.sh` (usuario `control` con sudo, SSH solo por llave, root sin acceso SSH, ufw 22/80/443, fail2ban).
+- **Código en el servidor:** `/opt/control` (clonado con llave de despliegue **de solo lectura**). Para actualizar: `cd /opt/control && git pull && docker compose up -d --build web worker beat && docker compose exec web python manage.py cargar_datos_iniciales`.
+- **Datos:** solo los iniciales. Todavía **no** se han cargado datos contables reales.
+- **Pendiente antes de datos reales:** copia de seguridad fuera del servidor (`docs/respaldo_en_mi_pc.md`) y prueba de restauración (puerta P0).
+- **Correo (SMTP):** **no configurado**. Hoy el sistema solo envía por correo las alertas de vencimiento y, sin `EMAIL_HOST`, salen por la consola del servidor. No envía invitaciones a usuarios nuevos ni correos de recuperación de contraseña: el dueño crea los usuarios en Configuración y les entrega la contraseña por un canal seguro; cada uno configura su doble factor al primer ingreso. Para activarlo: `EMAIL_*` en el `.env` (puerto 587 con `EMAIL_USE_TLS=1`, o 465 con `EMAIL_USE_SSL=1` y `EMAIL_USE_TLS=0`), `DEFAULT_FROM_EMAIL` y `ALERTAS_DESTINATARIOS`. El dominio ya tiene correo de Hostinger (MX/SPF/DKIM); falta crear el buzón y confirmar los datos del servidor SMTP en su panel.
+- **Calendario:** se mantiene solo (tarea diaria `generar_calendario_automatico`: año en curso y el siguiente). Las fechas de **ICA Bogotá** son fijas y salen de la resolución de cada año: hay que cargar la regla del año nuevo (si no, no se inventa).
+
 ## Dónde estamos
 - Fases F0–F5 del plan construidas y fusionadas en `main` (PR #1). Sistema Django completo con datos sintéticos; **nunca se ha ejecutado con datos reales ni en el VPS**.
 - Rama de trabajo de la sesión: `claude/document-review-sd30p4` (reiniciada desde `main` tras el merge).

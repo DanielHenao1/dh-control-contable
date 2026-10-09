@@ -97,3 +97,30 @@ def test_hallazgos_de_calendario_ignoran_el_historico(datos_iniciales):
     ejecutar_reglas(periodo(hoy.year, hoy.month), codigos=["CAL001", "CAL003", "CAL005"])
     for h in Hallazgo.objects.filter(regla__grupo="calendario"):
         assert "2026-01" not in h.clave and "2026-02" not in h.clave and "2026-P1" not in h.clave
+
+
+@pytest.mark.django_db
+def test_navegacion_de_meses_y_anios(cliente_dueno, datos_iniciales):
+    r = cliente_dueno.get("/calendario/?anio=2026&mes=11")
+    html = r.content.decode()
+    assert "Noviembre" in html and "Octubre 2026" not in html
+    assert "2.026" not in html  # el año nunca debe llevar separador de miles
+    assert "anio=2026&mes=12" in html and "anio=2026&mes=10" in html
+    r = cliente_dueno.get("/calendario/?anio=2027&mes=1")
+    assert "Enero" in r.content.decode() and "anio=2027&mes=2" in r.content.decode()
+    # El selector del tablero también debe enviar el año como número simple
+    t = cliente_dueno.get("/?anio=2027&mes=3").content.decode()
+    assert 'value="2027" selected' in t and "2.027" not in t
+
+
+@pytest.mark.django_db
+def test_calendario_se_genera_solo_al_cambiar_de_anio(datos_iniciales, monkeypatch):
+    from calendario import tasks
+
+    assert not Obligacion.objects.filter(tipo="retefuente", clave="2028-01").exists()
+    monkeypatch.setattr(tasks.timezone, "localdate", lambda: date(2027, 12, 20))
+    n = tasks.generar_calendario_automatico()
+    assert n > 0
+    o = Obligacion.objects.get(tipo="retefuente", clave="2028-01")
+    assert o.fecha_limite is not None and o.fecha_limite.year == 2028
+    assert tasks.generar_calendario_automatico() == 0  # idempotente

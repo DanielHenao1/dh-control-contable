@@ -29,3 +29,20 @@ def recordar_revision_calendario():
         None, para,
     )
     return 1
+
+
+@shared_task
+def generar_calendario_automatico():
+    """Mantiene creadas las obligaciones del año en curso y del siguiente (idempotente).
+
+    Así, al cambiar de año el calendario ya tiene los meses nuevos sin tocar nada. Las fechas fijas
+    (ICA Bogotá) solo existen si se cargó la regla de la resolución del año; no se inventan.
+    """
+    from empresa.models import Empresa
+
+    from .generador import generar_obligaciones
+
+    if Empresa.actual() is None:
+        return 0
+    hoy = timezone.localdate()
+    return generar_obligaciones(hoy.year, hoy.year + 1)

@@ -194,3 +194,20 @@ def test_exogena_nacional_y_distrital(datos_iniciales):
     from calendario.alertas import obligaciones_a_alertar
 
     assert any(o.tipo == "exogena_distrital" and d == 7 for o, d in obligaciones_a_alertar(date(2026, 10, 19)))
+
+
+@pytest.mark.django_db
+def test_selector_desplegable_de_anio_y_mes(cliente_dueno, datos_iniciales):
+    html = cliente_dueno.get("/calendario/?anio=2026&mes=10").content.decode()
+    assert 'id="picker-cal"' in html
+    # Un enlace por cada mes del año elegido y por cada año disponible
+    for m in range(1, 13):
+        assert f"anio=2026&mes={m}" in html
+    for a in (2025, 2026, 2027):
+        assert f"anio={a}&mes=10" in html
+    # Octubre 2026 tiene pendiente la retención del 22-oct: el mes lo marca
+    assert 'title="' in html and "pendiente(s)" in html
+    assert "Ir a hoy" in html and "2.026" not in html
+    # Valores fuera de rango no rompen la página
+    assert cliente_dueno.get("/calendario/?anio=2026&mes=13").status_code == 200
+    assert cliente_dueno.get("/calendario/?anio=abc&mes=x").status_code == 200

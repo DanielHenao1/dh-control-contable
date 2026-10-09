@@ -58,3 +58,17 @@ textarea{width:100%;min-height:80px}
 .logo{height:40px;width:auto;border-radius:6px;display:block}
 .logo-login{display:block;margin:0 auto 12px;max-width:100%;height:auto;border-radius:8px}
 @media (max-width:760px){header.top .marca small{display:none}.logo{height:34px}}
+
+.nav-cal{display:flex;align-items:center;gap:8px;margin:6px 0 12px}
+.picker{position:relative}
+.picker summary{list-style:none;cursor:pointer;font-weight:700;font-size:16px;padding:7px 14px;border:1px solid var(--borde);border-radius:8px;background:var(--tarjeta);user-select:none}
+.picker summary::-webkit-details-marker{display:none}
+.picker[open] summary{border-color:var(--acento)}
+.picker-panel{position:absolute;z-index:20;top:calc(100% + 6px);left:0;width:min(330px,88vw);background:var(--tarjeta);border:1px solid var(--borde);border-radius:10px;padding:12px;box-shadow:0 8px 24px #0006}
+.picker-anios{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.picker-anios a,.picker-meses a{text-decoration:none;color:var(--texto);border:1px solid var(--borde);border-radius:6px;padding:6px 10px;text-align:center;position:relative}
+.picker-anios a:hover,.picker-meses a:hover{border-color:var(--acento)}
+.picker-anios a.activo,.picker-meses a.activo{background:var(--azul-2);color:#fff;border-color:var(--azul-2)}
+.picker-meses{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.picker-meses .punto{position:absolute;top:-6px;right:-6px;background:var(--ambar);color:#1b1f27;border-radius:999px;font-size:11px;font-weight:700;min-width:18px;height:18px;line-height:18px;padding:0 4px}
+.hoy-enlace{display:inline-block;margin-top:10px;font-size:14px}

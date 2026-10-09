@@ -4,13 +4,13 @@ from django.contrib.auth.forms import PasswordResetForm
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth.views import PasswordResetConfirmView, PasswordResetView
 from django.core.cache import cache
-from django.core.mail import send_mail
 from django.shortcuts import redirect
 from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 
+from .correos import enviar_html
 from .models import RegistroAuditoria, Usuario
 
 RECUPERACION_MAX = 5  # solicitudes por IP y hora
@@ -29,15 +29,25 @@ def enviar_invitacion(request, usuario):
         "usuario": usuario, "enlace": enlace_definir_clave(request, usuario),
         "rol": usuario.get_rol_display(), "dias": settings.PASSWORD_RESET_TIMEOUT // 86400,
     }
-    send_mail(
-        "Invitación a DH Control Contable",
+    enviar_html(
+        "invitacion", "Te invitamos a DH Control Contable: crea tu contraseña", "invitacion", contexto, [usuario.email],
         render_to_string("empresa/correo_invitacion.txt", contexto),
-        settings.DEFAULT_FROM_EMAIL, [usuario.email], fail_silently=False,
     )
     RegistroAuditoria.registrar("invitacion", objeto=usuario, descripcion=f"Invitación enviada a {usuario.username}", usuario=request.user)
 
 
+def request_enlace(context):
+    return f"{context['protocol']}://{context['domain']}" + reverse("clave_definir", kwargs={"uidb64": context["uid"], "token": context["token"]})
+
+
 class FormularioRecuperacion(PasswordResetForm):
+    def send_mail(self, subject_template_name, email_template_name, context, from_email, to_email, html_email_template_name=None):
+        contexto = {**context, "enlace": request_enlace(context)}
+        enviar_html(
+            "recuperacion", "Recupera tu contraseña · DH Control Contable", "recuperacion", contexto, [to_email],
+            render_to_string(email_template_name, context),
+        )
+
     def get_users(self, email):
         # Incluye a quien aún no definió contraseña (invitado): recibe el mismo enlace para activarla.
         return Usuario.objects.filter(email__iexact=email, is_active=True)

@@ -1,0 +1,15 @@
+{% extends "correos/base.html" %}
+{% block titulo %}Te invitamos a crear tu cuenta{% endblock %}
+{% block motivo %}Recibes este correo porque el administrador de {{ empresa }} te registró como usuario del sistema.{% endblock %}
+{% block contenido %}
+<p style="margin:0 0 14px">Hola <b>{{ usuario.get_full_name|default:usuario.username }}</b>,</p>
+<p style="margin:0 0 14px">Ya tienes un usuario en <b>DH Control Contable</b>, el sistema con el que {{ empresa }} verifica su contabilidad y controla sus vencimientos tributarios.</p>
+<table role="presentation" cellpadding="0" cellspacing="0" style="background:#f3f6fb;border-radius:10px;width:100%;margin:6px 0 4px"><tr><td style="padding:14px 18px;font-size:14px;line-height:1.8">
+  <b>Usuario:</b> {{ usuario.username }}<br><b>Rol:</b> {{ rol }}
+</td></tr></table>
+{% include "correos/_boton.html" with enlace=enlace texto="Crear mi contraseña" color="#2e8b57" %}
+<p style="margin:0 0 10px;font-size:14px"><b>Qué sigue:</b></p>
+<ol style="margin:0 0 10px;padding-left:20px;font-size:14px;color:#374151"><li>Crea tu contraseña (mínimo 12 caracteres).</li><li>Ingresa con tu usuario.</li><li>Configura el doble factor con una aplicación de autenticación en tu celular y guarda tus códigos de recuperación.</li></ol>
+<p style="margin:0;font-size:13px;color:#7a8494">El enlace vale {{ dias }} días y se puede usar una sola vez. Si el botón no funciona, copia esta dirección en tu navegador:<br><span style="word-break:break-all;color:#2f6fbd">{{ enlace }}</span></p>
+{% endblock %}
+{% block pie %}Si no esperabas esta invitación, ignora este correo: no se crea nada hasta que definas tu contraseña. {% endblock %}

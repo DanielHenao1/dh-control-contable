@@ -1,6 +1,7 @@
 from django.conf import settings
-from django.core.mail import send_mail
 from django.core.management.base import BaseCommand, CommandError
+
+from empresa.correos import enviar_html
 
 
 class Command(BaseCommand):
@@ -21,10 +22,10 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING(
                 "Aviso: el puerto 465 usa SSL directo. En el .env pon EMAIL_USE_SSL=1 y EMAIL_USE_TLS=0."))
         try:
-            send_mail(
-                "Prueba de correo · DH Control Contable",
-                "Si recibes este mensaje, el envío por SMTP quedó bien configurado.",
-                settings.DEFAULT_FROM_EMAIL, [destinatario], fail_silently=False,
+            enviar_html(
+                "prueba", "Prueba de correo · DH Control Contable", "prueba",
+                {"servidor": f"{settings.EMAIL_HOST}:{settings.EMAIL_PORT} ({modo})", "remitente": settings.DEFAULT_FROM_EMAIL},
+                [destinatario], "Si recibes este mensaje, el envío por SMTP quedó bien configurado.",
             )
         except Exception as e:  # noqa: BLE001 - se muestra el motivo para diagnosticar
             raise CommandError(f"No se pudo enviar: {type(e).__name__}: {e}") from e

@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 
 import dj_database_url
+from celery.schedules import crontab
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -149,6 +150,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "calendario.tasks.enviar_alertas_vencimiento",
         "schedule": 60 * 60 * 24,
     },
+    "resumen-semanal-pendientes": {
+        "task": "calendario.tasks.resumen_semanal_pendientes",
+        "schedule": crontab(day_of_week=1, hour=7, minute=0),  # lunes 7:00 (hora de Bogotá)
+    },
     "generar-calendario": {
         "task": "calendario.tasks.generar_calendario_automatico",
         "schedule": 60 * 60 * 24,
@@ -181,7 +186,10 @@ if EMAIL_USE_SSL:
 EMAIL_TIMEOUT = int(os.environ.get("EMAIL_TIMEOUT", 20))  # evita que un servidor SMTP mal configurado deje colgada la petición
 PASSWORD_RESET_TIMEOUT = 3 * 24 * 3600  # vigencia de invitaciones y enlaces de recuperación (3 días)
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "control@localhost")
-ALERTAS_DESTINATARIOS = [e for e in os.environ.get("ALERTAS_DESTINATARIOS", "").split(",") if e]
+ALERTAS_DESTINATARIOS = [e.strip() for e in os.environ.get("ALERTAS_DESTINATARIOS", "").split(",") if e.strip()]
+# Resumen semanal de pendientes: si está vacío usa los mismos destinatarios de las alertas.
+RESUMEN_SEMANAL_DESTINATARIOS = [e.strip() for e in os.environ.get("RESUMEN_SEMANAL_DESTINATARIOS", "").split(",") if e.strip()]
+SITE_URL = os.environ.get("SITE_URL", "")  # para los enlaces de los correos; si falta se toma de DJANGO_CSRF_TRUSTED_ORIGINS
 
 # Asistente de IA (opcional)
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")

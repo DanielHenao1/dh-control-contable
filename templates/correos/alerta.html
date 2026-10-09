@@ -1,0 +1,8 @@
+{% extends "correos/base.html" %}
+{% block titulo %}{{ filas|length }} obligación{{ filas|length|pluralize:"es" }} requiere{{ filas|length|pluralize:"n" }} tu atención{% endblock %}
+{% block motivo %}Recibes esta alerta porque hay obligaciones tributarias vencidas o próximas a vencer en el calendario de {{ empresa }}.{% endblock %}
+{% block contenido %}
+{% include "correos/_tabla_obligaciones.html" %}
+{% if sitio %}{% include "correos/_boton.html" with enlace=sitio|add:"/calendario/" texto="Ver el calendario" color="#c0392b" %}{% endif %}
+<p style="margin:0;font-size:13px;color:#7a8494">Las fechas se calculan por regla; ante cualquier diferencia prevalece lo que publique la DIAN o la Secretaría de Hacienda. Si ya cumpliste una obligación, regístrala en el calendario para que deje de alertar.</p>
+{% endblock %}

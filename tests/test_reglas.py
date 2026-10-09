@@ -217,3 +217,17 @@ def test_cierre_depreciacion_y_provisiones(datos_iniciales):
                  ("510506", "Sueldos", 0, 3_000_000, 0, 3_000_000), ("250505", "Cesantías", 0, 0, 250_000, 250_000)])
     ejecutar_reglas(p2, codigos=["CIE001", "NOM001"])
     assert not hallazgos(p2, "CIE001") and not hallazgos(p2, "NOM001")
+
+
+@pytest.mark.django_db
+def test_iva_descontable_con_saldo_debito_no_es_naturaleza_contraria(datos_iniciales):
+    from controles.reglas_integridad import naturaleza_contraria
+    from empresa.models import Parametro
+
+    from .helpers import balance, periodo
+
+    p = periodo()
+    balance(p, [("240802", "IVA descontable", 0, 703000, 0, -703000), ("220505", "Proveedores", 0, 0, 100, -100)])
+    assert {r.clave for r in naturaleza_contraria(p)} == {"240802", "220505"}
+    Parametro.objects.filter(codigo="PUC_IVA_DESCONTABLE").update(valor="240802", estado="verificado")
+    assert {r.clave for r in naturaleza_contraria(p)} == {"220505"}  # solo el descontable queda exento

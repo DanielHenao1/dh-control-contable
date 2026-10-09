@@ -1,5 +1,7 @@
 """Conciliaciones: cada una devuelve filas {concepto, columnas..., diferencia} listas para mostrar."""
 from collections import defaultdict
+from decimal import Decimal
+from itertools import combinations
 
 from contabilidad.models import SaldoCuenta, movimientos_vigentes
 from empresa.models import Parametro
@@ -119,32 +121,92 @@ def cuentas_de_banco(periodo):
     return sorted(cuentas.values(), key=lambda c: c["codigo"])
 
 
-def conciliar_banco(periodo, prefijo_cuenta, dias=3):
-    """Cruza el extracto bancario contra los auxiliares de la cuenta de banco.
+GASTOS_BANCO_DEFECTO = ["4X1000", "IVA", "SERVICIO", "CUOTA", "COBRO", "INTERESES", "RECHAZO", "COMISION"]
+GASTOS_LIBROS_DEFECTO = ["GRAVAM", "COMISION", "GASTOS BANC", "CUOTA DE MANEJO"]
 
-    Una partida concilia si coinciden valor y fecha (± `dias`), una sola vez.
+
+def _contiene(texto, patrones):
+    texto = (texto or "").upper()
+    return any(p.upper() in texto for p in patrones)
+
+
+def conciliar_banco(periodo, prefijo_cuenta, dias=None, pesos=None):
+    """Cruza el extracto bancario contra los auxiliares de la cuenta de banco, en cuatro pasos.
+
     Valor del extracto: + ingreso (débito en libros), - egreso (crédito en libros).
+    1. Exactas: mismo valor (±`pesos`, por redondeos) y fecha ±`dias`, una sola vez.
+    2. Misma cifra con fecha lejana: el valor coincide pero se registró en libros (o el banco lo movió) otro día del
+       mes; queda marcada para revisar.
+    3. Gastos bancarios agrupados: el banco cobra 4x1000, comisiones, IVA, cuotas e intereses partida por partida y en
+       libros se causan en un solo asiento; si la suma de lo cobrado iguala ese asiento (±`pesos`) se concilian juntos.
+    4. Agrupadas: una partida de un lado es la suma de 2 o 3 del otro (por ejemplo un pago al que en libros se le
+       separó un descuento).
+    Lo que no cruza queda como «solo en el extracto» o «solo en libros». Parámetros: CONCILIAR_BANCO_DIAS (3),
+    CONCILIAR_BANCO_PESOS (1), CONCILIAR_BANCO_GASTOS y CONCILIAR_LIBROS_GASTOS (palabras que identifican los gastos).
     """
+    dias = Parametro.obtener_o("CONCILIAR_BANCO_DIAS", 3) if dias is None else dias
+    pesos = Decimal(str(Parametro.obtener_o("CONCILIAR_BANCO_PESOS", 1))) if pesos is None else Decimal(str(pesos))
+    patrones_banco = Parametro.obtener_o("CONCILIAR_BANCO_GASTOS", GASTOS_BANCO_DEFECTO)
+    patrones_libros = Parametro.obtener_o("CONCILIAR_LIBROS_GASTOS", GASTOS_LIBROS_DEFECTO)
+
     libros = [m for m in movimientos_vigentes(periodo) if m.cuenta.codigo.startswith(prefijo_cuenta)]
     banco = list(MovimientoBanco.objects.filter(periodo=periodo, archivo__vigente=True))
-    usados = set()
-    solo_banco = []
-    for b in banco:
-        match = None
-        for m in libros:
-            if m.id in usados:
-                continue
-            if m.debito - m.credito == b.valor and abs((m.fecha - b.fecha).days) <= dias:
-                match = m
+    valor_libro = {m.id: m.debito - m.credito for m in libros}
+    libres_banco = list(banco)
+    libres_libros = list(libros)
+    exactas, con_revision = 0, []
+
+    def cruzar(max_dias):
+        """Empareja uno a uno por valor y fecha; devuelve los pares (banco, libro)."""
+        pares = []
+        for b in list(libres_banco):
+            for m in libres_libros:
+                if abs(valor_libro[m.id] - b.valor) <= pesos and (max_dias is None or abs((m.fecha - b.fecha).days) <= max_dias):
+                    pares.append((b, m))
+                    libres_banco.remove(b)
+                    libres_libros.remove(m)
+                    break
+        return pares
+
+    exactas = len(cruzar(dias))
+    for b, m in cruzar(None):
+        con_revision.append({"motivo": f"Mismo valor, pero con {abs((m.fecha - b.fecha).days)} días de diferencia entre el banco y los libros",
+                             "banco": [b], "libros": [m]})
+
+    gastos = [b for b in libres_banco if _contiene(b.descripcion, patrones_banco)]
+    if gastos:
+        total = sum((b.valor for b in gastos), CERO)
+        for m in list(libres_libros):
+            if _contiene(m.descripcion, patrones_libros) and abs(valor_libro[m.id] - total) <= pesos:
+                con_revision.append({"motivo": f"Gastos bancarios: {len(gastos)} cobros del banco (4x1000, comisiones, IVA…) causados en un solo asiento",
+                                     "banco": gastos, "libros": [m]})
+                for b in gastos:
+                    libres_banco.remove(b)
+                libres_libros.remove(m)
                 break
-        if match:
-            usados.add(match.id)
-        else:
-            solo_banco.append(b)
-    solo_libros = [m for m in libros if m.id not in usados]
+
+    def agrupar(un_lado, otro_lado, valor_un, valor_otro, etiqueta_un):
+        for x in list(un_lado):
+            candidatos = [y for y in otro_lado if (valor_otro(y) > 0) == (valor_un(x) > 0)][:40]
+            for n in (2, 3):
+                hallado = next((c for c in combinations(candidatos, n)
+                                if abs(sum(valor_otro(y) for y in c) - valor_un(x)) <= pesos), None)
+                if hallado:
+                    yield x, list(hallado), etiqueta_un
+                    un_lado.remove(x)
+                    for y in hallado:
+                        otro_lado.remove(y)
+                    break
+
+    for b, ms, _ in agrupar(libres_banco, libres_libros, lambda b: b.valor, lambda m: valor_libro[m.id], "banco"):
+        con_revision.append({"motivo": f"Una partida del banco es la suma de {len(ms)} partidas de libros", "banco": [b], "libros": ms})
+    for m, bs, _ in agrupar(libres_libros, libres_banco, lambda m: valor_libro[m.id], lambda b: b.valor, "libros"):
+        con_revision.append({"motivo": f"Una partida de libros es la suma de {len(bs)} partidas del banco", "banco": bs, "libros": [m]})
+
     return {
-        "conciliadas": len(usados), "solo_banco": solo_banco, "solo_libros": solo_libros,
+        "conciliadas": exactas + len(con_revision), "exactas": exactas, "con_revision": con_revision,
+        "solo_banco": libres_banco, "solo_libros": libres_libros,
         "total_banco": sum((b.valor for b in banco), CERO),
-        "total_libros": sum((m.debito - m.credito for m in libros), CERO),
-        "tolerancia_dias": dias,
+        "total_libros": sum(valor_libro.values(), CERO),
+        "tolerancia_dias": dias, "tolerancia_pesos": pesos,
     }

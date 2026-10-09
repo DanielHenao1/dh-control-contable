@@ -45,7 +45,7 @@ textarea{width:100%;min-height:80px}
 .btn.sec{background:transparent;color:var(--acento);border:1px solid var(--acento)}
 .btn.peligro{background:var(--rojo)}
 .chip{display:inline-block;background:var(--gris-100);border-radius:999px;padding:1px 9px;font-size:12px}
-.chip.rojo{background:#fde8e6;color:#7a1b12}.chip.ambar{background:#fff1cc;color:#6a4a00}.chip.verde{background:#e0f3e7;color:#17562e}
+.chip.rojo{background:#c0392b;color:#fff;font-weight:600}.chip.ambar{background:#d89614;color:#1b1f27;font-weight:600}.chip.verde{background:#2e8b57;color:#fff;font-weight:600}
 .cal{table-layout:fixed}.cal td{height:92px;font-size:12px}.cal td.fuera{opacity:.45}.cal td.hoy{outline:2px solid var(--acento)}
 .cal .ob{display:block;background:var(--gris-100);border-radius:4px;padding:1px 4px;margin-top:2px;text-decoration:none;color:var(--texto)}
 .pie{color:var(--gris-600);font-size:12px;text-align:center;padding:20px}
@@ -72,3 +72,52 @@ textarea{width:100%;min-height:80px}
 .picker-meses{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .picker-meses .punto{position:absolute;top:-6px;right:-6px;background:var(--ambar);color:#1b1f27;border-radius:999px;font-size:11px;font-weight:700;min-width:18px;height:18px;line-height:18px;padding:0 4px}
 .hoy-enlace{display:inline-block;margin-top:10px;font-size:14px}
+
+/* ---- Calendario: pendiente en rojo, pagado en verde ---- */
+.cal .ob{border-radius:8px;padding:4px 6px;margin-top:4px;font-weight:600;line-height:1.25}
+.cal .ob.rojo{background:#c0392b;color:#fff}
+.cal .ob.verde{background:#2e8b57;color:#fff}
+.cal .ob.ambar{background:#d89614;color:#1b1f27}
+.cal .ob .chip{background:#ffffff33;color:inherit;margin-top:3px}
+.cal .ob.urgente,.chip.urgente{animation:pulso 1.6s ease-in-out infinite}
+@keyframes pulso{0%,100%{box-shadow:0 0 0 0 #c0392b00}50%{box-shadow:0 0 0 5px #c0392b66}}
+@media (prefers-reduced-motion:reduce){.cal .ob.urgente,.chip.urgente{animation:none}}
+.alerta-roja{background:#c0392b;color:#fff;border-radius:10px;padding:12px 16px;margin-bottom:14px;box-shadow:0 4px 14px #c0392b55}
+.alerta-roja ul{margin:6px 0 0 18px;padding:0}.alerta-roja a{color:#fff;text-decoration:underline}
+.alerta-dialogo{border:0;border-radius:14px;padding:22px 24px;max-width:min(520px,92vw);background:var(--tarjeta);color:var(--texto);box-shadow:0 20px 60px #000a;border-top:8px solid #c0392b}
+.alerta-dialogo::backdrop{background:#000a}
+.alerta-dialogo h2{margin:0 0 6px;color:#c0392b}
+.alerta-dialogo ul{padding-left:0;list-style:none;margin:10px 0 16px}
+.alerta-dialogo li{padding:7px 10px;border-left:5px solid #c0392b;background:var(--gris-100);border-radius:6px;margin-bottom:6px}
+.alerta-dialogo li.urgente{background:#c0392b22}
+.alerta-dialogo .fecha{display:inline-block;min-width:44px;font-weight:700;color:#c0392b}
+.btn.peligro{background:#c0392b}
+
+/* ---- Pantalla de ingreso ---- */
+body.login main{max-width:none;padding:0}
+body.login{background:#0e1a33}
+.login-pagina{display:grid;grid-template-columns:1.05fr 1fr;min-height:calc(100vh - 56px)}
+.login-marca{background:linear-gradient(145deg,#14284b 0%,#1f3a6b 55%,#2f7dd1 130%);color:#fff;display:flex;align-items:center;justify-content:center;padding:48px 40px}
+.login-marca-interior{max-width:460px}
+.login-marca .logo-login{background:#e6e6e6;border-radius:14px;padding:0;box-shadow:0 10px 30px #0006;margin:0 0 26px;display:block}
+.login-marca h1{font-size:34px;margin:0 0 8px;letter-spacing:.2px}
+.login-marca .lema{font-size:18px;opacity:.9;margin:0 0 26px}
+.beneficios{list-style:none;padding:0;margin:0}
+.beneficios li{display:flex;gap:12px;align-items:flex-start;margin:0 0 14px;font-size:16px}
+.beneficios li span{flex:none;width:24px;height:24px;border-radius:50%;background:#ffcd00;color:#14284b;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:14px}
+.login-form{display:flex;align-items:center;justify-content:center;padding:40px 24px;background:var(--fondo)}
+.login-tarjeta{width:100%;max-width:400px;background:var(--tarjeta);border:1px solid var(--borde);border-radius:16px;padding:32px 30px;box-shadow:0 12px 40px #0003}
+.login-tarjeta h2{margin:0 0 6px;font-size:26px}
+.login-tarjeta .sub{color:var(--gris-600);margin:0 0 20px;font-size:14px}
+.login-tarjeta label{margin:14px 0 6px;font-weight:600;color:var(--texto)}
+.campo{position:relative}
+.campo .icono{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px;opacity:.7}
+.campo input{width:100%;padding:12px 70px 12px 38px;font-size:16px;border-radius:10px}
+.campo input:focus{outline:2px solid var(--acento);border-color:var(--acento)}
+.campo .ver{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:transparent;border:0;color:var(--acento);cursor:pointer;font-weight:600;padding:6px 8px}
+.btn.grande{width:100%;margin-top:22px;padding:13px;font-size:17px;font-weight:700;border-radius:10px;background:linear-gradient(135deg,#1f3a6b,#2f7dd1);box-shadow:0 6px 16px #2f7dd144}
+.btn.grande:hover{filter:brightness(1.08)}
+.seguro{text-align:center;color:var(--gris-600);font-size:12.5px;margin:18px 0 0}
+.pie-login{background:var(--fondo);padding:14px}
+body.login .pie-login{color:var(--gris-600)}
+@media (max-width:860px){.login-pagina{grid-template-columns:1fr}.login-marca{padding:28px 22px}.login-marca h1{font-size:26px}.login-marca .lema{font-size:15px}.beneficios{display:none}.login-form{padding:24px 16px}}

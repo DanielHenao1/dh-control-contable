@@ -86,3 +86,24 @@ class Obligacion(models.Model):
     @property
     def cumplida(self):
         return self.estado in (self.Estado.PRESENTADA, self.Estado.PAGADA)
+
+    @property
+    def semaforo(self):
+        """verde = presentada y pagada; ámbar = presentada (falta el pago); rojo = pendiente."""
+        if self.estado == self.Estado.PAGADA:
+            return "verde"
+        if self.estado == self.Estado.PRESENTADA:
+            return "ambar"
+        return "rojo"
+
+    @property
+    def dias_restantes(self):
+        from django.utils import timezone
+
+        return None if self.fecha_limite is None else (self.fecha_limite - timezone.localdate()).days
+
+    @property
+    def urgente(self):
+        """Sin cumplir y vence en 7 días o ya venció."""
+        d = self.dias_restantes
+        return (not self.cumplida) and d is not None and d <= 7

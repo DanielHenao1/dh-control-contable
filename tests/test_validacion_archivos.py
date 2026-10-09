@@ -134,3 +134,81 @@ def test_vista_guarda_avisos_y_exige_formulario(cliente_dueno, empresa):
     r = _subir(cliente_dueno, pdf("Formulario 350"), "d.pdf", tipo="declaracion")
     assert r.status_code == 200 and "Elige qué formulario" in r.content.decode()
 
+
+
+def _facturas_meses(empresa, sentido="recibida", meses=(1, 2, 9), numero_base=100):
+    filas = []
+    for i, m in enumerate(meses):
+        filas.append({
+            "Número": f"F{numero_base + i}", "Fecha": f"2026-{m:02d}-10",
+            "NIT emisor": "800100100" if sentido == "recibida" else empresa.nit,
+            "NIT receptor": empresa.nit if sentido == "recibida" else "900300300", "Total": 1190 * (i + 1), "IVA": 190 * (i + 1),
+        })
+    return xlsx(pd.DataFrame(filas))
+
+
+def _subir_y_confirmar(cliente, contenido, nombre, mes=9, **extra):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    r = cliente.post("/cargas/nueva/", {"tipo": "facturas_dian", "anio": 2026, "mes": mes, "sentido": "recibida",
+                                        "archivo": SimpleUploadedFile(nombre, contenido), **extra})
+    assert r.status_code == 302, r.content.decode()[:600]
+    pk = int(r.url.rstrip("/").split("/")[-1])
+    cliente.post(f"/cargas/{pk}/confirmar/")
+    return ArchivoCargado.objects.get(pk=pk)
+
+
+def test_varios_meses_reparte_las_facturas_por_su_fecha(cliente_dueno, empresa):
+    from facturacion.models import Factura
+
+    a = _subir_y_confirmar(cliente_dueno, _facturas_meses(empresa), "enero_a_septiembre.xlsx", varios_meses="on")
+    assert a.estado == "importado" and a.varios_meses and a.resumen["meses"] == ["2026-01", "2026-02", "2026-09"]
+    assert {(f.periodo.anio, f.periodo.mes) for f in Factura.objects.all()} == {(2026, 1), (2026, 2), (2026, 9)}
+
+
+def test_sin_varios_meses_avisa_de_las_fechas_de_otro_periodo(cliente_dueno, empresa):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    r = cliente_dueno.post("/cargas/nueva/", {"tipo": "facturas_dian", "anio": 2026, "mes": 9, "sentido": "recibida",
+                                              "archivo": SimpleUploadedFile("x.xlsx", _facturas_meses(empresa))})
+    assert r.status_code == 302
+    assert "no son de 09/2026" in ArchivoCargado.objects.get().verificaciones["avisos"][0]
+
+
+def test_varios_meses_en_mes_cerrado_no_importa(cliente_dueno, empresa):
+    from facturacion.models import Factura
+
+    p = Periodo.obtener(2026, 2)
+    p.estado = "cerrado"
+    p.save()
+    a = _subir_y_confirmar(cliente_dueno, _facturas_meses(empresa), "x.xlsx", varios_meses="on")
+    assert a.estado != "importado" and not Factura.objects.exists()
+
+
+def test_no_se_duplican_meses_entre_archivos(cliente_dueno, empresa):
+    from facturacion.models import Factura
+
+    _subir_y_confirmar(cliente_dueno, _facturas_meses(empresa), "grande.xlsx", varios_meses="on")
+    # Un archivo mensual de septiembre ya cubierto por el de varios meses: no se confirma
+    mensual = _subir_y_confirmar(cliente_dueno, _facturas_meses(empresa, meses=(9,), numero_base=500), "sep.xlsx")
+    assert mensual.estado != "importado"
+    assert Factura.objects.count() == 3
+    # Otro archivo de varios meses (con otro periodo final) que repita enero: tampoco
+    otro = _subir_y_confirmar(cliente_dueno, _facturas_meses(empresa, meses=(1, 3), numero_base=700), "otro.xlsx", mes=6, varios_meses="on")
+    assert otro.estado != "importado" and Factura.objects.count() == 3
+
+
+def test_un_archivo_de_varios_meses_reemplaza_al_anterior_del_mismo_grupo(cliente_dueno, empresa):
+    from facturacion.models import facturas_vigentes
+
+    _subir_y_confirmar(cliente_dueno, _facturas_meses(empresa), "v1.xlsx", varios_meses="on")
+    _subir_y_confirmar(cliente_dueno, _facturas_meses(empresa, meses=(1, 2, 3, 9), numero_base=900), "v2.xlsx", varios_meses="on")
+    assert facturas_vigentes().count() == 4  # solo las del archivo nuevo
+
+
+def test_varios_meses_solo_para_facturas(cliente_dueno, empresa):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    r = cliente_dueno.post("/cargas/nueva/", {"tipo": "balance", "anio": 2026, "mes": 9, "varios_meses": "on",
+                                              "archivo": SimpleUploadedFile("b.xlsx", xlsx(BALANCE))})
+    assert r.status_code == 200 and "solo aplica a facturas" in r.content.decode()

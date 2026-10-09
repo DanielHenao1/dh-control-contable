@@ -38,6 +38,7 @@ Qué pasa al subir un archivo:
 
 Pruébalo así (Septiembre 2026, en este orden): balance → auxiliares → facturas recibidas → facturas emitidas → retenciones → extracto.
 Pruebas de rechazo (deben **no** guardarse): sube `balance_2026-09.csv` como «Auxiliares»; `facturas_recibidas_2026-09.csv` marcando «Emitidas»; `extracto_banco_2026-09.csv` como «Balance».
+Facturas de varios meses: casilla «El archivo trae varios meses» (elige el último mes del rango); ver `docs/validacion_de_cargas.md`.
 Para una declaración: elige el formulario (**300 = IVA**, **350 = retención en la fuente**, 110 = renta); si el PDF es de otro formulario o de otro NIT, avisa.
 
 ## 5. Hallazgos (menú Hallazgos)

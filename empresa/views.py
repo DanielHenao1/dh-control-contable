@@ -109,7 +109,8 @@ def cargas_nueva(request):
         d = form.cleaned_data
         p = Periodo.obtener(d["anio"], d["mes"])
         sentido, formulario = d.get("sentido") or "", d.get("formulario") or ""
-        revision = cargas.verificar_subido(d["archivo"], d["tipo"], p, d.get("perfil"), sentido, formulario)
+        varios = bool(d.get("varios_meses"))
+        revision = cargas.verificar_subido(d["archivo"], d["tipo"], p, d.get("perfil"), sentido, formulario, varios)
         forzada = False
         if not revision.ok:
             if d.get("subir_igual") and request.user.puede("administrar"):
@@ -122,7 +123,7 @@ def cargas_nueva(request):
                     "puede_forzar": request.user.puede("administrar"), **contexto_selector(periodo)})
         verificaciones = {"avisos": revision.avisos, "errores_ignorados": revision.errores if forzada else []}
         try:
-            a = cargas.registrar_archivo(d["archivo"], d["tipo"], p, request.user, d.get("perfil"), sentido, formulario, verificaciones)
+            a = cargas.registrar_archivo(d["archivo"], d["tipo"], p, request.user, d.get("perfil"), sentido, formulario, verificaciones, varios)
         except cargas.ArchivoDuplicado as dup:
             messages.warning(request, "Ese archivo ya fue cargado antes (misma huella).")
             return redirect("carga_detalle", pk=dup.existente.pk)
@@ -163,13 +164,18 @@ def carga_confirmar(request, pk):
     a = get_object_or_404(ArchivoCargado, pk=pk)
     try:
         cargas.confirmar(a, request.user, omitir_filas_con_error=bool(request.POST.get("omitir")))
-    except PeriodoCerrado as exc:
+    except (PeriodoCerrado, cargas.ConflictoDeMeses) as exc:
         messages.error(request, str(exc))
         return redirect("carga_detalle", pk=pk)
     if a.estado == ArchivoCargado.Estado.IMPORTADO:
         from controles.tasks import ejecutar_reglas_periodo
 
-        ejecutar_reglas_periodo.delay(a.periodo_id)
+        ids = {a.periodo_id}
+        for mes in a.resumen.get("meses", []):  # carga de varios meses: se recalcula cada mes tocado
+            anio, numero = mes.split("-")
+            ids.add(Periodo.obtener(int(anio), int(numero)).pk)
+        for periodo_id in ids:
+            ejecutar_reglas_periodo.delay(periodo_id)
         messages.success(request, "Importación confirmada. Se están recalculando los controles del periodo.")
     else:
         messages.error(request, "La importación no se completó: revisa los errores.")

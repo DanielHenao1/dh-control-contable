@@ -20,6 +20,14 @@ Antes de guardar un archivo, el sistema revisa que sea del tipo, la empresa y el
 ## Quién puede subir pese a un error
 Solo el dueño (permiso «administrar»), marcando «Subir de todas formas». Queda en la auditoría como `carga_forzada` y en el detalle del archivo. El asistente de carga y los demás roles no pueden forzar.
 
+## Facturas de varios meses
+Una carga normal asigna todo el archivo a **un** periodo. Para facturas electrónicas que abarcan varios meses (por ejemplo, de enero a septiembre) marca **«El archivo trae varios meses: repartir las facturas por su fecha de emisión»** y elige como periodo el **último mes** del rango. Al confirmar, cada factura queda en el mes de su fecha y se recalculan los controles de todos los meses tocados.
+Reglas para no duplicar:
+- Un archivo de varios meses reemplaza solo a otro de varios meses con el mismo mes final y sentido; un archivo mensual no lo reemplaza.
+- Si ya hay facturas de un mes en otro archivo vigente, la confirmación se rechaza con un mensaje: usa o un archivo de varios meses o archivos mensuales para ese rango, no ambos.
+- Un mes **cerrado** no admite facturas nuevas.
+- Solo aplica a facturas (Excel DIAN y XML/zip).
+
 ## Avisos
 Se muestran al subir y quedan en el detalle del archivo («Avisos de la revisión previa»).
 

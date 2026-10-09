@@ -31,7 +31,20 @@ def _tercero(nit, nombre):
 
 
 def importar_facturas(archivo, filas):
-    objetos = []
+    from empresa.models import Periodo
+
+    objetos, periodos = [], {}
+
+    def periodo_de(fecha):
+        if not archivo.varios_meses:
+            return archivo.periodo
+        clave = (fecha.year, fecha.month)
+        if clave not in periodos:
+            p = Periodo.obtener(*clave)
+            p.verificar_abierto()  # un mes cerrado no admite facturas nuevas
+            periodos[clave] = p
+        return periodos[clave]
+
     for f in filas:
         nit_e = _tercero(f["nit_emisor"], f.get("nombre_emisor", ""))
         nit_r = _tercero(f["nit_receptor"], f.get("nombre_receptor", ""))
@@ -44,7 +57,7 @@ def importar_facturas(archivo, filas):
             subtotal = total - iva
         objetos.append(
             Factura(
-                periodo=archivo.periodo, archivo=archivo, sentido=archivo.sentido or "recibida",
+                periodo=periodo_de(f["fecha"]), archivo=archivo, sentido=archivo.sentido or "recibida",
                 tipo_documento=tipo, prefijo=f.get("prefijo", ""), numero=f["numero"],
                 cufe=f.get("cufe", ""), fecha=f["fecha"], nit_emisor=nit_e,
                 nombre_emisor=f.get("nombre_emisor", "")[:250], nit_receptor=nit_r,
@@ -54,4 +67,7 @@ def importar_facturas(archivo, filas):
             )
         )
     Factura.objects.bulk_create(objetos, batch_size=2000)
-    return {"facturas": len(objetos)}
+    resumen = {"facturas": len(objetos)}
+    if archivo.varios_meses:
+        resumen["meses"] = sorted(f"{a}-{m:02d}" for a, m in periodos)
+    return resumen

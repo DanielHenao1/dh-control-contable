@@ -259,6 +259,7 @@ class ArchivoCargado(models.Model):
     resumen = models.JSONField(default=dict, blank=True)
     errores = models.JSONField(default=list, blank=True)
     formulario = models.CharField(max_length=10, blank=True)  # declaraciones: 300, 350, 110, ica, otro
+    varios_meses = models.BooleanField(default=False, help_text="Facturas de varios meses: se reparten por su fecha de emisión")
     verificaciones = models.JSONField(default=dict, blank=True)  # avisos de la revisión previa y si se forzó
 
     class Meta:
@@ -285,8 +286,10 @@ class ArchivoCargado(models.Model):
         """El último archivo importado del mismo tipo/periodo/sentido es el vigente; los previos se conservan."""
         grupo = {"facturas_dian", "facturas_xml"}
         tipos = grupo if self.tipo in grupo else {self.tipo}
+        # Un archivo de varios meses solo reemplaza a otro de varios meses (y uno mensual a otro mensual): así un
+        # archivo de septiembre no deja sin facturas de enero a agosto.
         type(self).objects.filter(
-            tipo__in=tipos, periodo=self.periodo, sentido=self.sentido, vigente=True
+            tipo__in=tipos, periodo=self.periodo, sentido=self.sentido, vigente=True, varios_meses=self.varios_meses
         ).exclude(pk=self.pk).update(vigente=False)
         self.vigente = True
         self.save(update_fields=["vigente"])

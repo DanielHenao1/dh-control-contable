@@ -72,7 +72,7 @@ def _tipos_probables(columnas):
     return probables
 
 
-def _revisar_tabular(tipo, nombre, contenido, perfil, periodo, sentido, empresa, res):
+def _revisar_tabular(tipo, nombre, contenido, perfil, periodo, sentido, empresa, res, varios_meses=False):
     try:
         df = leer_dataframe(contenido, nombre, perfil)
     except (ErrorImportacion, ValueError, OSError) as exc:
@@ -103,7 +103,8 @@ def _revisar_tabular(tipo, nombre, contenido, perfil, periodo, sentido, empresa,
         return
     if lectura.faltantes or not lectura.filas:
         return
-    _revisar_periodo(lectura.filas, periodo, res)
+    if not varios_meses:
+        _revisar_periodo(lectura.filas, periodo, res)
     if tipo == "facturas_dian":
         _revisar_nit_facturas(lectura.filas, sentido, empresa, res)
 
@@ -195,12 +196,12 @@ def _revisar_declaracion(contenido, formulario, empresa, res):
         res.avisos.append(f"No encontré el NIT {empresa.nit_formateado} en el PDF: confirma que es de la empresa.")
 
 
-def verificar(tipo, nombre, contenido, periodo, empresa, perfil=None, sentido="", formulario=""):
+def verificar(tipo, nombre, contenido, periodo, empresa, perfil=None, sentido="", formulario="", varios_meses=False):
     res = Resultado()
     if not _revisar_extension(tipo, nombre, res):
         return res
     if tipo in TABULARES:
-        _revisar_tabular(tipo, nombre, contenido, perfil, periodo, sentido, empresa, res)
+        _revisar_tabular(tipo, nombre, contenido, perfil, periodo, sentido, empresa, res, varios_meses)
     elif tipo == "facturas_xml":
         _revisar_xml(nombre, contenido, sentido, empresa, res)
     elif tipo == "declaracion":

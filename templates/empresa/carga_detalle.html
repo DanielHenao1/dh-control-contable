@@ -2,7 +2,7 @@
 {% block contenido %}
 <h1>{{ a.nombre_original }}</h1>
 <div class="tarjeta">
-  <p><strong>{{ a.get_tipo_display }}</strong> · periodo {{ a.periodo }} · {{ a.tamano|filesizeformat }} · estado <span class="chip">{{ a.get_estado_display }}</span>{% if a.vigente %} · <span class="chip verde">vigente</span>{% endif %}</p>
+  <p><strong>{{ a.get_tipo_display }}</strong> · periodo {{ a.periodo }} · {{ a.tamano|filesizeformat }} · estado <span class="chip">{{ a.get_estado_display }}</span>{% if a.vigente %} · <span class="chip verde">vigente</span>{% endif %}{% if a.varios_meses %} · <span class="chip">varios meses</span>{% endif %}</p>
   <p style="font-size:13px;color:var(--gris-600)">Huella SHA-256: <code>{{ a.hash_sha256 }}</code></p>
   {% if a.resumen %}<p>Resumen: {% for k, v in a.resumen.items %}<span class="chip">{{ k }}: {{ v }}</span> {% endfor %}</p>{% endif %}
 </div>

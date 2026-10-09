@@ -276,6 +276,7 @@ def test_libro_sin_ningun_encabezado_se_rechaza_con_un_mensaje(cliente_dueno, em
 def test_sentido_obligatorio_salvo_que_el_perfil_lo_mapee(cliente_dueno, empresa):
     from django.core.files.uploadedfile import SimpleUploadedFile
 
+    PerfilImportacion.objects.filter(tipo="facturas_dian").update(activo=False)  # sin perfil DIAN, el sentido es obligatorio
     r = cliente_dueno.post("/cargas/nueva/", {"tipo": "facturas_dian", "anio": 2026, "mes": 9,
                                               "archivo": SimpleUploadedFile("x.csv", b"a\n1\n")})
     assert r.status_code == 200 and "emitidas o recibidas" in r.content.decode()

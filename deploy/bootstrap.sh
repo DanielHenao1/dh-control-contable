@@ -8,7 +8,15 @@ LLAVE=${2:?Indica la llave pública SSH entre comillas}
 
 export DEBIAN_FRONTEND=noninteractive
 apt-get update && apt-get -y upgrade
-apt-get install -y ufw fail2ban unattended-upgrades gnupg awscli ca-certificates curl git
+apt-get install -y ufw fail2ban unattended-upgrades gnupg ca-certificates curl git unzip
+
+# AWS CLI (para subir las copias al bucket S3): paquete de Ubuntu si existe; si no, instalador oficial de AWS
+if ! command -v aws &>/dev/null; then
+  apt-get install -y awscli || {
+    curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o /tmp/awscliv2.zip
+    unzip -q -o /tmp/awscliv2.zip -d /tmp && /tmp/aws/install && rm -rf /tmp/aws /tmp/awscliv2.zip
+  }
+fi
 
 # Usuario sin root con llave SSH
 id "$USUARIO" &>/dev/null || adduser --disabled-password --gecos "" "$USUARIO"

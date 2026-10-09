@@ -267,3 +267,20 @@ def test_exogena_cierra_lo_abierto_mientras_falte_el_anio(datos_iniciales):
     ejecutar_reglas(p, codigos=["TER002"])
     h = hallazgos(p, "TER002")[0]
     assert h.estado == "corregido" and "Todavía no aplica" in h.explicacion
+
+
+@pytest.mark.django_db
+def test_cargar_datos_iniciales_recalcula_los_controles_de_los_periodos_con_datos(datos_iniciales):
+    from django.core.management import call_command
+
+    p = periodo()
+    Tercero.objects.create(nit="900902549", dv="3", razon_social="X")
+    auxiliar(p, [(date(2026, 9, 1), "C1", "D1", "5195", "900902549", 1, 0)])
+    completar_anio(p)
+    ejecutar_reglas(p, codigos=["TER002"])
+    assert hallazgos(p, "TER002")[0].estado == "abierto"
+    from empresa.models import ArchivoCargado
+
+    ArchivoCargado.objects.filter(tipo="auxiliar", periodo__mes=3).delete()  # el año deja de estar completo
+    call_command("cargar_datos_iniciales")
+    assert hallazgos(p, "TER002")[0].estado == "corregido"

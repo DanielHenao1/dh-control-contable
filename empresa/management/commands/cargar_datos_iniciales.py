@@ -11,7 +11,7 @@ from calendario.dias_habiles import asegurar_festivos
 from calendario.generador import generar_obligaciones
 from calendario.models import Obligacion, ReglaVencimiento
 from contratistas.models import Contratista
-from empresa.models import Empresa, Parametro
+from empresa.models import Empresa, Parametro, PerfilImportacion
 from terceros.nit import calcular_dv
 
 V, PV = "verificado", "por_verificar"
@@ -173,4 +173,14 @@ class Command(BaseCommand):
         Obligacion.objects.filter(
             tipo__in=["retefuente", "exogena_distrital"], clave__in=["2026-09", "2025"], estado="pendiente", elabora="",
         ).update(elabora="Ideako")
+        # Perfil del exporte real de la DIAN (libro con una hoja por mes y columna Grupo = Emitido/Recibido).
+        PerfilImportacion.objects.get_or_create(
+            nombre="DIAN · libro de facturas (una hoja por mes)", tipo="facturas_dian",
+            defaults=dict(hoja="*", formato_fecha="%d-%m-%Y", mapeo={
+                "tipo_documento": "Tipo de documento", "prefijo": "Prefijo", "numero": "Folio", "cufe": "CUFE/CUDE",
+                "fecha": "Fecha Emisión", "nit_emisor": "NIT Emisor", "nombre_emisor": "Nombre Emisor",
+                "nit_receptor": "NIT Receptor", "nombre_receptor": "Nombre Receptor", "iva": "IVA", "total": "Total",
+                "estado_dian": "Estado", "sentido": "Grupo",
+            }),
+        )
         self.stdout.write(self.style.SUCCESS(f"Datos iniciales listos. Obligaciones nuevas: {n}. Marcadas como presentadas y pagadas: {n_hist}. DV del NIT: {dv}."))

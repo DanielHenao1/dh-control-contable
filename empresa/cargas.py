@@ -85,33 +85,39 @@ def previsualizar(archivo, max_filas=20):
     return leer_archivo(archivo, max_filas=max_filas)
 
 
+def _sentidos_y_meses(archivo, filas):
+    """Pares (sentido, año, mes) que toca el archivo: el sentido sale de cada fila si el archivo trae esa columna."""
+    from facturacion.importadores import _no_es_factura, _sentido_de
+
+    por_defecto = archivo.sentido or "recibida"
+    pares = set()
+    for f in filas:
+        if _no_es_factura(f.get("tipo_documento", "")):
+            continue
+        fecha = f["fecha"] if archivo.varios_meses else None
+        anio, mes = (fecha.year, fecha.month) if fecha else (archivo.periodo.anio, archivo.periodo.mes)
+        pares.add((_sentido_de(f.get("sentido"), por_defecto), anio, mes))
+    return pares
+
+
 def _verificar_conflicto_de_meses(archivo, filas):
     """Evita duplicar facturas entre un archivo de varios meses y los archivos mensuales (o entre dos de varios meses)."""
     from facturacion.models import Factura
 
-    sentido = archivo.sentido or "recibida"
-    grupo = {"facturas_dian", "facturas_xml"}
     reemplazados = ArchivoCargado.objects.filter(
-        tipo__in=grupo, periodo=archivo.periodo, sentido=archivo.sentido, vigente=True, varios_meses=archivo.varios_meses,
+        tipo__in={"facturas_dian", "facturas_xml"}, periodo=archivo.periodo, sentido=archivo.sentido, vigente=True,
+        varios_meses=archivo.varios_meses,
     ).exclude(pk=archivo.pk)
-    if archivo.varios_meses:
-        meses = {(f["fecha"].year, f["fecha"].month) for f in filas}
-        ocupados = set()
-        for anio, mes in sorted(meses):
-            hay = Factura.objects.filter(
-                archivo__vigente=True, sentido=sentido, periodo__anio=anio, periodo__mes=mes
-            ).exclude(archivo__in=reemplazados).exists()
-            if hay:
-                ocupados.add(f"{mes:02d}/{anio}")
-    else:
-        ocupados = set()
-        if Factura.objects.filter(
-            archivo__vigente=True, archivo__varios_meses=True, sentido=sentido, periodo=archivo.periodo
-        ).exclude(archivo__in=reemplazados).exists():
-            ocupados.add(f"{archivo.periodo.mes:02d}/{archivo.periodo.anio}")
+    ocupados = set()
+    for sentido, anio, mes in sorted(_sentidos_y_meses(archivo, filas)):
+        consulta = Factura.objects.filter(archivo__vigente=True, sentido=sentido, periodo__anio=anio, periodo__mes=mes)
+        if not archivo.varios_meses:
+            consulta = consulta.filter(archivo__varios_meses=True)  # entre archivos mensuales manda el reemplazo normal
+        if consulta.exclude(archivo__in=reemplazados).exists():
+            ocupados.add(f"{sentido}s {mes:02d}/{anio}")
     if ocupados:
         raise ConflictoDeMeses(
-            f"Ya hay facturas {sentido}s de {', '.join(sorted(ocupados))} en otro archivo vigente: cargar este las duplicaría. "
+            f"Ya hay facturas de {', '.join(sorted(ocupados))} en otro archivo vigente: cargar este las duplicaría. "
             "Usa un solo archivo de varios meses o archivos mensuales, no ambos."
         )
 

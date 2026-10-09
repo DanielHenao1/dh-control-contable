@@ -5,7 +5,7 @@ import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client
 
-from empresa.models import ArchivoCargado, Empresa, Periodo, RegistroAuditoria
+from empresa.models import ArchivoCargado, Empresa, PerfilImportacion, Periodo, RegistroAuditoria
 from empresa.validacion_archivos import verificar
 
 from .conftest import usuario_con_rol
@@ -212,3 +212,85 @@ def test_varios_meses_solo_para_facturas(cliente_dueno, empresa):
     r = cliente_dueno.post("/cargas/nueva/", {"tipo": "balance", "anio": 2026, "mes": 9, "varios_meses": "on",
                                               "archivo": SimpleUploadedFile("b.xlsx", xlsx(BALANCE))})
     assert r.status_code == 200 and "solo aplica a facturas" in r.content.decode()
+
+
+COLUMNAS_DIAN = [
+    "Tipo de documento", "CUFE/CUDE", "Folio", "Prefijo", "Divisa", "Fecha Emisión", "NIT Emisor", "Nombre Emisor",
+    "NIT Receptor", "Nombre Receptor", "IVA", "Total", "Estado", "Grupo",
+]
+
+
+def _fila_dian(tipo, folio, fecha, emisor, receptor, iva, total, grupo):
+    return [tipo, f"CUFE{folio}{grupo}", folio, "FE", "COP", fecha, emisor, "EMISOR EJEMPLO", receptor, "RECEPTOR EJEMPLO",
+            iva, total, "Aprobado", grupo]
+
+
+def libro_dian(empresa, sin_encabezado_en=None):
+    """Libro como el que baja la DIAN: una hoja por mes, columna Grupo y documentos que no son facturas."""
+    buf = io.BytesIO()
+    nit = int(empresa.nit)
+    with pd.ExcelWriter(buf) as w:
+        for mes, hoja in ((1, "ENERO"), (2, "FEBRERO "), (3, "MARZO")):
+            filas = [
+                _fila_dian("Factura electrónica", 100 + mes, f"10-{mes:02d}-2026", nit, 900300300, 190, 1190, "Emitido"),
+                _fila_dian("Factura electrónica", 200 + mes, f"12-{mes:02d}-2026", 800100100, nit, 380, 2380, "Recibido"),
+                _fila_dian("Documento soporte con no obligados", 300 + mes, f"15-{mes:02d}-2026", nit, 35511082, 0, 650000, "Emitido"),
+                _fila_dian("Application response", 400 + mes, f"12-{mes:02d}-2026", 800100100, nit, 0, 0, "Recibido"),
+                _fila_dian("Nomina Individual", 500 + mes, f"28-{mes:02d}-2026", nit, 53062507, 0, 1500000, "Emitido"),
+            ]
+            df = pd.DataFrame(filas, columns=COLUMNAS_DIAN)
+            if hoja.strip() == sin_encabezado_en:
+                df.to_excel(w, sheet_name=hoja, index=False, header=False, startrow=1)  # primera fila vacía y sin encabezado
+            else:
+                df.to_excel(w, sheet_name=hoja, index=False)
+    return buf.getvalue()
+
+
+def test_libro_de_la_dian_con_una_hoja_por_mes(cliente_dueno, empresa):
+    from facturacion.models import Factura
+
+    perfil = PerfilImportacion.objects.get(tipo="facturas_dian")
+    a = _subir_y_confirmar(cliente_dueno, libro_dian(empresa, sin_encabezado_en="FEBRERO"), "dian.xlsx",
+                           perfil=perfil.pk, varios_meses="on", sentido="")
+    assert a.estado == "importado", a.errores
+    assert a.resumen["facturas"] == 9 and a.resumen["no_son_facturas_omitidas"] == 6
+    assert a.resumen["meses"] == ["2026-01", "2026-02", "2026-03"]
+    assert Factura.objects.filter(sentido="emitida", tipo_documento="factura").count() == 3
+    assert Factura.objects.filter(sentido="recibida", tipo_documento="factura").count() == 3
+    assert Factura.objects.filter(sentido="emitida", tipo_documento="doc_soporte").count() == 3
+    assert {(f.periodo.anio, f.periodo.mes) for f in Factura.objects.all()} == {(2026, 1), (2026, 2), (2026, 3)}
+
+
+def test_libro_sin_ningun_encabezado_se_rechaza_con_un_mensaje(cliente_dueno, empresa):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    buf = io.BytesIO()
+    pd.DataFrame([_fila_dian("Factura electrónica", 1, "10-01-2026", 1, 2, 0, 5, "Emitido")]).to_excel(buf, index=False, header=False)
+    r = cliente_dueno.post("/cargas/nueva/", {
+        "tipo": "facturas_dian", "anio": 2026, "mes": 9, "varios_meses": "on",
+        "perfil": PerfilImportacion.objects.get(tipo="facturas_dian").pk,
+        "archivo": SimpleUploadedFile("x.xlsx", buf.getvalue())})
+    assert r.status_code == 200 and "no tiene encabezado" in r.content.decode()
+
+
+def test_sentido_obligatorio_salvo_que_el_perfil_lo_mapee(cliente_dueno, empresa):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    r = cliente_dueno.post("/cargas/nueva/", {"tipo": "facturas_dian", "anio": 2026, "mes": 9,
+                                              "archivo": SimpleUploadedFile("x.csv", b"a\n1\n")})
+    assert r.status_code == 200 and "emitidas o recibidas" in r.content.decode()
+
+
+def test_columna_grupo_incoherente_con_los_nit(cliente_dueno, empresa):
+    perfil = PerfilImportacion.objects.get(tipo="facturas_dian")
+    buf = io.BytesIO()
+    nit = int(empresa.nit)
+    filas = [_fila_dian("Factura electrónica", i, "10-09-2026", 800100100, nit, 190, 1190, "Emitido") for i in range(1, 5)]
+    pd.DataFrame(filas, columns=COLUMNAS_DIAN).to_excel(buf, index=False)
+    r = verificar("facturas_dian", "x.xlsx", buf.getvalue(), Periodo.obtener(2026, 9), Empresa.actual(), perfil)
+    assert r.ok and "no coinciden con su columna Emitido/Recibido" in r.avisos[0]
+    otra = pd.DataFrame([_fila_dian("Factura electrónica", 1, "10-09-2026", 1, 2, 0, 5, "Emitido")], columns=COLUMNAS_DIAN)
+    buf2 = io.BytesIO()
+    otra.to_excel(buf2, index=False)
+    r = verificar("facturas_dian", "x.xlsx", buf2.getvalue(), Periodo.obtener(2026, 9), Empresa.actual(), perfil)
+    assert not r.ok and "otra empresa" in r.errores[0]

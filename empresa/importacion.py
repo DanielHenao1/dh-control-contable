@@ -56,6 +56,7 @@ CAMPOS_POR_TIPO = {
         Campo("retenciones", "Retenciones", "numero"),
         Campo("total", "Total", "numero", True),
         Campo("estado_dian", "Estado DIAN"),
+        Campo("sentido", "Emitido o recibido (columna Grupo)"),
     ],
     "retenciones": [
         Campo("fecha", "Fecha del pago", "fecha", True),
@@ -93,9 +94,44 @@ class Lectura:
     faltantes: list = field(default_factory=list)
 
 
+def _es_encabezado(fila, siguiente):
+    """Una fila es encabezado si todas sus celdas son texto y la siguiente trae algún número."""
+    celdas = [c for c in fila if not (c is None or (isinstance(c, float) and pd.isna(c)))]
+    if len(celdas) < 3 or not all(isinstance(c, str) for c in celdas):
+        return False
+    return siguiente is None or any(isinstance(c, (int, float, Decimal)) and not pd.isna(c) for c in siguiente)
+
+
+def leer_todas_las_hojas(contenido: bytes) -> pd.DataFrame:
+    """Libro con una hoja por mes (el exporte de la DIAN): junta todas las hojas en una tabla.
+
+    Una hoja sin encabezado (por ejemplo, borrado a mano) reutiliza el de la hoja anterior si trae las mismas columnas.
+    """
+    libro = pd.ExcelFile(io.BytesIO(contenido))
+    columnas, partes = None, []
+    for hoja in libro.sheet_names:
+        crudo = libro.parse(hoja, header=None, dtype=object).dropna(how="all")
+        if crudo.empty:
+            continue
+        filas = crudo.values.tolist()
+        if _es_encabezado(filas[0], filas[1] if len(filas) > 1 else None):
+            columnas = [str(c).strip() for c in filas[0]]
+            crudo = crudo.iloc[1:]
+        elif columnas is None or len(columnas) != crudo.shape[1]:
+            raise ErrorImportacion(f"La hoja «{hoja.strip()}» no tiene encabezado y no hay uno anterior que se pueda reutilizar.")
+        crudo = crudo.copy()
+        crudo.columns = columnas
+        partes.append(crudo)
+    if not partes:
+        raise ErrorImportacion("El libro no tiene hojas con datos.")
+    return pd.concat(partes, ignore_index=True)
+
+
 def leer_dataframe(contenido: bytes, nombre: str, perfil) -> pd.DataFrame:
     header = max((perfil.fila_encabezado if perfil else 1) - 1, 0)
     ext = nombre.lower().rsplit(".", 1)[-1]
+    if ext in ("xlsx", "xlsm", "xls") and perfil and perfil.hoja.strip() == "*":
+        return leer_todas_las_hojas(contenido)
     if ext in ("xlsx", "xlsm", "xls"):
         hoja = (perfil.hoja if perfil and perfil.hoja else 0)
         return pd.read_excel(io.BytesIO(contenido), sheet_name=hoja, header=header, dtype=object)

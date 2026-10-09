@@ -28,6 +28,17 @@ Reglas para no duplicar:
 - Un mes **cerrado** no admite facturas nuevas.
 - Solo aplica a facturas (Excel DIAN y XML/zip).
 
+## Libro de facturas de la DIAN (una hoja por mes)
+El Excel que baja la DIAN trae las facturas **emitidas y recibidas juntas**, una hoja por mes y una columna **Grupo** (Emitido/Recibido). Para cargarlo:
+1. Cargas → Nueva carga → «Facturas electrónicas (Excel DIAN)».
+2. Perfil: **«DIAN · libro de facturas (una hoja por mes)»** (viene creado: lee todas las hojas, usa Folio como número, Fecha Emisión en formato día-mes-año, Estado como estado DIAN y Grupo como sentido).
+3. Deja el sentido vacío (lo toma de la columna Grupo), marca **«El archivo trae varios meses»** y elige como periodo el último mes (septiembre de 2026).
+Detalles:
+- Una hoja sin encabezado (por ejemplo, con la primera fila borrada) reutiliza el encabezado de la hoja anterior si tiene las mismas columnas.
+- **No son facturas y se omiten** (se cuentan en el resumen de la carga como «no_son_facturas_omitidas»): acuses de recibo (*Application response*), nómina electrónica individual y notas de ajuste del documento soporte.
+- Los *documentos soporte* (compras a no obligados a facturar) quedan como documento soporte emitido y no entran al IVA, como ya lo hacían las reglas.
+- Si todas las filas son de otra empresa se rechaza; si algunas no coinciden con su columna Grupo o con el NIT, avisa.
+
 ## Avisos
 Se muestran al subir y quedan en el detalle del archivo («Avisos de la revisión previa»).
 

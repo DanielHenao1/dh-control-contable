@@ -126,6 +126,27 @@ def _revisar_nit_facturas(filas, sentido, empresa, res):
     if empresa is None:
         return
     mio = empresa.nit
+    if any(f.get("sentido") for f in filas):  # el archivo trae Emitido/Recibido en cada fila
+        ajenas = incoherentes = 0
+        for f in filas:
+            etiqueta = (f.get("sentido") or "").strip().lower()
+            es_emisor = _nit_de(f.get("nit_emisor")) == mio
+            es_receptor = _nit_de(f.get("nit_receptor")) == mio
+            if not (es_emisor or es_receptor):
+                ajenas += 1
+            elif (etiqueta.startswith("emit") and not es_emisor) or (etiqueta.startswith("recib") and not es_receptor):
+                incoherentes += 1
+        if ajenas == len(filas):
+            res.errores.append(
+                f"Ninguna factura revisada pertenece a {empresa.razon_social} (NIT {empresa.nit_formateado}). "
+                "Parece un archivo de otra empresa."
+            )
+        elif ajenas or incoherentes:
+            res.avisos.append(
+                f"{ajenas + incoherentes} de {len(filas)} filas revisadas no coinciden con su columna Emitido/Recibido "
+                "o con el NIT de la empresa."
+            )
+        return
     emisor = sum(1 for f in filas if _nit_de(f.get("nit_emisor")) == mio)
     receptor = sum(1 for f in filas if _nit_de(f.get("nit_receptor")) == mio)
     if emisor == 0 and receptor == 0:

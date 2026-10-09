@@ -98,7 +98,8 @@ def generar_obligaciones(anio_desde, anio_hasta, empresa=None):
 
         # Sin fecha publicada / sin verificar
         for tipo, nombre, nota in () if (minima and anio < minima.year) else (
-            ("exogena", "Información exógena", "La DIAN fija las fechas por resolución a fin de año."),
+            ("exogena", "Información exógena DIAN", "La DIAN fija las fechas por resolución a fin de año."),
+            ("exogena_distrital", "Información exógena distrital (Bogotá)", "La Secretaría Distrital de Hacienda fija las fechas por resolución a mitad de año."),
             ("rub", "Registro de beneficiarios finales (RUB)", "Fecha y norma por confirmar con Ideako."),
         ):
             obj, c = Obligacion.objects.get_or_create(

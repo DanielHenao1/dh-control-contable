@@ -44,6 +44,7 @@ PARAMETROS = [
     ("PUC_INVENTARIOS", "Prefijos de inventarios", "lista", "14", date(2025, 1, 1), None, PV, "PUC: grupo 14"),
     ("PUC_ACTIVO_CORRIENTE", "Prefijos del activo corriente (para liquidez)", "lista", "", date(2025, 1, 1), None, PV, "Definir con el contador"),
     ("PUC_PASIVO_CORRIENTE", "Prefijos del pasivo corriente (para liquidez)", "lista", "", date(2025, 1, 1), None, PV, "Definir con el contador"),
+    ("PUC_CUENTAS_CONTRA", "Cuentas que por diseño llevan saldo contrario a su clase (depreciación acumulada, provisiones, devoluciones en ventas, IVA)", "lista", "1299,1399,1499,1592,1597,1599,4175,2408", date(2025, 1, 1), None, PV, "PUC comercial; confirmar contra el plan de cuentas real"),
     ("PUC_NO_DEDUCIBLES", "Cuentas de gastos no deducibles", "lista", "", date(2025, 1, 1), None, PV, "Definir con el contador"),
     ("PUC_ACTIVOS_FIJOS", "Prefijos de propiedad, planta y equipo depreciable", "lista", "1524,1528,1540", date(2025, 1, 1), None, PV, "PUC comercial; confirmar contra el plan de cuentas real"),
     ("PUC_GASTO_DEPRECIACION", "Prefijos del gasto de depreciación", "lista", "5160", date(2025, 1, 1), None, PV, "PUC comercial; confirmar contra el plan de cuentas real"),

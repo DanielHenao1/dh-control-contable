@@ -3,6 +3,7 @@ from facturacion.models import facturas_vigentes
 from terceros.models import Tercero
 
 from .motor import Resultado, regla
+from .reglas_exogena import sin_anio_completo
 
 
 def _nits_del_periodo(periodo):
@@ -28,7 +29,10 @@ def dv_errado(periodo):
 
 @regla("TER002", "terceros", "Datos incompletos para exógena", "baja", "Resolución DIAN de información exógena: identificación, nombre, dirección y municipio")
 def datos_incompletos(periodo):
-    """Terceros movidos en el periodo sin los datos mínimos que exige la exógena."""
+    """Terceros movidos en el periodo sin los datos mínimos que exige la exógena (se evalúa con el año completo)."""
+    pendiente = sin_anio_completo(periodo)
+    if pendiente:
+        return pendiente
     salida = []
     for t in Tercero.objects.filter(nit__in=_nits_del_periodo(periodo)):
         faltan = t.faltantes_exogena()

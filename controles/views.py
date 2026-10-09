@@ -16,10 +16,11 @@ from .motor import ejecutar_reglas
 @requiere("ver")
 def bandeja(request):
     periodo = periodo_desde_request(request)
-    qs = Hallazgo.objects.filter(periodo=periodo).select_related("regla")
-    for campo in ("estado", "severidad"):
-        if request.GET.get(campo):
-            qs = qs.filter(**{campo: request.GET[campo]})
+    base = Hallazgo.objects.filter(periodo=periodo).select_related("regla")
+    estado = request.GET.get("estado", "abierto")  # por defecto solo lo pendiente; lo corregido o explicado no estorba
+    qs = base if estado in ("", "todos") else base.filter(estado=estado)
+    if request.GET.get("severidad"):
+        qs = qs.filter(severidad=request.GET["severidad"])
     if request.GET.get("grupo"):
         qs = qs.filter(regla__grupo=request.GET["grupo"])
     if request.GET.get("q"):
@@ -32,7 +33,12 @@ def bandeja(request):
         return r
     ctx = {
         "hallazgos": qs, "titulo": "Hallazgos", "grupos": ReglaControl.objects.values_list("grupo", flat=True).distinct().order_by("grupo"),
-        "filtros": request.GET, **contexto_selector(periodo),
+        "filtros": request.GET, "estado": estado, **contexto_selector(periodo),
+        "resumen": {
+            "abiertos": base.filter(estado="abierto").count(), "explicados": base.filter(estado="explicado").count(),
+            "corregidos": base.filter(estado="corregido").count(),
+            "altas": base.filter(estado="abierto", severidad="alta").count(),
+        },
     }
     return render(request, "controles/bandeja.html", ctx)
 

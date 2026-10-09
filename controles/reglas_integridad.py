@@ -43,6 +43,9 @@ def saldo_calculado(periodo):
     return salida
 
 
+CUENTAS_CONTRA_DEFECTO = ["1299", "1399", "1499", "1592", "1597", "1599", "4175", "2408"]
+
+
 @regla("INT003", "integridad", "Cuenta con saldo de naturaleza contraria", "media",
        "Un activo con saldo crédito o un pasivo con saldo débito suele indicar un error de registro")
 def naturaleza_contraria(periodo):
@@ -50,6 +53,9 @@ def naturaleza_contraria(periodo):
     salida = []
     # El IVA descontable vive en una cuenta de pasivo (2408) pero su saldo normal es débito: no es un error.
     exentas = tuple(Parametro.obtener_o("PUC_IVA_DESCONTABLE", []) or [])
+    # Cuentas que por diseño llevan el saldo contrario a su clase (PUC comercial): depreciación y amortización acumuladas,
+    # provisiones, devoluciones en ventas y la cuenta mixta del IVA.
+    exentas += tuple(Parametro.obtener_o("PUC_CUENTAS_CONTRA", CUENTAS_CONTRA_DEFECTO) or [])
     for s in hojas(saldos_vigentes(periodo)):
         if s.cuenta.clase not in "123456" or abs(s.saldo_final) <= TOLERANCIA:
             continue

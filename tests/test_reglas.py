@@ -96,9 +96,21 @@ def test_facturas_duplicadas_notas_y_numeracion(datos_iniciales):
     assert "Faltan 3" in hallazgos(p, "FAC006")[0].detalle  # faltan 3, 4 y 6
 
 
+def completar_anio(p):
+    """Auxiliares vigentes de los 12 meses del año: desde ahí aplican los controles de exógena."""
+    from empresa.models import Periodo
+
+    from .helpers import archivo
+
+    for mes in range(1, 13):
+        if mes != p.mes:
+            archivo("auxiliar", Periodo.obtener(p.anio, mes))
+
+
 @pytest.mark.django_db
 def test_tercero_dv_y_datos(datos_iniciales):
     p = periodo()
+    completar_anio(p)
     Tercero.objects.create(nit="900902549", dv="3", razon_social="X")
     Tercero.objects.create(nit="800197268", dv="4", razon_social="DIAN", direccion="Cra", ciudad="Bogotá", tipo_persona="juridica")
     auxiliar(p, [(date(2026, 9, 1), "C1", "D1", "5195", "900902549", 1, 0), (date(2026, 9, 1), "C1", "D1", "2205", "800197268", 0, 1)])
@@ -182,6 +194,10 @@ def test_renta_reglas(datos_iniciales):
 @pytest.mark.django_db
 def test_exogena_sin_tope_avisa(datos_iniciales):
     p = periodo()
+    auxiliar(p, [(date(2026, 9, 1), "C0", "D0", "5195", "900333", 0, 0)])
+    ejecutar_reglas(p, codigos=["EXO001"])
+    assert hallazgos(p, "EXO001") == []  # con solo septiembre cargado la exógena no se evalúa
+    completar_anio(p)
     ejecutar_reglas(p, codigos=["EXO001"])
     assert hallazgos(p, "EXO001")[0].clave == "sin-tope"
     Parametro.objects.filter(codigo="EXOGENA_TOPE_PESOS").update(valor="1000000", estado="verificado")
@@ -228,6 +244,26 @@ def test_iva_descontable_con_saldo_debito_no_es_naturaleza_contraria(datos_inici
 
     p = periodo()
     balance(p, [("240802", "IVA descontable", 0, 703000, 0, -703000), ("220505", "Proveedores", 0, 0, 100, -100)])
-    assert {r.clave for r in naturaleza_contraria(p)} == {"240802", "220505"}
-    Parametro.objects.filter(codigo="PUC_IVA_DESCONTABLE").update(valor="240802", estado="verificado")
-    assert {r.clave for r in naturaleza_contraria(p)} == {"220505"}  # solo el descontable queda exento
+    # la cuenta 2408 (IVA) y la depreciación acumulada (1592) llevan saldo contrario por diseño; el proveedor no
+    assert {r.clave for r in naturaleza_contraria(p)} == {"220505"}
+    balance(p, [("159205", "Depreciación acumulada", 0, 0, 0, -500), ("240802", "IVA descontable", 0, 703000, 0, -703000)])
+    assert {r.clave for r in naturaleza_contraria(p)} == {"220505"}
+    Parametro.objects.filter(codigo="PUC_CUENTAS_CONTRA").update(valor="9999", estado="verificado")
+    assert {r.clave for r in naturaleza_contraria(p)} >= {"220505", "159205"}
+
+
+@pytest.mark.django_db
+def test_exogena_cierra_lo_abierto_mientras_falte_el_anio(datos_iniciales):
+    """Hallazgos de exógena creados con el año completo se cierran con motivo si luego deja de estarlo."""
+    from empresa.models import ArchivoCargado
+
+    p = periodo()
+    Tercero.objects.create(nit="900902549", dv="3", razon_social="X")
+    auxiliar(p, [(date(2026, 9, 1), "C1", "D1", "5195", "900902549", 1, 0)])
+    completar_anio(p)
+    ejecutar_reglas(p, codigos=["TER002"])
+    assert [h.estado for h in hallazgos(p, "TER002")] == ["abierto"]
+    ArchivoCargado.objects.filter(tipo="auxiliar", periodo__mes=3).delete()
+    ejecutar_reglas(p, codigos=["TER002"])
+    h = hallazgos(p, "TER002")[0]
+    assert h.estado == "corregido" and "Todavía no aplica" in h.explicacion

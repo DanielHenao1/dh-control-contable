@@ -24,7 +24,7 @@ El tablero muestra un aviso mientras haya parámetros “por verificar” o vac�
 11. **Usuario aduanero (código 23)** y si hay comercio exterior.
 12. **Exógena:** (a) ¿se presentó la de la DIAN año gravable 2025 (vencía el 28-may-2026)? (b) La distrital de Bogotá AG 2025 vence el **26-oct-2026**: confirmar quién la presenta (¿está dentro del contrato con Ideako?) y que la empresa está obligada. Verificar las fechas en los textos oficiales (Res. DIAN 000227 de 2025 y Res. SDH DDI-024115 de 2026).
 12b. **Otros impuestos y obligaciones por confirmar si aplican:** impuesto predial y vehicular de Bogotá (¿inmuebles o vehículos a nombre de la empresa?), informes a la Superintendencia de Sociedades (la empresa está vigilada), exógena nacional y distrital (fechas por resolución), sobretasa bomberil (solo ingresos altos) y el formulario donde se declara la ReteIVA. Se agregan cuando se confirme que aplican y con fuente.
-13. **Fechas laborales** (cesantías, prima): decidir si aplican (¿hay empleados con contrato laboral?); si no, se retiran del calendario.
+13. **Fechas laborales** (cesantías, prima): decisión del dueño (9-oct-2026): se dejan pendientes tal como están en el calendario.
 14. **Por escrito con Ideako:** que la retención de septiembre (22-oct-2026) está dentro del servicio, y el acuse del ICA del 4.º bimestre ya pagado.
 
 ## Cosas que probar con archivos reales

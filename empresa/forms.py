@@ -1,5 +1,4 @@
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
 
 from .importacion import CAMPOS_POR_TIPO
 from .models import ArchivoCargado, Parametro, PerfilImportacion, Periodo, Usuario
@@ -49,10 +48,27 @@ class ParametroForm(forms.ModelForm):
         }
 
 
-class UsuarioForm(UserCreationForm):
+class UsuarioForm(forms.ModelForm):
+    """Alta de usuario por invitación: no se define contraseña; la persona la crea con el enlace que recibe por correo."""
+
+    email = forms.EmailField(label="Correo electrónico", help_text="Aquí se envía la invitación para crear su contraseña.")
+
     class Meta:
         model = Usuario
         fields = ["username", "first_name", "last_name", "email", "rol"]
+
+    def clean_email(self):
+        email = self.cleaned_data["email"].strip()
+        if Usuario.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError("Ya hay un usuario con este correo.")
+        return email
+
+    def save(self, commit=True):
+        usuario = super().save(commit=False)
+        usuario.set_unusable_password()
+        if commit:
+            usuario.save()
+        return usuario
 
 
 class PeriodoEstadoForm(forms.Form):

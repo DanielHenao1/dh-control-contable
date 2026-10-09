@@ -1,0 +1,12 @@
+{% extends "empresa/cuenta_base.html" %}
+{% block title %}Recuperar contraseña{% endblock %}
+{% block tarjeta %}
+<h2>Recuperar contraseña</h2>
+<p class="sub">Escribe el correo de tu usuario. Si existe, te enviaremos un enlace para crear una contraseña nueva.</p>
+<form method="post">{% csrf_token %}
+  <label for="id_email">Correo electrónico</label>
+  <div class="campo"><span class="icono" aria-hidden="true">✉</span><input type="email" name="email" id="id_email" autocomplete="email" autofocus required placeholder="tu@correo.com"></div>
+  <button class="btn grande" type="submit">Enviar enlace</button>
+</form>
+<p class="seguro"><a href="{% url 'login' %}">Volver a ingresar</a></p>
+{% endblock %}

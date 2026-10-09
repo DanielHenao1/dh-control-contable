@@ -130,3 +130,9 @@ body.login{background:#0e1a33}
 .pie-login{background:var(--fondo);padding:14px}
 body.login .pie-login{color:var(--gris-600)}
 @media (max-width:860px){.login-pagina{grid-template-columns:1fr}.login-marca{padding:28px 22px}.login-marca h1{font-size:26px}.login-marca .lema{font-size:15px}.beneficios{display:none}.linea-dorada{margin:20px auto 16px}.login-form{padding:24px 16px}}
+
+/* ---- Pantallas de cuenta (recuperar / crear contraseña) ---- */
+.cuenta-pagina{min-height:calc(100vh - 56px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;padding:32px 16px;background:radial-gradient(circle at 85% 12%,#3b86d9 0,#3b86d900 38%),linear-gradient(150deg,#0f1f3d 0%,#1b3566 60%,#245aa3 120%)}
+.logo-cuenta{width:min(240px,60%);height:auto;filter:drop-shadow(0 8px 18px #0006)}
+.cuenta-pagina .login-tarjeta p.sub{margin-bottom:18px}
+.login-tarjeta .seguro a{color:var(--acento)}

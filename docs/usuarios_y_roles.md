@@ -1,6 +1,6 @@
 # Usuarios y roles
 
-Los usuarios los crea el dueño en **Configuración → Nuevo usuario**. El sistema **no envía invitaciones por correo**: el dueño define la contraseña inicial (larga y única) y se la entrega a la persona por un canal seguro (en persona o mensaje privado, nunca por correo con otras claves). En su primer ingreso la persona configura su propio doble factor con su celular y guarda sus códigos de recuperación.
+Los usuarios los crea el dueño en **Configuración → Nuevo usuario** con su nombre, correo y rol. El sistema le envía una **invitación por correo** con un enlace (vale 3 días) para que la persona cree su propia contraseña; el dueño nunca la conoce. Si el correo falla, usa **Reenviar invitación** en la lista de usuarios. En su primer ingreso la persona configura su doble factor con su celular y guarda sus códigos de recuperación. Quien olvide su contraseña usa «¿Olvidaste tu contraseña?» en el ingreso (requiere el correo SMTP configurado; ver `docs/correo_smtp.md`).
 
 | Rol | Qué puede hacer | Qué NO puede |
 |---|---|---|

@@ -1,0 +1,7 @@
+{% extends "empresa/cuenta_base.html" %}
+{% block title %}Revisa tu correo{% endblock %}
+{% block tarjeta %}
+<h2>Revisa tu correo</h2>
+<p class="sub">Si el correo corresponde a un usuario activo, en unos minutos llegará un enlace para crear tu contraseña. Revisa también la carpeta de spam.</p>
+<p class="seguro"><a href="{% url 'login' %}">Volver a ingresar</a></p>
+{% endblock %}

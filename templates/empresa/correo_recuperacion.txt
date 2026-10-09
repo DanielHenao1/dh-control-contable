@@ -1,0 +1,12 @@
+Hola {{ user.get_full_name|default:user.username }},
+
+Recibimos una solicitud para definir o recuperar la contraseña de tu usuario "{{ user.username }}" en DH Control Contable.
+
+Crea una contraseña nueva en este enlace (vale 3 días):
+{{ protocol }}://{{ domain }}{% url 'clave_definir' uidb64=uid token=token %}
+
+Tu doble factor no cambia. Si perdiste el celular, usa un código de recuperación o pide ayuda al administrador.
+
+Si no fuiste tú, ignora este correo: tu contraseña actual sigue igual.
+
+DH Grupo Empresarial

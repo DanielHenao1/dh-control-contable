@@ -70,3 +70,13 @@ def test_importar_xml(dueno):
     assert a.estado == "importado"
     f = Factura.objects.get()
     assert f.sentido == "recibida" and f.numero_completo == "SETP990000123"
+
+
+def test_xml_no_resuelve_entidades_externas(tmp_path):
+    secreto = tmp_path / "secreto.txt"
+    secreto.write_text("CONTENIDO-SECRETO")
+    malo = f'<?xml version="1.0"?><!DOCTYPE Invoice [<!ENTITY x SYSTEM "file://{secreto}">]><Invoice><ID>&x;</ID></Invoice>'.encode()
+    try:
+        parsear_xml(malo)
+    except Exception as exc:
+        assert "CONTENIDO-SECRETO" not in str(exc)

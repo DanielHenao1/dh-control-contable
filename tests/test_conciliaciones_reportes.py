@@ -138,3 +138,11 @@ def test_tablero_con_datos(cliente_dueno, datos_iniciales):
     assert Empresa.actual().nit_formateado == "900.902.549-7"
     Parametro.objects.filter(codigo="RENTA_TARIFA").delete()
     assert cliente_dueno.get("/fiscal/?anio=2026&mes=9").status_code == 200
+
+
+def test_excel_neutraliza_formulas():
+    from reportes.informe import tabla_a_excel
+
+    wb = load_workbook(io.BytesIO(tabla_a_excel("T", ["a"], [("=HYPERLINK(\"http://x\")",), ("normal",), (Decimal("5"),)])))
+    ws = wb.active
+    assert ws["A2"].value.startswith("'=") and ws["A3"].value == "normal" and ws["A4"].value == 5

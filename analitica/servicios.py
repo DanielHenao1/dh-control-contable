@@ -172,3 +172,32 @@ def serie_mensual(anio, hasta_mes, prefijos, naturaleza="C"):
         p = Periodo.objects.filter(anio=anio, mes=mes).first()
         serie.append(movimiento_neto(p, prefijos, naturaleza) if p and saldos_vigentes(p).exists() else None)
     return serie
+
+
+# ---------- Estados financieros: comparativos y notas de apoyo ----------
+CLASES = [("1", "Activo"), ("2", "Pasivo"), ("3", "Patrimonio"), ("4", "Ingresos"), ("5", "Gastos"), ("6", "Costos de ventas"), ("7", "Costos de producción")]
+
+
+def comparativo_clases(periodo):
+    """Totales por clase del PUC contra el mes anterior y el mismo mes del año anterior, con notas de apoyo."""
+    prev = Periodo.objects.filter(anio=periodo.anterior()[0], mes=periodo.anterior()[1]).first()
+    anio_ant = Periodo.objects.filter(anio=periodo.anio - 1, mes=periodo.mes).first()
+
+    def tot(p, clase):
+        return total_clase(p, [clase]) if p and saldos_vigentes(p).exists() else None
+
+    filas, notas = [], []
+    for clase, nombre in CLASES:
+        actual, mes_ant, anio_prev = tot(periodo, clase), tot(prev, clase), tot(anio_ant, clase)
+        if actual is None:
+            continue
+        var_mes = _div(actual - mes_ant, abs(mes_ant)) if mes_ant else None
+        var_anio = _div(actual - anio_prev, abs(anio_prev)) if anio_prev else None
+        filas.append({"clase": clase, "nombre": nombre, "actual": actual, "mes_anterior": mes_ant, "anio_anterior": anio_prev,
+                      "var_mes": var_mes, "var_anio": var_anio})
+        if var_anio is not None and abs(var_anio) >= Decimal("0.2"):
+            notas.append(f"{nombre}: {'aumentó' if var_anio > 0 else 'disminuyó'} {abs(var_anio):.0%} frente al mismo mes del año anterior; revisar a qué se debe.")
+    ing = next((f for f in filas if f["clase"] == "4"), None)
+    if ing and ing["anio_anterior"] is None:
+        notas.append("No hay balance del mismo mes del año anterior: sin comparativo anual.")
+    return {"filas": filas, "notas": notas}

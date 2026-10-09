@@ -150,3 +150,15 @@ def test_simulador(datos_iniciales):
     assert r["variacion_impuesto"] == Decimal("-350000")
     assert any("no deducible" in a for a in r["advertencias"])
     assert estimaciones.simular(periodo(2026, 2), {})["error"]
+
+
+@pytest.mark.django_db
+def test_comparativo_y_notas(datos_iniciales):
+    from analitica.servicios import comparativo_clases
+
+    balance(periodo(2025, 6), [("4135", "Ventas", 0, 0, 1000, 1000), ("1105", "Caja", 0, 0, 0, 500)])
+    balance(periodo(2026, 6), [("4135", "Ventas", 0, 0, 1500, 1500), ("1105", "Caja", 0, 0, 0, 500)])
+    r = comparativo_clases(periodo(2026, 6))
+    ingresos = next(f for f in r["filas"] if f["clase"] == "4")
+    assert ingresos["var_anio"] == Decimal("0.5")
+    assert any("aumentó 50%" in n for n in r["notas"])

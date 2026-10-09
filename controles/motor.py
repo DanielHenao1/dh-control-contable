@@ -38,8 +38,9 @@ def regla(codigo, grupo, nombre, severidad="media", norma="", descripcion=""):
 
 def cargar_reglas():
     """Importa los módulos de reglas para que se registren."""
-    from . import (  # noqa: F401  # noqa: F401
+    from . import (  # noqa: F401
         reglas_calendario,
+        reglas_cierre,
         reglas_exogena,
         reglas_facturas,
         reglas_integridad,

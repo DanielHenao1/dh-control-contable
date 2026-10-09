@@ -38,7 +38,7 @@ def test_roles(client, datos_iniciales):
     client.force_login(c)
     assert client.get("/contratista/").status_code == 200
     assert client.get("/hallazgos/").status_code == 403
-    assert client.get("/", follow=False).status_code in (302, 403)
+    assert client.get("/", follow=False).url == "/contratista/"
     client.logout()
     a = usuario_con_rol("asistente")
     client.force_login(a)

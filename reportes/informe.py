@@ -53,7 +53,12 @@ def generar_pdf(periodo):
 
 
 def _fmt(v):
-    return float(v) if isinstance(v, Decimal) else v
+    """Decimal a número; texto que empieza por = + - @ se neutraliza (inyección de fórmulas en Excel)."""
+    if isinstance(v, Decimal):
+        return float(v)
+    if isinstance(v, str) and v[:1] in ("=", "+", "-", "@", "\t", "\r"):
+        return "'" + v
+    return v
 
 
 def generar_excel(periodo):
@@ -82,7 +87,7 @@ def generar_excel(periodo):
     for c in h[1]:
         c.font = negrita
     for x in Hallazgo.objects.filter(periodo=periodo).select_related("regla"):
-        h.append([x.regla.codigo, x.get_severidad_display(), x.get_estado_display(), x.titulo, x.detalle, x.explicacion])
+        h.append([_fmt(c) for c in (x.regla.codigo, x.get_severidad_display(), x.get_estado_display(), x.titulo, x.detalle, x.explicacion)])
     for col, w in zip("ABCDEF", (10, 14, 12, 50, 70, 50)):
         h.column_dimensions[col].width = w
     for fila in h.iter_rows(min_row=2):
@@ -94,7 +99,7 @@ def generar_excel(periodo):
     for c in v[1]:
         c.font = negrita
     for o in ctx["proximas"]:
-        v.append([o.nombre, o.periodo_texto, o.fecha_limite, o.get_estado_display(), o.get_verificacion_display(), o.elabora, o.revisa, o.firma])
+        v.append([_fmt(c) for c in (o.nombre, o.periodo_texto, o.fecha_limite, o.get_estado_display(), o.get_verificacion_display(), o.elabora, o.revisa, o.firma)])
     buf = io.BytesIO()
     wb.save(buf)
     return buf.getvalue()

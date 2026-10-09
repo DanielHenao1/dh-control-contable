@@ -7,6 +7,17 @@ from decimal import Decimal
 
 from lxml import etree
 
+# Parser endurecido: sin entidades externas, sin red, sin DTD (evita XXE y "billion laughs")
+PARSER = etree.XMLParser(resolve_entities=False, no_network=True, load_dtd=False, dtd_validation=False, huge_tree=False)
+MAX_XML_BYTES = 5 * 1024 * 1024
+MAX_ZIP_TOTAL = 200 * 1024 * 1024
+
+
+def _fromstring(data):
+    if len(data) > MAX_XML_BYTES:
+        raise ValueError("XML demasiado grande")
+    return etree.fromstring(data, PARSER)
+
 
 def _t(nodo, ruta):
     r = nodo.xpath(ruta)
@@ -38,7 +49,7 @@ def _documento_interno(raiz):
     for d in raiz.xpath(f".//{_local('Description')}"):
         texto = (d.text or "").strip()
         if texto.startswith("<?xml") or "<Invoice" in texto or "<CreditNote" in texto or "<DebitNote" in texto:
-            return etree.fromstring(texto.encode())
+            return _fromstring(texto.encode())
     return raiz
 
 
@@ -46,7 +57,7 @@ TIPOS = {"Invoice": "factura", "CreditNote": "nota_credito", "DebitNote": "nota_
 
 
 def parsear_xml(contenido: bytes):
-    raiz = _documento_interno(etree.fromstring(contenido))
+    raiz = _documento_interno(_fromstring(contenido))
     local = etree.QName(raiz).localname
     if local not in TIPOS:
         raise ValueError(f"XML no reconocido como factura electrónica ({local})")
@@ -84,6 +95,8 @@ def parsear_archivo(contenido: bytes, nombre: str):
     filas, errores = [], []
     if nombre.lower().endswith(".zip"):
         with zipfile.ZipFile(io.BytesIO(contenido)) as z:
+            if sum(i.file_size for i in z.infolist()) > MAX_ZIP_TOTAL:
+                raise ValueError("El .zip descomprimido es demasiado grande")
             items = [(n, z.read(n)) for n in z.namelist() if n.lower().endswith(".xml")]
     else:
         items = [(nombre, contenido)]

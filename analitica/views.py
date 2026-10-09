@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib import messages
+from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -21,11 +22,16 @@ def _semaforo_hallazgos(abiertos):
     return "ambar" if abiertos.filter(severidad="media").exists() else "verde"
 
 
-@requiere("ver")
 def tablero(request):
     """¿Qué está mal este mes? Semáforo, 10 indicadores, vencimientos y gráficos de IVA y retención."""
+    if not request.user.is_authenticated:
+        from django.contrib.auth.views import redirect_to_login
+
+        return redirect_to_login(request.get_full_path())
     if request.user.rol == "contratista":
         return redirect("contratista")
+    if not request.user.puede("ver"):
+        raise PermissionDenied
     periodo = periodo_desde_request(request)
     abiertos = Hallazgo.objects.filter(periodo=periodo, estado="abierto")
     ind = servicios.indicadores_mes(periodo)
@@ -93,7 +99,7 @@ def tablero(request):
 def analisis(request):
     periodo = periodo_desde_request(request)
     an = servicios.anomalias_periodo(periodo)
-    ctx = {"ind": servicios.indicadores_mes(periodo), "anomalias": an, "titulo": "Indicadores y anomalías", **contexto_selector(periodo)}
+    ctx = {"ind": servicios.indicadores_mes(periodo), "anomalias": an, "comparativo": servicios.comparativo_clases(periodo), "titulo": "Indicadores y anomalías", **contexto_selector(periodo)}
     return render(request, "analitica/analisis.html", ctx)
 
 

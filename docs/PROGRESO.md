@@ -33,3 +33,11 @@ Actualizado al terminar cada tarea. Para retomar: leer este archivo, `CLAUDE.md`
 ## F5 Analítica, predicción e IA
 - [x] Indicadores, anomalías (IQR, MAD, Benford), proyecciones con banda, escenarios, simulador de cierre, asistente
 - [ ] Revisión con el contador
+
+## Endurecimiento y cierre (última pasada)
+- [x] XML de facturas con parser sin entidades externas y límites de tamaño (XXE / zip bomb)
+- [x] Excel con neutralización de fórmulas; sesión de 30 min; HSTS; `check --deploy` sin alertas relevantes
+- [x] Reglas de cierre (depreciación, provisiones laborales) y comparativo de estados financieros con notas de apoyo
+- [x] 100 pruebas (`pytest`) y `ruff check` limpios; migraciones al día
+
+Pendiente solo lo que exige datos reales o decisiones del contador: ver `docs/pendientes.md`.

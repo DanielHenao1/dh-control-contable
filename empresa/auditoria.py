@@ -35,9 +35,12 @@ def conectar():
         post_delete.connect(_eliminado, sender=modelo, dispatch_uid=f"aud-del-{etiqueta}")
 
 
-def _guardado(sender, instance, created, raw=False, **kwargs):
+def _guardado(sender, instance, created, raw=False, update_fields=None, **kwargs):
     if raw:
         return
+    if update_fields and set(update_fields) <= {"last_login"}:
+        return  # el ingreso ya queda registrado como 'login'
+    
     _registrar("crear" if created else "modificar", instance)
 
 

@@ -11,6 +11,7 @@ Cada regla vive en `controles/reglas_*.py` (registro con `@regla`) y se lista en
 | RET001–RET006 | Retenido vs teórico (base en UVT × tarifa por concepto y condición del tercero), base mínima, tarifa, concepto sin tarifa, pagos vs contabilidad vs declarado | Estatuto Tributario art. 365 y ss.; Decreto 1625 de 2016 |
 | REN001–REN004 | Diferencias sin explicar, tasa mínima (referencial), gastos sin soporte, no deducibles | Estatuto Tributario arts. 107, 115, 240 par. 6, 772-1; Decreto 1998 de 2017 |
 | EXO001–EXO002 | Terceros reportables sin datos, facturas vs auxiliares | Resolución DIAN de exógena del año gravable |
+| CIE001, NOM001 | Depreciación del mes y provisiones laborales (cierre mensual) | Decreto 2420 de 2015 (NIIF); Código Sustantivo del Trabajo |
 | CAL001–CAL005 | Vencimientos, responsables, evidencia, revisión anual del calendario, fechas sin verificar | Decreto 2229 de 2023; Resolución SDH-000195 de 2025 (ICA Bogotá) |
 
 ## Calendario

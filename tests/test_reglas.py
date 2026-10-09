@@ -201,3 +201,19 @@ def test_calendario_reglas_solo_periodo_actual(datos_iniciales):
     otro = periodo(2020, 1)
     ejecutar_reglas(otro, codigos=["CAL005"])
     assert not Hallazgo.objects.filter(periodo=otro).exists()
+
+
+@pytest.mark.django_db
+def test_cierre_depreciacion_y_provisiones(datos_iniciales):
+    p = periodo()
+    balance(p, [
+        ("152405", "Equipo", 0, 0, 0, 5_000_000), ("516005", "Depreciación", 0, 0, 0, 0),
+        ("510506", "Sueldos", 0, 3_000_000, 0, 3_000_000), ("250505", "Cesantías", 0, 0, 0, 0),
+    ])
+    ejecutar_reglas(p, codigos=["CIE001", "NOM001"])
+    assert len(hallazgos(p, "CIE001")) == 1 and len(hallazgos(p, "NOM001")) == 1
+    p2 = periodo(2026, 10)
+    balance(p2, [("152405", "Equipo", 0, 0, 0, 5_000_000), ("516005", "Depreciación", 0, 50_000, 0, 50_000),
+                 ("510506", "Sueldos", 0, 3_000_000, 0, 3_000_000), ("250505", "Cesantías", 0, 0, 250_000, 250_000)])
+    ejecutar_reglas(p2, codigos=["CIE001", "NOM001"])
+    assert not hallazgos(p2, "CIE001") and not hallazgos(p2, "NOM001")

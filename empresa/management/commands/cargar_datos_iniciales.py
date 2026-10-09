@@ -184,4 +184,15 @@ class Command(BaseCommand):
                 "estado_dian": "Estado", "sentido": "Grupo",
             }),
         )
+        self._recalcular_controles()
         self.stdout.write(self.style.SUCCESS(f"Datos iniciales listos. Obligaciones nuevas: {n}. Marcadas como presentadas y pagadas: {n_hist}. DV del NIT: {dv}."))
+
+    def _recalcular_controles(self):
+        """Tras una actualización las reglas pueden haber cambiado: se vuelven a ejecutar en los periodos abiertos con datos."""
+        from controles.motor import ejecutar_reglas
+        from empresa.models import ArchivoCargado, Periodo
+
+        ids = set(ArchivoCargado.objects.filter(vigente=True).values_list("periodo_id", flat=True))
+        for periodo in Periodo.objects.filter(id__in=ids):
+            if not periodo.cerrado:
+                ejecutar_reglas(periodo)

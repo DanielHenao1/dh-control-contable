@@ -4,12 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}{{ titulo|default:"Control contable" }}{% endblock %} · DH Control Contable</title>
+<link rel="icon" href="{% static 'img/favicon.ico' %}" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="{% static 'img/icon-32.png' %}">
+<link rel="apple-touch-icon" href="{% static 'img/icon-180.png' %}">
+<meta name="theme-color" content="#14284b">
 <link rel="stylesheet" href="{% static 'app.css' %}">
 {% block head %}{% endblock %}
 </head>
 <body>
 {% if user.is_authenticated %}
 <header class="top">
+  <a href="{% url 'tablero' %}" class="logo-enlace" aria-label="Inicio"><img class="logo" src="{% static 'img/logo-dhstore.png' %}" alt="DH Store" width="76" height="40"></a>
   <div class="marca">DH Control Contable<small>{% if empresa_actual %}{{ empresa_actual.razon_social }} · NIT {{ empresa_actual.nit_formateado }}{% else %}Configura la empresa{% endif %}</small></div>
   <div class="espacio"></div>
   <span style="font-size:13px">{{ user.nombre_visible }}</span>

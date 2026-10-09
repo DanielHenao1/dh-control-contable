@@ -1,6 +1,7 @@
-{% extends "base.html" %}{% block title %}Ingresar{% endblock %}
+{% extends "base.html" %}{% load static %}{% block title %}Ingresar{% endblock %}
 {% block contenido %}
 <div class="centrado tarjeta">
+  <img class="logo-login" src="{% static 'img/logo-dhstore.png' %}" alt="DH Store" width="220" height="115">
   <h1>DH Control Contable</h1>
   <p style="color:var(--gris-600)">Ingresa con tu usuario. Luego te pediremos el código de tu aplicación de autenticación.</p>
   {% if form.errors %}<div class="error">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>{% endif %}

@@ -64,12 +64,27 @@ REGLAS = [
     ("renta_c1", 9, 15, "estimada", "Decreto 2229 de 2023 fija la regla; no hay lista oficial publicada para 2027"),
     ("renta_c2", 9, 15, "estimada", "Decreto 2229 de 2023 fija la regla; no hay lista oficial publicada para 2027"),
 ]
-INCP = "INCP, calendario de impuestos distritales 2026 (Resolución SDH-000195 de 2025): una fuente secundaria"
-ICA_FIJAS = [
-    ("2026-B4", date(2026, 10, 9), "ICA Bogotá, 4.º bimestre (jul-ago 2026)"),
-    ("2026-B5", date(2026, 12, 11), "ICA Bogotá, 5.º bimestre (sep-oct 2026)"),
-    ("2026-B6", date(2027, 2, 12), "ICA Bogotá, 6.º bimestre (nov-dic 2026)"),
-    ("2026-anual", date(2027, 2, 26), "ICA Bogotá, declaración anual 2026"),
+SDH = "Resolución SDH-000195 de 2025 (calendario tributario distrital 2026); Siempre al Día, Portafolio y Publimetro coinciden"
+COMUNICADO = "Comunicado de la Secretaría Distrital de Hacienda (bogota.gov.co)"
+UNA = "Una fuente (prensa sobre la Resolución SDH-000195 de 2025); confirmar con la resolución"
+ICA_ANUAL_NOTA = "ICA Bogotá, declaración anual 2026 (solo régimen anual: la empresa declara bimestral; confirmar si aplica)"
+# (obligación, clave, fecha, nombre, verificación, fuente). Solo fechas con fuente; no se inventan.
+FIJAS = [
+    ("ica", "2025-B6", date(2026, 2, 13), "ICA Bogotá, 6.º bimestre 2025 (nov-dic 2025)", "dos_fuentes", "SDH, recordatorio del 9-feb-2026, y prensa"),
+    ("ica", "2026-B1", date(2026, 4, 10), "ICA Bogotá, 1.er bimestre (ene-feb 2026)", "dos_fuentes", SDH),
+    ("ica", "2026-B2", date(2026, 6, 12), "ICA Bogotá, 2.º bimestre (mar-abr 2026)", "dos_fuentes", SDH),
+    ("ica", "2026-B3", date(2026, 8, 21), "ICA Bogotá, 3.er bimestre (may-jun 2026)", "dos_fuentes", SDH),
+    ("ica", "2026-B4", date(2026, 10, 9), "ICA Bogotá, 4.º bimestre (jul-ago 2026)", "dos_fuentes", SDH),
+    ("ica", "2026-B5", date(2026, 12, 11), "ICA Bogotá, 5.º bimestre (sep-oct 2026)", "dos_fuentes", SDH),
+    ("ica", "2026-B6", date(2027, 2, 12), "ICA Bogotá, 6.º bimestre (nov-dic 2026)", "dos_fuentes", SDH),
+    ("ica", "2026-anual", date(2027, 2, 26), ICA_ANUAL_NOTA, "dos_fuentes", SDH),
+    ("reteica", "2025-B6", date(2026, 1, 16), "ReteICA Bogotá, 6.º bimestre 2025 (nov-dic 2025)", "dos_fuentes", COMUNICADO),
+    ("reteica", "2026-B1", date(2026, 3, 20), "ReteICA Bogotá, 1.er bimestre (ene-feb 2026)", "dos_fuentes", COMUNICADO),
+    ("reteica", "2026-B2", date(2026, 5, 22), "ReteICA Bogotá, 2.º bimestre (mar-abr 2026)", "dos_fuentes", COMUNICADO),
+    ("reteica", "2026-B3", date(2026, 7, 17), "ReteICA Bogotá, 3.er bimestre (may-jun 2026)", "dos_fuentes", COMUNICADO),
+    ("reteica", "2026-B4", date(2026, 9, 18), "ReteICA Bogotá, 4.º bimestre (jul-ago 2026)", "una_fuente", UNA),
+    ("reteica", "2026-B5", date(2026, 11, 20), "ReteICA Bogotá, 5.º bimestre (sep-oct 2026)", "una_fuente", UNA),
+    ("reteica", "2026-B6", date(2027, 1, 15), "ReteICA Bogotá, 6.º bimestre (nov-dic 2026)", "una_fuente", UNA),
 ]
 
 
@@ -98,10 +113,10 @@ class Command(BaseCommand):
                 defaults=dict(dia_habil=dia, verificacion=verif, fuente=fuente,
                               descripcion=f"Día hábil {dia} para NIT terminado en {digito}"),
             )
-        for clave, fecha, nombre in ICA_FIJAS:
-            ReglaVencimiento.objects.get_or_create(
-                obligacion="ica", modo="fecha_fija", periodo_clave=clave, vigente_desde=date(2026, 1, 1),
-                defaults=dict(fecha=fecha, descripcion=nombre, verificacion="una_fuente", fuente=INCP),
+        for tipo, clave, fecha, nombre, verif, fuente in FIJAS:
+            ReglaVencimiento.objects.update_or_create(
+                obligacion=tipo, modo="fecha_fija", periodo_clave=clave, vigente_desde=date(2026, 1, 1),
+                defaults=dict(fecha=fecha, descripcion=nombre, verificacion=verif, fuente=fuente),
             )
         Contratista.objects.get_or_create(
             contrato="CT-0029-2026",
@@ -122,9 +137,11 @@ class Command(BaseCommand):
         for tipo, claves in (("retefuente", ["2026-09", "2026-10", "2026-11", "2026-12"]), ("iva", ["2026-P3"])):
             Obligacion.objects.filter(tipo=tipo, clave__in=claves).update(
                 verificacion="dos_fuentes", fuente="Dos fuentes (VenciApp, Actualícese) y cálculo del día hábil coinciden")
+        for tipo, clave, fecha, nombre, verif, fuente in FIJAS:
+            Obligacion.objects.filter(tipo=tipo, clave=clave).update(nombre=nombre, fecha_limite=fecha, verificacion=verif, fuente=fuente)
         # La empresa confirmó (9-oct-2026) que todos los impuestos con vencimiento hasta el 9-oct-2026 están presentados y pagados.
         n_hist = Obligacion.objects.filter(
-            tipo__in=["retefuente", "iva", "ica", "renta_c1", "renta_c2"], fecha_limite__lte=date(2026, 10, 9),
+            tipo__in=["retefuente", "iva", "ica", "reteica", "renta_c1", "renta_c2"], fecha_limite__lte=date(2026, 10, 9),
             estado__in=["pendiente", "en_preparacion", "presentada"],
         ).update(
             estado="pagada",

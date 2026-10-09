@@ -1,0 +1,4 @@
+<a class="alerta-tarjeta {{ o.semaforo }}" href="{% url 'obligacion' o.pk %}">
+  <span class="alerta-fecha"><b>{{ o.fecha_limite|date:"d" }}</b>{{ o.fecha_limite|date:"M"|upper }}</span>
+  <span class="alerta-texto"><span class="alerta-nombre">{{ o.nombre }} {{ o.periodo_texto }}</span><span class="alerta-estado">{% if o.dias_restantes < 0 %}VENCIDA hace {{ o.dias_restantes|cut:"-" }} día(s){% elif o.dias_restantes == 0 %}Vence HOY{% else %}Vence en {{ o.dias_restantes }} día(s){% endif %}</span></span>
+</a>

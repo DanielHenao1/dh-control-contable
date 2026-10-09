@@ -88,7 +88,6 @@ def tablero(request):
             iva_d.append(0)
     ctx = {
         "tarjetas": tarjetas, "semaforo": _semaforo_hallazgos(abiertos), "titulo": "Tablero del mes",
-        "vencimientos": Obligacion.objects.filter(fecha_limite__gte=hoy).exclude(estado__in=["presentada", "pagada"]).order_by("fecha_limite")[:5],
         "grafico": {"meses": meses_ret, "retencion": ret_serie, "iva_generado": iva_g, "iva_descontable": iva_d},
         "advertencias": ind.get("advertencias", []) if ind else [],
         "sin_datos": not ind, **contexto_selector(periodo),

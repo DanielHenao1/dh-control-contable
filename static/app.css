@@ -152,10 +152,10 @@ table.cal td.hoy>strong{background:var(--acento);color:#fff}
 table.cal td.fuera{background:var(--gris-50);opacity:.55}
 
 /* ---- Alertas de pendientes (tarjetas separadas) ---- */
-.alerta-panel{background:var(--tarjeta);border:1px solid var(--borde);border-top:5px solid #c0392b;border-radius:12px;margin-bottom:18px;box-shadow:0 6px 22px #0003}
+.alerta-panel{background:var(--tarjeta);border:1px solid var(--borde);border-top:5px solid #e8710a;border-radius:12px;margin-bottom:18px;box-shadow:0 6px 22px #0003}
 .alerta-panel>summary{list-style:none;cursor:pointer;display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:14px 18px}
 .alerta-panel>summary::-webkit-details-marker{display:none}
-.alerta-icono{font-size:20px;color:#c0392b}
+.alerta-icono{font-size:20px;color:#e8710a}.alerta-panel.vencidas{border-top-color:#c0392b}.alerta-panel.vencidas .alerta-icono{color:#c0392b}
 .alerta-titulo{font-weight:700;font-size:16px}
 .alerta-cont{border-radius:999px;padding:3px 11px;font-size:12.5px;font-weight:700;color:#fff}
 .alerta-cont.rojo{background:#c0392b}.alerta-cont.naranja{background:#e8710a}

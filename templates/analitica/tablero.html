@@ -10,7 +10,7 @@
 </div>
 <div class="dos-col">
 <div class="tarjeta"><h2 style="margin-top:0">Próximos vencimientos</h2>
-{% for o in vencimientos %}<p style="margin:4px 0"><strong>{{ o.fecha_limite|date:"d/m/Y" }}</strong> · <a href="{% url 'obligacion' o.pk %}">{{ o.nombre }}</a> {{ o.periodo_texto }}</p>{% empty %}<p>Sin vencimientos cargados.</p>{% endfor %}</div>
+{% for o in vencimientos %}<p style="margin:4px 0"><strong>{{ o.fecha_limite|date:"d/m/Y" }}</strong> · <a href="{% url 'obligacion' o.pk %}">{{ o.nombre }}</a> {{ o.periodo_texto }} <span class="chip {{ o.semaforo }}{% if o.urgente %} urgente{% endif %}">{% if o.dias_restantes == 0 %}hoy{% else %}{{ o.dias_restantes }} d{% endif %}</span></p>{% empty %}<p>Sin vencimientos cargados.</p>{% endfor %}</div>
 <div class="tarjeta"><h2 style="margin-top:0">Retención mensual {{ periodo.anio }}</h2><canvas id="gRet" height="140" aria-label="Retención por mes"></canvas></div>
 </div>
 <div class="tarjeta"><h2 style="margin-top:0">IVA generado y descontable por mes (facturas DIAN)</h2><canvas id="gIva" height="110" aria-label="IVA por mes"></canvas></div>

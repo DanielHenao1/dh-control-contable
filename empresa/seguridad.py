@@ -13,6 +13,8 @@ class FormularioIngreso(AuthenticationForm):
     def __init__(self, request=None, *args, **kwargs):
         super().__init__(request, *args, **kwargs)
         self.request = request
+        self.fields["username"].widget.attrs.update({"placeholder": "Tu usuario", "autocomplete": "username", "autofocus": True})
+        self.fields["password"].widget.attrs.update({"placeholder": "Tu contraseña", "autocomplete": "current-password"})
 
     def _ip(self):
         r = self.request

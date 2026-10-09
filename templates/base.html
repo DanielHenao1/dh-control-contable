@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="{% static 'app.css' %}">
 {% block head %}{% endblock %}
 </head>
-<body>
+<body class="{% block bodyclass %}{% endblock %}">
 {% if user.is_authenticated %}
 <header class="top">
   <a href="{% url 'tablero' %}" class="logo-enlace" aria-label="Inicio"><img class="logo" src="{% static 'img/logo-dhstore.png' %}" alt="DH Store" width="76" height="40"></a>
@@ -34,8 +34,25 @@
 <main>
 {% if parametros_pendientes %}<div class="aviso"><strong>{{ parametros_pendientes }} parámetro(s) tributario(s) sin verificar o vacíos.</strong> Los cálculos que dependen de ellos quedan marcados o pendientes.{% if permisos.administrar %} <a href="{% url 'configuracion' %}">Revisarlos</a>{% endif %}</div>{% endif %}
 {% for m in messages %}<div class="{% if m.tags == 'error' %}error{% elif m.tags == 'success' %}ok{% elif m.tags == 'warning' %}aviso{% else %}msg-info{% endif %}">{{ m }}</div>{% endfor %}
+{% if alertas_pantalla %}
+<div class="alerta-roja" role="alert">
+  <strong>⚠ {{ alertas_pantalla|length }} obligación(es) pendiente(s) por atender</strong>
+  <ul>{% for o in alertas_pantalla %}<li><a href="{% url 'obligacion' o.pk %}">{{ o.nombre }} {{ o.periodo_texto }}</a> · {{ o.fecha_limite|date:"d/m/Y" }} · <b>{% if o.dias_restantes < 0 %}VENCIDA hace {{ o.dias_restantes|cut:"-" }} día(s){% elif o.dias_restantes == 0 %}vence HOY{% else %}vence en {{ o.dias_restantes }} día(s){% endif %}</b></li>{% endfor %}</ul>
+</div>
+<dialog id="alerta-venc" class="alerta-dialogo" data-dia="{{ hoy_iso }}" aria-labelledby="alerta-titulo">
+  <h2 id="alerta-titulo">⚠ Obligaciones pendientes</h2>
+  <p>Estas obligaciones siguen sin presentar o pagar:</p>
+  <ul>{% for o in alertas_pantalla %}<li class="{% if o.urgente %}urgente{% endif %}"><span class="fecha">{{ o.fecha_limite|date:"d/m" }}</span> {{ o.nombre }} {{ o.periodo_texto }} <b>{% if o.dias_restantes < 0 %}— VENCIDA{% elif o.dias_restantes == 0 %}— HOY{% else %}— {{ o.dias_restantes }} día(s){% endif %}</b></li>{% endfor %}</ul>
+  <form method="dialog"><button class="btn peligro" autofocus>Entendido</button></form>
+</dialog>
+<script>
+(function(){var d=document.getElementById('alerta-venc');if(!d||!d.showModal)return;var k='alerta-venc-'+d.dataset.dia;
+try{if(sessionStorage.getItem(k))return;}catch(e){}
+d.showModal();d.addEventListener('close',function(){try{sessionStorage.setItem(k,'1');}catch(e){}});})();
+</script>
+{% endif %}
 {% block contenido %}{% endblock %}
 </main>
-<div class="pie">Sistema de control: no reemplaza a World Office ni presenta declaraciones. Las cifras son un apoyo; la firma sigue siendo del profesional responsable.</div>
+{% block pie %}<div class="pie">Sistema de control: no reemplaza a World Office ni presenta declaraciones. Las cifras son un apoyo; la firma sigue siendo del profesional responsable.<br>Desarrollado por <strong>DH Grupo Empresarial</strong></div>{% endblock %}
 </body>
 </html>

@@ -49,6 +49,7 @@ PARAMETROS = [
     ("PUC_GASTO_DEPRECIACION", "Prefijos del gasto de depreciación", "lista", "5160", date(2025, 1, 1), None, PV, "PUC comercial; confirmar contra el plan de cuentas real"),
     ("PUC_GASTO_PERSONAL", "Prefijos del gasto de personal", "lista", "5105", date(2025, 1, 1), None, PV, "PUC comercial; confirmar contra el plan de cuentas real"),
     ("PUC_PROVISIONES_LABORALES", "Prefijos de obligaciones laborales (cesantías, intereses, prima, vacaciones)", "lista", "25", date(2025, 1, 1), None, PV, "PUC comercial; confirmar contra el plan de cuentas real"),
+    ("CONTROL_DESDE", "Fecha de puesta en marcha: lo que venció antes se trata como histórico (sin alertas ni hallazgos)", "texto", "2026-10-01", date(2025, 1, 1), None, V, "Confirmado por la empresa el 9-oct-2026"),
     ("TOLERANCIA_PESOS", "Diferencia máxima tolerada por redondeo (pesos)", "decimal", "1", date(2025, 1, 1), None, V, "Criterio operativo del sistema"),
     ("ALERTA_DIAS_ANTES", "Días antes del vencimiento en que se envía alerta", "lista", "15,7,3,1", date(2025, 1, 1), None, V, "Criterio operativo del sistema"),
     ("ESTIMACION_UMBRAL_CAMBIO", "Cambio relativo entre meses que dispara alerta de estimación", "decimal", "0.10", date(2025, 1, 1), None, V, "Criterio operativo del sistema"),
@@ -118,8 +119,15 @@ class Command(BaseCommand):
         for tipo, claves in (("retefuente", ["2026-09", "2026-10", "2026-11", "2026-12"]), ("iva", ["2026-P3"])):
             Obligacion.objects.filter(tipo=tipo, clave__in=claves).update(
                 verificacion="dos_fuentes", fuente="Dos fuentes (VenciApp, Actualícese) y cálculo del día hábil coinciden")
+        # La empresa confirmó (9-oct-2026) que todas las declaraciones de 2026 anteriores a esta fecha ya se presentaron.
+        n_hist = Obligacion.objects.filter(
+            tipo__in=["retefuente", "iva", "ica"], fecha_limite__lt=date(2026, 10, 1), estado="pendiente"
+        ).update(
+            estado="presentada",
+            notas="Presentada antes de la puesta en marcha del sistema (confirmado por la empresa el 9-oct-2026). Sin evidencia cargada.",
+        )
         Obligacion.objects.filter(tipo="ica", clave="2026-B4").update(
             estado="pagada", notas="Declarado y pagado, según la empresa. Conseguir el acuse como evidencia.")
         Obligacion.objects.filter(tipo="retefuente", clave="2026-09", estado="pendiente").update(
             notas="Pendiente de presentar. Incluida en el servicio de Ideako: dejarlo por escrito.")
-        self.stdout.write(self.style.SUCCESS(f"Datos iniciales listos. Obligaciones nuevas: {n}. DV del NIT: {dv}."))
+        self.stdout.write(self.style.SUCCESS(f"Datos iniciales listos. Obligaciones nuevas: {n}. Marcadas como históricas: {n_hist}. DV del NIT: {dv}."))

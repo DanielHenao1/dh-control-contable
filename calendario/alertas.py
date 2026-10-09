@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from empresa.models import Parametro, Usuario
 
+from .historico import solo_vigentes
 from .models import Obligacion
 
 
@@ -27,9 +28,9 @@ def obligaciones_a_alertar(hoy=None):
     hoy = hoy or timezone.localdate()
     dias = umbrales()
     horizonte = hoy + timedelta(days=max(dias))
-    candidatas = Obligacion.objects.filter(
+    candidatas = solo_vigentes(Obligacion.objects.filter(
         fecha_limite__isnull=False, fecha_limite__lte=horizonte
-    ).exclude(estado__in=["presentada", "pagada"]).exclude(ultima_alerta=hoy)
+    )).exclude(estado__in=["presentada", "pagada"]).exclude(ultima_alerta=hoy)
     salida = []
     for o in candidatas:
         restantes = (o.fecha_limite - hoy).days

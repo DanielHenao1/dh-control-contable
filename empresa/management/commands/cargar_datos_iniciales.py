@@ -50,6 +50,7 @@ PARAMETROS = [
     ("PUC_GASTO_PERSONAL", "Prefijos del gasto de personal", "lista", "5105", date(2025, 1, 1), None, PV, "PUC comercial; confirmar contra el plan de cuentas real"),
     ("PUC_PROVISIONES_LABORALES", "Prefijos de obligaciones laborales (cesantías, intereses, prima, vacaciones)", "lista", "25", date(2025, 1, 1), None, PV, "PUC comercial; confirmar contra el plan de cuentas real"),
     ("CONTROL_DESDE", "Fecha de puesta en marcha: lo que venció antes se trata como histórico (sin alertas ni hallazgos)", "texto", "2026-10-01", date(2025, 1, 1), None, V, "Confirmado por la empresa el 9-oct-2026"),
+    ("CALENDARIO_DESDE", "Primera fecha que gestiona el calendario: no se crean obligaciones con fecha anterior", "texto", "2026-01-01", date(2025, 1, 1), None, V, "Decisión del dueño (9-oct-2026): el sistema gestiona desde 2026"),
     ("TOLERANCIA_PESOS", "Diferencia máxima tolerada por redondeo (pesos)", "decimal", "1", date(2025, 1, 1), None, V, "Criterio operativo del sistema"),
     ("ALERTA_DIAS_ANTES", "Días antes del vencimiento en que se envía alerta", "lista", "15,7,3,1", date(2025, 1, 1), None, V, "Criterio operativo del sistema"),
     ("ESTIMACION_UMBRAL_CAMBIO", "Cambio relativo entre meses que dispara alerta de estimación", "decimal", "0.10", date(2025, 1, 1), None, V, "Criterio operativo del sistema"),
@@ -113,7 +114,9 @@ class Command(BaseCommand):
         )
         for anio in range(2025, 2030):
             asegurar_festivos(anio)
-        n = generar_obligaciones(2026, 2027)
+        # Desde 2025 porque en 2026 se pagan períodos de 2025 (retención de dic-2025, IVA del 3.er cuatrimestre, renta AG 2025);
+        # CALENDARIO_DESDE evita crear lo que venció antes de 2026.
+        n = generar_obligaciones(2025, 2027)
         # Estado conocido a 9-oct-2026 según la empresa
         # Contrastadas con dos fuentes y el cálculo de día hábil (plan, 9-oct-2026)
         for tipo, claves in (("retefuente", ["2026-09", "2026-10", "2026-11", "2026-12"]), ("iva", ["2026-P3"])):
@@ -121,7 +124,7 @@ class Command(BaseCommand):
                 verificacion="dos_fuentes", fuente="Dos fuentes (VenciApp, Actualícese) y cálculo del día hábil coinciden")
         # La empresa confirmó (9-oct-2026) que todos los impuestos con vencimiento hasta el 9-oct-2026 están presentados y pagados.
         n_hist = Obligacion.objects.filter(
-            tipo__in=["retefuente", "iva", "ica"], fecha_limite__lte=date(2026, 10, 9),
+            tipo__in=["retefuente", "iva", "ica", "renta_c1", "renta_c2"], fecha_limite__lte=date(2026, 10, 9),
             estado__in=["pendiente", "en_preparacion", "presentada"],
         ).update(
             estado="pagada",

@@ -98,7 +98,7 @@ LANGUAGE_CODE = "es-co"
 TIME_ZONE = "America/Bogota"
 USE_I18N = True
 USE_TZ = True
-USE_THOUSAND_SEPARATOR = True
+USE_THOUSAND_SEPARATOR = False  # con True los años salían como '2.026' y rompían enlaces y selectores
 
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
@@ -149,6 +149,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "calendario.tasks.enviar_alertas_vencimiento",
         "schedule": 60 * 60 * 24,
     },
+    "generar-calendario": {
+        "task": "calendario.tasks.generar_calendario_automatico",
+        "schedule": 60 * 60 * 24,
+    },
     "revision-calendario-diciembre": {
         "task": "calendario.tasks.recordar_revision_calendario",
         "schedule": 60 * 60 * 24,
@@ -170,7 +174,10 @@ EMAIL_HOST = os.environ.get("EMAIL_HOST", "")
 EMAIL_PORT = int(os.environ.get("EMAIL_PORT", 587))
 EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
-EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
+EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)  # puerto 587 (STARTTLS)
+EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", False)  # puerto 465 (SSL directo); no se puede combinar con TLS
+if EMAIL_USE_SSL:
+    EMAIL_USE_TLS = False
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "control@localhost")
 ALERTAS_DESTINATARIOS = [e for e in os.environ.get("ALERTAS_DESTINATARIOS", "").split(",") if e]
 

@@ -111,3 +111,35 @@ def test_facturas_dian_sin_perfil_ni_sentido_usa_el_perfil_dian_unico():
     form = CargaForm({"tipo": "facturas_dian", "anio": 2026, "mes": 9}, {"archivo": SimpleUploadedFile("f.xlsx", b"x")})
     assert form.is_valid(), form.errors
     assert form.cleaned_data["perfil"] == perfil
+
+
+def test_filtros_de_cifras_legibles():
+    from empresa.templatetags.utiles import cifra, etiqueta
+
+    assert cifra("774709043.00", "ingresos") == "$ 774.709.043"
+    assert cifra("-24087441.31", "utilidad_contable") == "-$ 24.087.441"
+    assert cifra("0.35", "tarifa") == "35,0 %"
+    assert cifra(D("0.5310337251736"), "margen_bruto") == "53,1 %"
+    assert cifra(D("1.5"), "liquidez") == "1,50"
+    assert cifra(None, "tarifa") == "—" and cifra("2026-09", "corte") == "2026-09"
+    assert etiqueta("costos_gastos") == "Costos y gastos" and etiqueta("otro_valor") == "Otro valor"
+
+
+@pytest.mark.django_db
+def test_terceros_sin_nit_se_agrupan_por_nombre_y_el_menu_es_fijo(cliente_dueno):
+    from conciliaciones.servicios import conciliar_terceros, cuentas_de_banco
+    from contabilidad.models import Cuenta, Movimiento
+    from empresa.models import ArchivoCargado, Periodo
+
+    p = Periodo.obtener(2026, 9)
+    a = ArchivoCargado.objects.create(tipo="auxiliar", nombre_original="a.xlsx", hash_sha256="x" * 64, tamano=1, periodo=p, vigente=True)
+    cli = Cuenta.objects.create(codigo="13050501", nombre="Clientes")
+    banco = Cuenta.objects.create(codigo="11100501", nombre="Bancolombia")
+    for nombre, deb in (("CLIENTE UNO SAS", "100"), ("CLIENTE UNO SAS", "50"), ("CLIENTE DOS SAS", "30")):
+        Movimiento.objects.create(periodo=p, archivo=a, fecha=date(2026, 9, 2), cuenta=cli, tercero_nombre=nombre, debito=D(deb), credito=D(0))
+    Movimiento.objects.create(periodo=p, archivo=a, fecha=date(2026, 9, 2), cuenta=banco, debito=D(5), credito=D(0))
+    r = conciliar_terceros(p, ["13"])
+    assert [(f["nombre"], f["saldo"]) for f in r["filas"]] == [("CLIENTE UNO SAS", D(150)), ("CLIENTE DOS SAS", D(30))]
+    assert [c["codigo"] for c in cuentas_de_banco(p)] == ["11100501"]
+    html = cliente_dueno.get("/conciliaciones/?anio=2026&mes=9").content.decode()
+    assert 'class="barra-fija"' in html and "11100501" in html

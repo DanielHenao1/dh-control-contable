@@ -22,11 +22,15 @@ def iva_retencion(request):
 def otras(request):
     periodo = periodo_desde_request(request)
     cuenta_banco = request.GET.get("banco", "").strip()
+    bancos = servicios.cuentas_de_banco(periodo)
+    if not cuenta_banco and bancos:  # por defecto, la cuenta de banco (1110…) con más movimientos
+        candidatas = [c for c in bancos if c["codigo"].startswith("1110")] or bancos
+        cuenta_banco = max(candidatas, key=lambda c: c["movimientos"])["codigo"]
     ctx = {
         "aux_balance": servicios.conciliar_auxiliares_vs_balance(periodo),
         "cartera": servicios.conciliar_terceros(periodo, ["13"], 1),
         "proveedores": servicios.conciliar_terceros(periodo, ["22"], -1),
         "banco": servicios.conciliar_banco(periodo, cuenta_banco) if cuenta_banco else None,
-        "cuenta_banco": cuenta_banco, "titulo": "Conciliaciones", **contexto_selector(periodo),
+        "cuenta_banco": cuenta_banco, "bancos": bancos, "titulo": "Conciliaciones", **contexto_selector(periodo),
     }
     return render(request, "conciliaciones/otras.html", ctx)

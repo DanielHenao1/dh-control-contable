@@ -13,6 +13,7 @@
 </head>
 <body class="{% block bodyclass %}{% endblock %}">
 {% if user.is_authenticated %}
+<div class="barra-fija">
 <header class="top">
   <a href="{% url 'tablero' %}" class="logo-enlace" aria-label="Inicio"><img class="logo" src="{% static 'img/logo-dhstore-claro.png' %}" alt="DH Store" width="74" height="40"></a>
   <div class="marca">DH Control Contable<small>{% if empresa_actual %}{{ empresa_actual.razon_social }} · NIT {{ empresa_actual.nit_formateado }}{% else %}Configura la empresa{% endif %}</small></div>
@@ -30,6 +31,7 @@
   {% if permisos.ver_contratista %}<a href="{% url 'contratista' %}">Contratista</a>{% endif %}
   {% if permisos.administrar %}<a href="{% url 'configuracion' %}">Configuración</a><a href="{% url 'auditoria' %}">Auditoría</a>{% endif %}
 </nav>
+</div>
 <script>
 (function(){var p=location.pathname,m=null,l=0;document.querySelectorAll('nav.menu a').forEach(function(a){var h=a.getAttribute('href');
 if((h==='/'?p==='/':p.indexOf(h)===0)&&h.length>l){m=a;l=h.length;}});

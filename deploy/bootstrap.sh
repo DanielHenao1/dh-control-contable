@@ -8,7 +8,15 @@ LLAVE=${2:?Indica la llave pública SSH entre comillas}
 
 export DEBIAN_FRONTEND=noninteractive
 apt-get update && apt-get -y upgrade
-apt-get install -y ufw fail2ban unattended-upgrades gnupg awscli ca-certificates curl git
+apt-get install -y ufw fail2ban unattended-upgrades gnupg ca-certificates curl git unzip
+
+# AWS CLI (para subir las copias al bucket S3): paquete de Ubuntu si existe; si no, instalador oficial de AWS
+if ! command -v aws &>/dev/null; then
+  apt-get install -y awscli || {
+    curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o /tmp/awscliv2.zip
+    unzip -q -o /tmp/awscliv2.zip -d /tmp && /tmp/aws/install && rm -rf /tmp/aws /tmp/awscliv2.zip
+  }
+fi
 
 # Usuario sin root con llave SSH
 id "$USUARIO" &>/dev/null || adduser --disabled-password --gecos "" "$USUARIO"
@@ -16,9 +24,24 @@ install -d -m 700 -o "$USUARIO" -g "$USUARIO" "/home/$USUARIO/.ssh"
 echo "$LLAVE" > "/home/$USUARIO/.ssh/authorized_keys"
 chown "$USUARIO:$USUARIO" "/home/$USUARIO/.ssh/authorized_keys"; chmod 600 "/home/$USUARIO/.ssh/authorized_keys"
 
-# SSH solo con llave, sin root
-sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/; s/^#\?PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
+# El usuario puede administrar el servidor con sudo (sin contraseña: solo entra con llave, y root queda sin acceso SSH)
+usermod -aG sudo "$USUARIO"
+echo "$USUARIO ALL=(ALL) NOPASSWD:ALL" > "/etc/sudoers.d/90-$USUARIO"
+chmod 440 "/etc/sudoers.d/90-$USUARIO"
+visudo -cf "/etc/sudoers.d/90-$USUARIO"
+
+# SSH solo con llave, sin root. Se usa un archivo que se lee primero (00-) para que ningún otro archivo de
+# /etc/ssh/sshd_config.d/ (p. ej. el de la imagen del proveedor) lo anule.
+cat > /etc/ssh/sshd_config.d/00-control.conf <<'SSHD'
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PermitRootLogin no
+PubkeyAuthentication yes
+SSHD
+sshd -t
 systemctl reload ssh || systemctl reload sshd
+# Comprueba que la configuración efectiva quedó como se espera
+sshd -T | grep -E '^(passwordauthentication|permitrootlogin) '
 
 # Firewall: solo 22 (llave), 80 y 443
 ufw default deny incoming; ufw default allow outgoing

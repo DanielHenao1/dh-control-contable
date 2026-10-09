@@ -5,8 +5,18 @@ Archivo de continuidad entre sesiones. Léelo junto con `CLAUDE.md`, `docs/PROGR
 ## Dónde estamos
 - Fases F0–F5 del plan construidas y fusionadas en `main` (PR #1). Sistema Django completo con datos sintéticos; **nunca se ha ejecutado con datos reales ni en el VPS**.
 - Rama de trabajo de la sesión: `claude/document-review-sd30p4` (reiniciada desde `main` tras el merge).
-- **Decisiones del dueño (9-oct-2026):** proveedor VPS = Hostinger (plan por confirmar); subdominio = `contabilidad.dhtransstorage.com.co`; asistente de IA **apagado** hasta terminar las pruebas; **aún sin** proveedor de almacenamiento S3 ni SMTP.
+- **Decisiones del dueño (9-oct-2026):** proveedor VPS = Hostinger (plan por confirmar); subdominio = `contabilidad.dhstore.com.co`; un solo VPS (KVM 4, Ubuntu 26.04 LTS, 200 GB; IP 31.97.136.172, host srv885245.hstgr.cloud) ya contratado; asistente de IA **apagado** hasta terminar las pruebas; **sin S3 ni SMTP por ahora**. Copia de seguridad fuera del servidor: **pendiente**, se empieza en producción (`docs/respaldo_en_mi_pc.md`); **debe estar activa antes del primer dato contable real**.
 - **Despliegue: pendiente de aprobación.** Plan en `docs/plan_despliegue_hostinger.md`; guía paso a paso en `docs/despliegue.md`. No se ha tocado ningún servidor ni se han pedido credenciales.
+
+## Datos confirmados con el certificado de la Cámara de Comercio (expedido 1-sep-2026)
+- Matrícula mercantil de la sociedad renovada el **29-abr-2026** (último año renovado: 2026); los establecimientos DH LAPTOP STORAGE y DH BOOKS también figuran renovados 2026. El plazo legal general es el 31-mar: la renovación fue posterior; si hubo sanción o un plazo distinto, confirmar con la Cámara.
+- **Grupo NIIF III** y tamaño **microempresa** (ingresos por actividad ordinaria reportados en RUES: $1.626.389.817, muy por debajo del tope de IVA bimestral ≈ $4.581 millones): consistente con IVA cuatrimestral. El Grupo 3 usa el marco simplificado para microempresas del Decreto 2420 de 2015: revisar con el contador qué estados e indicadores aplican.
+- CIIU: principal 4651, secundaria 4923, otras 5320 y **5210**. El RUT listaba 5320 y 9511: **discrepancia por aclarar** (afecta tarifa de ICA).
+- Inscrito en el RIT (Bogotá) desde el 3-ene-2017.
+- Los datos personales del certificado (documentos de identidad) no se guardan en el repositorio.
+
+## Estado del calendario (decisión del dueño, 9-oct-2026)
+Todos los impuestos con vencimiento **hasta el 9-oct-2026** (retefuente, IVA, ICA) se marcan "presentada y pagada", sin evidencia cargada. Solo queda pendiente la **retención de septiembre, vence el 22-oct-2026** (Ideako). `CONTROL_DESDE = 2026-10-01`: lo anterior no genera alertas. Fechas laborales (cesantías, prima): por definir si aplican (¿hay empleados con contrato laboral?).
 
 ## Historial del CI (qué falló y por qué)
 | Corrida | Commit | Resultado | Causa | Solución |
@@ -18,7 +28,7 @@ Archivo de continuidad entre sesiones. Léelo junto con `CLAUDE.md`, `docs/PROGR
 Nota: el merge se hizo viendo verdes las corridas del PR; la corrida sobre `main` falló después por la prueba inestable descrita. Lección: esperar también el CI de `main` antes de dar algo por cerrado.
 
 ## Pendiente (en orden)
-1. Aprobación del plan de despliegue; confirmar que el plan de Hostinger es VPS. Elegir proveedor S3 y SMTP (S3 es obligatorio antes de datos reales). Ver `plan_despliegue_hostinger.md` §7.
+1. Aprobación del plan de despliegue; Elegir proveedor S3 y SMTP (S3 es obligatorio antes de datos reales). Ver `plan_despliegue_hostinger.md` §7.
 2. Desplegar en el VPS y pasar P0 (HTTPS, 2FA, restauración de copia).
 3. P1–P4 con datos reales: ver `docs/pendientes.md` (formatos de World Office/DIAN, parámetros del contador, tarifas, topes, prefijos de cuentas).
 4. Tras las pruebas de aceptación con datos sintéticos: decidir si se activa el asistente de IA (`plan_despliegue_hostinger.md` §8).

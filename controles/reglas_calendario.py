@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 
+from calendario.historico import solo_vigentes
 from calendario.models import Obligacion
 from empresa.models import Parametro
 
@@ -21,7 +22,7 @@ def por_vencer(periodo):
         return None
     hoy = timezone.localdate()
     salida = []
-    for o in Obligacion.objects.filter(fecha_limite__isnull=False, fecha_limite__lte=hoy + timedelta(days=7)).exclude(
+    for o in solo_vigentes(Obligacion.objects.filter(fecha_limite__isnull=False, fecha_limite__lte=hoy + timedelta(days=7))).exclude(
         estado__in=["presentada", "pagada"]
     ):
         dias = (o.fecha_limite - hoy).days
@@ -41,7 +42,7 @@ def sin_responsable(periodo):
         return None
     hoy = timezone.localdate()
     salida = []
-    for o in Obligacion.objects.filter(fecha_limite__isnull=False, fecha_limite__lte=hoy + timedelta(days=60), laboral=False).exclude(
+    for o in solo_vigentes(Obligacion.objects.filter(fecha_limite__isnull=False, fecha_limite__lte=hoy + timedelta(days=60), laboral=False)).exclude(
         estado__in=["presentada", "pagada"]
     ):
         faltan = [n for n, v in (("elabora", o.elabora), ("revisa", o.revisa), ("firma", o.firma)) if not v]
@@ -59,7 +60,7 @@ def sin_evidencia(periodo):
     return [
         Resultado(clave=f"{o.tipo}|{o.clave}", titulo=f"{o.nombre} {o.periodo_texto}: sin evidencia de presentación",
                   detalle="Sube el acuse o recibo de presentación.", evidencia={"obligacion_id": o.id})
-        for o in Obligacion.objects.filter(estado__in=["presentada", "pagada"], evidencia__isnull=True)
+        for o in solo_vigentes(Obligacion.objects.filter(estado__in=["presentada", "pagada"], evidencia__isnull=True))
     ]
 
 
@@ -85,6 +86,6 @@ def fechas_sin_verificar(periodo):
     return [
         Resultado(clave=f"{o.tipo}|{o.clave}", titulo=f"{o.nombre} {o.periodo_texto}: fecha {o.get_verificacion_display().lower()}",
                   detalle=f"{o.fecha_limite:%d-%m-%Y}" if o.fecha_limite else "Sin fecha publicada; confirmar con Ideako.")
-        for o in Obligacion.objects.filter(verificacion__in=["estimada", "no_verificada"]).exclude(estado__in=["presentada", "pagada"])
+        for o in solo_vigentes(Obligacion.objects.filter(verificacion__in=["estimada", "no_verificada"])).exclude(estado__in=["presentada", "pagada"])
         if o.fecha_limite is None or o.fecha_limite <= hoy + timedelta(days=90)
     ]

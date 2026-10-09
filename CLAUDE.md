@@ -9,6 +9,7 @@ Aplicación Django + PostgreSQL que verifica la contabilidad llevada en World Of
 - Contratista contable: Ideako (contrato CT-0029-2026). El sistema es una segunda verificación independiente.
 - IVA cuatrimestral. ICA de Bogotá bimestral (inferido; confirmar): el 4.º bimestre de 2026 ya está declarado y pagado.
 - Retención en la fuente mensual: la de septiembre vence el 22-oct-2026, está pendiente de presentar y está incluida en el servicio de Ideako.
+- Matrícula mercantil renovada el 29-abr-2026; Grupo NIIF III (microempresa). CIIU 4651 (principal), 4923, 5320 y 5210 (el RUT decía 9511: aclarar).
 - UVT 2026 = $52.374. Va como parámetro con vigencia, nunca fija en el código.
 
 ## Reglas obligatorias

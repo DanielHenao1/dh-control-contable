@@ -5,6 +5,7 @@ from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
+from calendario.historico import solo_vigentes
 from calendario.models import Obligacion
 from controles.models import Hallazgo
 from empresa.permisos import requiere
@@ -39,7 +40,7 @@ def tablero(request):
     previo = ind.get("anio_anterior", {}) if ind else {}
     hoy = timezone.localdate()
     proxima = Obligacion.objects.filter(fecha_limite__gte=hoy).exclude(estado__in=["presentada", "pagada"]).order_by("fecha_limite").first()
-    vencidas = Obligacion.objects.filter(fecha_limite__lt=hoy).exclude(estado__in=["presentada", "pagada"]).count()
+    vencidas = solo_vigentes(Obligacion.objects.filter(fecha_limite__lt=hoy)).exclude(estado__in=["presentada", "pagada"]).count()
     indice_iva, _, _ = tramo_de(periodo.anio, periodo.mes)
     iva = borrador_iva(periodo.anio, indice_iva).valores
     ret = borrador_retefuente(periodo).valores

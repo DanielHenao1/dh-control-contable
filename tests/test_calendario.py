@@ -57,3 +57,43 @@ def test_alertas_por_correo(datos_iniciales, dueno):
     assert n >= 1 and len(mail.outbox) == 1
     assert "Retención en la fuente" in mail.outbox[0].body
     assert enviar_alertas(hoy) == 0  # no repite el mismo día
+
+
+@pytest.mark.django_db
+def test_historico_no_cuenta_como_vencido(datos_iniciales, cliente_dueno):
+    from calendario.alertas import obligaciones_a_alertar
+    from calendario.historico import control_desde, solo_vigentes
+
+    assert control_desde() == date(2026, 10, 1)
+    # Las declaraciones previas quedaron como presentadas; la de septiembre sigue pendiente
+    assert Obligacion.objects.get(tipo="retefuente", clave="2026-08").estado == "pagada"
+    assert Obligacion.objects.get(tipo="iva", clave="2026-P2").estado == "pagada"
+    assert Obligacion.objects.get(tipo="ica", clave="2026-B4").estado == "pagada"
+    assert Obligacion.objects.get(tipo="retefuente", clave="2026-09").estado == "pendiente"
+    # Ningún impuesto con vencimiento hasta el 9-oct-2026 queda pendiente
+    assert not Obligacion.objects.filter(
+        tipo__in=["retefuente", "iva", "ica"], fecha_limite__lte=date(2026, 10, 9)
+    ).exclude(estado="pagada").exists()
+    m = Obligacion.objects.get(tipo="matricula", clave="2026")
+    assert m.estado == "pagada" and "29-abr-2026" in m.notas
+    assert Obligacion.objects.get(tipo="matricula", clave="2027").estado == "pendiente"
+    # Lo anterior a CONTROL_DESDE se excluye aunque siga pendiente (p. ej. fechas laborales)
+    pasadas = Obligacion.objects.filter(fecha_limite__lt=date(2026, 10, 1), estado="pendiente")
+    assert pasadas.exists()
+    assert not solo_vigentes(pasadas).exists()
+    assert not any(o.fecha_limite < date(2026, 10, 1) for o, _ in obligaciones_a_alertar(date(2026, 10, 19)))
+
+
+@pytest.mark.django_db
+def test_hallazgos_de_calendario_ignoran_el_historico(datos_iniciales):
+    from django.utils import timezone
+
+    from controles.models import Hallazgo
+    from controles.motor import ejecutar_reglas
+
+    from .helpers import periodo
+
+    hoy = timezone.localdate()
+    ejecutar_reglas(periodo(hoy.year, hoy.month), codigos=["CAL001", "CAL003", "CAL005"])
+    for h in Hallazgo.objects.filter(regla__grupo="calendario"):
+        assert "2026-01" not in h.clave and "2026-02" not in h.clave and "2026-P1" not in h.clave

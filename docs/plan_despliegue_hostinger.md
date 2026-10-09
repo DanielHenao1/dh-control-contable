@@ -47,7 +47,7 @@ Cada etapa se ejecuta solo después de tu aprobación explícita. Ninguna requie
 | 2 | Código y `.env` | `git clone` con la llave de despliegue en `/opt/control`; `cp .env.example .env`; `chmod 600 .env` | `ls -l .env` = `-rw-------`; `git log -1` = commit esperado | Borrar y recrear el `.env` |
 | 3 | Levantar servicios | `docker compose up -d --build` | `docker compose ps` todo `running`; `docker compose logs web --tail 50` sin errores | `docker compose logs <servicio>`; corregir `.env`; `docker compose up -d` de nuevo |
 | 4 | Migraciones y datos iniciales | Las migraciones corren al arrancar `web`. Luego `docker compose exec web python manage.py cargar_datos_iniciales` y `createsuperuser` | `docker compose exec web python manage.py showmigrations \| grep '\[ \]'` no devuelve nada | Ver §5 (migración fallida) |
-| 5 | HTTPS | Automático con Caddy cuando el DNS ya apunta al VPS | `curl -I https://contabilidad.dhtransstorage.com.co/salud/` → 200 y `strict-transport-security`; candado válido | Si no emite certificado: DNS aún sin propagar, puerto 80 cerrado o dominio mal escrito en `.env` (`docker compose logs caddy`) |
+| 5 | HTTPS | Automático con Caddy cuando el DNS ya apunta al VPS | `curl -I https://contabilidad.dhstore.com.co/salud/` → 200 y `strict-transport-security`; candado válido | Si no emite certificado: DNS aún sin propagar, puerto 80 cerrado o dominio mal escrito en `.env` (`docker compose logs caddy`) |
 | 6 | Doble factor y usuarios | Ingreso, QR, guardar 8 códigos de recuperación; crear usuarios por rol | Un usuario `consulta` no ve Configuración (403) | Código de recuperación; en último caso `docker compose exec web python manage.py shell` para reasignar dispositivo (con tu autorización) |
 | 7 | Copias | `./deploy/backup.sh` manual una vez | Archivo `.gpg` en `/var/backups/control` **y** en el bucket | Revisar `BACKUP_*`, `gpg`, `aws` |
 | 8 | Restauración (puerta P0) | `./deploy/restore.sh <archivo>` en un entorno limpio | Ingresar y ver la carga de prueba | Sin restauración exitosa no se pasa a datos reales |
@@ -88,12 +88,12 @@ Cada etapa se ejecuta solo después de tu aprobación explícita. Ninguna requie
 
 | Tema | Estado |
 |---|---|
-| Proveedor de VPS | **Hostinger** (única contratación hasta ahora; falta confirmar que el plan sea VPS y su tamaño) |
-| Subdominio | **`contabilidad.dhtransstorage.com.co`** → registro DNS tipo A hacia la IP del VPS; en `.env`: `DOMINIO=contabilidad.dhtransstorage.com.co`, `DJANGO_ALLOWED_HOSTS=contabilidad.dhtransstorage.com.co`, `DJANGO_CSRF_TRUSTED_ORIGINS=https://contabilidad.dhtransstorage.com.co` |
+| Proveedor de VPS | **Hostinger, un solo VPS ya contratado**: KVM 4, Ubuntu 26.04 LTS, 200 GB de disco, 16 TB de ancho de banda, IPv4 31.97.136.172 (srv885245.hstgr.cloud). Es VPS con acceso root: cumple el requisito. Pendiente validar `docker run hello-world` en este sistema (Ubuntu 26.04 es reciente) |
+| Subdominio | **`contabilidad.dhstore.com.co`** → registro DNS tipo A hacia la IP del VPS; en `.env`: `DOMINIO=contabilidad.dhstore.com.co`, `DJANGO_ALLOWED_HOSTS=contabilidad.dhstore.com.co`, `DJANGO_CSRF_TRUSTED_ORIGINS=https://contabilidad.dhstore.com.co` |
 | Asistente de IA | **Apagado por ahora** (`ANTHROPIC_API_KEY` vacío; el botón usa la plantilla local, sin enviar nada fuera). Se activa **después de probar todo el sistema**, añadiendo la clave solo en el `.env` del servidor y reiniciando `web` (ver §8) |
-| Almacenamiento S3 para copias | **Pendiente** (no hay proveedor). Hasta tenerlo las copias quedan solo en el VPS y no cumplen 3-2-1. **Obligatorio antes de cargar datos reales** (puerta P0) |
+| Copia fuera del servidor | **Sin S3.** El dueño prefiere traer las copias a su computador (`docs/respaldo_en_mi_pc.md`) o a otro VPS más adelante. **Pendiente: se empieza en producción, y debe estar activa antes de cargar el primer dato contable real** (puerta P0) |
 | Correo SMTP para alertas | **Pendiente**. Sin SMTP las alertas salen por consola del servidor; siguen visibles en tablero y calendario. Se necesita antes de depender de los avisos por correo |
-| Plan de Hostinger actual | **Por confirmar**: si es hosting web o Cloud compartido, hay que contratar un VPS |
+| Plan de Hostinger actual | **Confirmado: VPS** (ver arriba). Un solo VPS; copias en bucket S3, sin segundo VPS |
 
 Orden sugerido con lo pendiente: (a) confirmar/contratar el VPS; (b) etapas 0–8 con datos sintéticos, sin S3 ni SMTP; (c) elegir proveedor S3 y SMTP; (d) pasar P0 con restauración desde el bucket externo; (e) datos reales.
 

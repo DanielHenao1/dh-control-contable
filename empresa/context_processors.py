@@ -1,5 +1,3 @@
-from datetime import timedelta
-
 from django.utils import timezone
 
 from .models import Empresa, Parametro
@@ -22,14 +20,16 @@ def global_(request):
         for k in ("ver", "ver_fiscal", "cargar", "gestionar_hallazgos", "administrar", "ver_contratista", "exportar", "simular")
     }
     if request.path in PAGINAS_CON_ALERTA and request.user.puede("ver"):
-        from calendario.historico import solo_vigentes
         from calendario.models import Obligacion
 
         hoy = timezone.localdate()
-        dias = int(Parametro.obtener_o("ALERTA_PANTALLA_DIAS", 30))
-        ctx["alertas_pantalla"] = list(
-            solo_vigentes(Obligacion.objects.filter(fecha_limite__isnull=False, fecha_limite__lte=hoy + timedelta(days=dias)))
-            .exclude(estado__in=["presentada", "pagada"]).order_by("fecha_limite")[:8]
+        # Todo lo pendiente del año en curso (de enero a diciembre), vencido o por vencer.
+        pendientes_anio = list(
+            Obligacion.objects.filter(fecha_limite__year=hoy.year)
+            .exclude(estado__in=["presentada", "pagada"]).order_by("fecha_limite")
         )
+        ctx["alertas_pantalla"] = pendientes_anio
+        ctx["alertas_vencidas"] = sum(1 for o in pendientes_anio if o.dias_restantes < 0)
+        ctx["alertas_anio"] = hoy.year
         ctx["hoy_iso"] = hoy.isoformat()
     return ctx

@@ -173,10 +173,10 @@ def test_ica_y_reteica_de_bogota_completos(datos_iniciales):
 @pytest.mark.django_db
 def test_logo_y_favicon_en_las_paginas(cliente_dueno, datos_iniciales):
     html = cliente_dueno.get("/").content.decode()
-    assert "img/favicon.ico" in html and "img/logo-dhstore.png" in html and "apple-touch-icon" in html
+    assert "img/favicon.ico" in html and "img/logo-dhstore-claro.png" in html and "apple-touch-icon" in html
     from django.contrib.staticfiles import finders
 
-    for ruta in ("img/favicon.ico", "img/icon-180.png", "img/icon-32.png", "img/logo-dhstore.png"):
+    for ruta in ("img/favicon.ico", "img/icon-180.png", "img/icon-32.png", "img/logo-dhstore.png", "img/logo-dhstore-claro.png"):
         assert finders.find(ruta), ruta
 
 

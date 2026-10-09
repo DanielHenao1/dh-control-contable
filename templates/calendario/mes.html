@@ -3,8 +3,22 @@
 <h1>Calendario</h1>
 <p><a class="btn sec" href="?vista=mes">Mes</a> <a class="btn sec" href="?vista=lista">Lista</a> <a class="btn sec" href="{% url 'calendario_reglas' %}">Reglas</a>
 {% if permisos.administrar %}<form method="post" action="{% url 'calendario_generar' %}" style="display:inline">{% csrf_token %}<button class="btn" type="submit">Recalcular por regla</button></form>{% endif %}</p>
-<p><a href="?anio={{ ant.0 }}&mes={{ ant.1 }}">←</a> <strong>{{ nombre_mes }} {{ anio }}</strong> <a href="?anio={{ sig.0 }}&mes={{ sig.1 }}">→</a></p>
+<div class="nav-cal">
+  <a class="btn sec" href="?anio={{ ant.0 }}&mes={{ ant.1 }}" aria-label="Mes anterior">←</a>
+  <details class="picker" id="picker-cal">
+    <summary>{{ nombre_mes }} {{ anio }} ▾</summary>
+    <div class="picker-panel">
+      <div class="picker-anios">{% for a in anios %}<a class="{% if a == anio %}activo{% endif %}" href="?anio={{ a }}&mes={{ mes }}">{{ a }}</a>{% endfor %}</div>
+      <div class="picker-meses">{% for m in meses_panel %}<a class="{% if m.actual %}activo{% endif %}" href="?anio={{ anio }}&mes={{ m.n }}">{{ m.nombre }}{% if m.pendientes %}<span class="punto" title="{{ m.pendientes }} pendiente(s)">{{ m.pendientes }}</span>{% endif %}</a>{% endfor %}</div>
+      <a class="hoy-enlace" href="?anio={{ hoy.year }}&mes={{ hoy.month }}">Ir a hoy</a>
+    </div>
+  </details>
+  <a class="btn sec" href="?anio={{ sig.0 }}&mes={{ sig.1 }}" aria-label="Mes siguiente">→</a>
+</div>
 <div class="tabla-scroll"><table class="cal"><tr><th>Lun</th><th>Mar</th><th>Mié</th><th>Jue</th><th>Vie</th><th>Sáb</th><th>Dom</th></tr>
 {% for semana in semanas %}<tr>{% for dia, obs, dentro in semana %}<td class="{% if not dentro %}fuera{% endif %} {% if dia == hoy %}hoy{% endif %}"><strong>{{ dia.day }}</strong>
 {% for o in obs %}<a class="ob" href="{% url 'obligacion' o.pk %}">{{ o.nombre|truncatechars:26 }}<br><span class="chip {% if o.cumplida %}verde{% elif o.fecha_limite < hoy %}rojo{% else %}ambar{% endif %}">{{ o.get_estado_display }}</span></a>{% endfor %}</td>{% endfor %}</tr>{% endfor %}</table></div>
+<script>
+(function(){var d=document.getElementById('picker-cal');if(!d)return;document.addEventListener('click',function(e){if(d.open&&!d.contains(e.target))d.open=false;});document.addEventListener('keydown',function(e){if(e.key==='Escape')d.open=false;});})();
+</script>
 {% endblock %}

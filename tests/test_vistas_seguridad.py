@@ -144,3 +144,18 @@ def test_hallazgo_explica_que_hacer_y_a_donde_ir(cliente_dueno, db):
     h = Hallazgo.objects.create(regla=r, periodo=p, clave="x", titulo="Retención oct: sin responsable", severidad="media", evidencia={"obligacion_id": 1})
     html = cliente_dueno.get(f"/hallazgos/{h.pk}/").content.decode()
     assert "Qué hacer" in html and "/calendario/obligacion/1/" in html and "Cerrar el hallazgo" in html
+
+
+def test_parametro_se_guarda_y_se_marca_verificado_con_un_clic(cliente_dueno, db):
+    from empresa.models import Parametro
+
+    p = Parametro.objects.create(codigo="PUC_CAJA_BANCOS", descripcion="Caja y bancos", tipo="lista", valor="11",
+                                 vigente_desde="2025-01-01", estado="por_verificar")
+    datos = {"codigo": p.codigo, "descripcion": p.descripcion, "tipo": "lista", "valor": "1110", "vigente_desde": "2025-01-01",
+             "estado": "por_verificar", "fuente": "Confirmado por la contadora"}
+    cliente_dueno.post(f"/configuracion/parametro/{p.pk}/", datos)
+    p.refresh_from_db()
+    assert p.valor == "1110" and p.estado == "por_verificar"  # cambiar el valor no lo verifica
+    cliente_dueno.post(f"/configuracion/parametro/{p.pk}/", {**datos, "verificar": "1"})
+    p.refresh_from_db()
+    assert p.estado == "verificado"

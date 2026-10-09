@@ -5,6 +5,7 @@
 <form method="post" enctype="multipart/form-data">{% csrf_token %}
   {{ form.as_p }}
   <button class="btn" type="submit">Guardar</button>
+  {% if boton_verificar %}<button class="btn sec" type="submit" name="verificar" value="1">Guardar y marcar como verificado</button>{% endif %}
 </form>
 </div>
 {% endblock %}

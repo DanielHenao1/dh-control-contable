@@ -14,14 +14,14 @@ Todo corre con Docker Compose en un solo VPS: Django (gunicorn), PostgreSQL, Red
 
 ## En el servidor
 
-6. **Preparar el servidor** (usuario sin root, firewall 22/80/443, fail2ban, Docker, actualizaciones automáticas y copia diaria a las 3:15 a. m.). Conéctate como root la primera vez:
+6. **Preparar el servidor** (usuario sin root, firewall 22/80/443, fail2ban, Docker, actualizaciones automáticas y copia diaria a las 3:15 a. m.). El repositorio es privado, así que el script se copia desde tu computador (no se clona como root):
    ```bash
+   # En tu computador, desde la carpeta del repositorio:
+   scp deploy/bootstrap.sh root@IP_DEL_VPS:/root/
    ssh root@IP_DEL_VPS
-   apt-get update && apt-get install -y git
-   git clone https://github.com/danielhenao1/dh-control-contable.git /tmp/dh && cd /tmp/dh
-   bash deploy/bootstrap.sh control "$(cat /ruta/a/tu_llave_publica.pub)"
+   bash /root/bootstrap.sh control "$(cat /ruta/a/tu_llave_publica.pub)"   # o pega la llave entre comillas
    ```
-   A partir de aquí **entra como `control`** (`ssh control@IP`), no como root.
+   A partir de aquí **entra como `control`** (`ssh control@IP`), no como root. Verifica en una segunda terminal que el ingreso como `control` funciona *antes* de cerrar la sesión de root.
 7. **Clonar el repositorio** en `/opt/control` con la llave de despliegue:
    ```bash
    cd /opt/control

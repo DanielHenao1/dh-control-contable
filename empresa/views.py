@@ -4,7 +4,7 @@ import qrcode
 import qrcode.image.svg
 from django.contrib import messages
 from django.contrib.auth.views import LoginView
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from django_otp import devices_for_user
@@ -15,7 +15,7 @@ from django_otp.plugins.otp_totp.models import TOTPDevice
 from . import cargas, cuentas
 from .auditoria import auditar_lectura
 from .forms import CargaForm, ParametroForm, PerfilForm, PeriodoEstadoForm, UsuarioForm
-from .importacion import CAMPOS_POR_TIPO, leer_dataframe, sugerir_mapeo
+from .importacion import CAMPOS_POR_TIPO, detectar_fila_encabezado, leer_dataframe, sugerir_mapeo
 from .models import (
     ArchivoCargado,
     Parametro,
@@ -109,7 +109,8 @@ def cargas_nueva(request):
         d = form.cleaned_data
         p = Periodo.obtener(d["anio"], d["mes"])
         sentido, formulario = d.get("sentido") or "", d.get("formulario") or ""
-        revision = cargas.verificar_subido(d["archivo"], d["tipo"], p, d.get("perfil"), sentido, formulario)
+        varios = bool(d.get("varios_meses"))
+        revision = cargas.verificar_subido(d["archivo"], d["tipo"], p, d.get("perfil"), sentido, formulario, varios)
         forzada = False
         if not revision.ok:
             if d.get("subir_igual") and request.user.puede("administrar"):
@@ -122,7 +123,7 @@ def cargas_nueva(request):
                     "puede_forzar": request.user.puede("administrar"), **contexto_selector(periodo)})
         verificaciones = {"avisos": revision.avisos, "errores_ignorados": revision.errores if forzada else []}
         try:
-            a = cargas.registrar_archivo(d["archivo"], d["tipo"], p, request.user, d.get("perfil"), sentido, formulario, verificaciones)
+            a = cargas.registrar_archivo(d["archivo"], d["tipo"], p, request.user, d.get("perfil"), sentido, formulario, verificaciones, varios)
         except cargas.ArchivoDuplicado as dup:
             messages.warning(request, "Ese archivo ya fue cargado antes (misma huella).")
             return redirect("carga_detalle", pk=dup.existente.pk)
@@ -163,17 +164,65 @@ def carga_confirmar(request, pk):
     a = get_object_or_404(ArchivoCargado, pk=pk)
     try:
         cargas.confirmar(a, request.user, omitir_filas_con_error=bool(request.POST.get("omitir")))
-    except PeriodoCerrado as exc:
+    except (PeriodoCerrado, cargas.ConflictoDeMeses) as exc:
         messages.error(request, str(exc))
         return redirect("carga_detalle", pk=pk)
     if a.estado == ArchivoCargado.Estado.IMPORTADO:
         from controles.tasks import ejecutar_reglas_periodo
 
-        ejecutar_reglas_periodo.delay(a.periodo_id)
+        ids = {a.periodo_id}
+        for mes in a.resumen.get("meses", []):  # carga de varios meses: se recalcula cada mes tocado
+            anio, numero = mes.split("-")
+            ids.add(Periodo.obtener(int(anio), int(numero)).pk)
+        for periodo_id in ids:
+            ejecutar_reglas_periodo.delay(periodo_id)
         messages.success(request, "Importación confirmada. Se están recalculando los controles del periodo.")
     else:
         messages.error(request, "La importación no se completó: revisa los errores.")
     return redirect("carga_detalle", pk=pk)
+
+
+def _columnas_del_archivo(a, fila, hoja=""):
+    """Nombres de columna del archivo leídos con la fila de encabezado indicada (y la hoja, si se pide una)."""
+    with a.archivo.open("rb") as f:
+        contenido = f.read()
+    ref = PerfilImportacion(nombre="", tipo=a.tipo, fila_encabezado=fila, hoja=hoja or (a.perfil.hoja if a.perfil else ""))
+    df = leer_dataframe(contenido, a.nombre_original, ref)
+    return [str(c).strip() for c in df.columns]
+
+
+@requiere("administrar")
+@require_POST
+def carga_eliminar(request, pk):
+    """Borra una carga y lo que importó. Solo el dueño; pide confirmar y deja constancia en la auditoría."""
+    a = get_object_or_404(ArchivoCargado, pk=pk)
+    if not request.POST.get("entiendo"):
+        messages.error(request, "Marca la casilla para confirmar que se borran también los datos importados de este archivo.")
+        return redirect("carga_detalle", pk=pk)
+    try:
+        detalle, periodos = cargas.eliminar(a, request.user)
+    except PeriodoCerrado as exc:
+        messages.error(request, f"No se puede borrar: {exc}")
+        return redirect("carga_detalle", pk=pk)
+    from controles.tasks import ejecutar_reglas_periodo
+
+    for p in periodos:
+        ejecutar_reglas_periodo.delay(p.pk)
+    filas = sum(detalle["filas_borradas"].values())
+    messages.success(request, f"Carga «{detalle['nombre']}» eliminada ({filas} registro(s) importado(s) borrados). Quedó en la auditoría.")
+    return redirect("cargas")
+
+
+@requiere("cargar")
+def carga_columnas(request, pk):
+    """Columnas del archivo con otra fila de encabezado (para recalcular los desplegables del mapeo sin recargar)."""
+    a = get_object_or_404(ArchivoCargado, pk=pk)
+    try:
+        fila = max(int(request.GET.get("fila") or 1), 1)
+        columnas = _columnas_del_archivo(a, fila, request.GET.get("hoja", "").strip())
+    except Exception as exc:  # noqa: BLE001 - se muestra el motivo al usuario
+        return JsonResponse({"error": f"No se pudo leer el archivo con esa fila de encabezado: {exc}"}, status=400)
+    return JsonResponse({"columnas": columnas, "sugerido": sugerir_mapeo(a.tipo, columnas)})
 
 
 @requiere("cargar")
@@ -183,15 +232,17 @@ def carga_mapear(request, pk):
     campos = CAMPOS_POR_TIPO.get(a.tipo, [])
     with a.archivo.open("rb") as f:
         contenido = f.read()
-    ref = PerfilImportacion(nombre="", tipo=a.tipo, fila_encabezado=int(request.POST.get("fila_encabezado") or 1))
-    df = leer_dataframe(contenido, a.nombre_original, a.perfil or ref)
-    columnas = [str(c).strip() for c in df.columns]
+    if request.method == "POST":
+        fila = int(request.POST.get("fila_encabezado") or 1)
+    else:
+        fila = a.perfil.fila_encabezado if a.perfil else detectar_fila_encabezado(contenido, a.nombre_original)
+    columnas = _columnas_del_archivo(a, fila)
     if request.method == "POST":
         mapeo = {c.nombre: request.POST.get(f"campo_{c.nombre}") for c in campos if request.POST.get(f"campo_{c.nombre}")}
         nombre = request.POST.get("nombre", "").strip() or f"Perfil {a.get_tipo_display()}"
         perfil, _ = PerfilImportacion.objects.update_or_create(
             nombre=nombre, tipo=a.tipo,
-            defaults=dict(mapeo=mapeo, fila_encabezado=int(request.POST.get("fila_encabezado") or 1),
+            defaults=dict(mapeo=mapeo, fila_encabezado=fila,
                           decimal_coma=bool(request.POST.get("decimal_coma")),
                           formato_fecha=request.POST.get("formato_fecha", ""), hoja=request.POST.get("hoja", ""),
                           separador_csv=request.POST.get("separador_csv") or ","),
@@ -203,7 +254,7 @@ def carga_mapear(request, pk):
     sugerido = (a.perfil.mapeo if a.perfil else None) or sugerir_mapeo(a.tipo, columnas)
     return render(request, "empresa/carga_mapear.html", {
         "a": a, "campos": campos, "columnas": columnas, "sugerido": sugerido, "titulo": "Mapear columnas",
-        "perfil": a.perfil,
+        "perfil": a.perfil, "fila": fila,
     })
 
 

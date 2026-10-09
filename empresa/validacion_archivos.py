@@ -8,7 +8,14 @@ import io
 import re
 from dataclasses import dataclass, field
 
-from .importacion import CAMPOS_POR_TIPO, ErrorImportacion, leer, leer_dataframe, sugerir_mapeo
+from .importacion import (
+    CAMPOS_POR_TIPO,
+    ErrorImportacion,
+    leer,
+    leer_balance_world_office,
+    leer_dataframe,
+    sugerir_mapeo,
+)
 
 TABULARES = ("balance", "auxiliar", "facturas_dian", "retenciones", "extracto_banco")
 EXTENSIONES = {
@@ -72,7 +79,14 @@ def _tipos_probables(columnas):
     return probables
 
 
-def _revisar_tabular(tipo, nombre, contenido, perfil, periodo, sentido, empresa, res):
+def _revisar_tabular(tipo, nombre, contenido, perfil, periodo, sentido, empresa, res, varios_meses=False):
+    if tipo == "balance" and not (perfil and perfil.mapeo) and nombre.lower().endswith((".xlsx", ".xlsm")):
+        jerarquico = leer_balance_world_office(contenido)
+        if jerarquico is not None:  # balance de World Office con terceros: se lee con su propio lector
+            res.avisos.extend(jerarquico.bloqueos + jerarquico.avisos)
+            if not jerarquico.filas:
+                res.errores.append("El balance no tiene filas de detalle con cifras para importar.")
+            return
     try:
         df = leer_dataframe(contenido, nombre, perfil)
     except (ErrorImportacion, ValueError, OSError) as exc:
@@ -103,7 +117,8 @@ def _revisar_tabular(tipo, nombre, contenido, perfil, periodo, sentido, empresa,
         return
     if lectura.faltantes or not lectura.filas:
         return
-    _revisar_periodo(lectura.filas, periodo, res)
+    if not varios_meses:
+        _revisar_periodo(lectura.filas, periodo, res)
     if tipo == "facturas_dian":
         _revisar_nit_facturas(lectura.filas, sentido, empresa, res)
 
@@ -125,6 +140,27 @@ def _revisar_nit_facturas(filas, sentido, empresa, res):
     if empresa is None:
         return
     mio = empresa.nit
+    if any(f.get("sentido") for f in filas):  # el archivo trae Emitido/Recibido en cada fila
+        ajenas = incoherentes = 0
+        for f in filas:
+            etiqueta = (f.get("sentido") or "").strip().lower()
+            es_emisor = _nit_de(f.get("nit_emisor")) == mio
+            es_receptor = _nit_de(f.get("nit_receptor")) == mio
+            if not (es_emisor or es_receptor):
+                ajenas += 1
+            elif (etiqueta.startswith("emit") and not es_emisor) or (etiqueta.startswith("recib") and not es_receptor):
+                incoherentes += 1
+        if ajenas == len(filas):
+            res.errores.append(
+                f"Ninguna factura revisada pertenece a {empresa.razon_social} (NIT {empresa.nit_formateado}). "
+                "Parece un archivo de otra empresa."
+            )
+        elif ajenas or incoherentes:
+            res.avisos.append(
+                f"{ajenas + incoherentes} de {len(filas)} filas revisadas no coinciden con su columna Emitido/Recibido "
+                "o con el NIT de la empresa."
+            )
+        return
     emisor = sum(1 for f in filas if _nit_de(f.get("nit_emisor")) == mio)
     receptor = sum(1 for f in filas if _nit_de(f.get("nit_receptor")) == mio)
     if emisor == 0 and receptor == 0:
@@ -195,12 +231,12 @@ def _revisar_declaracion(contenido, formulario, empresa, res):
         res.avisos.append(f"No encontré el NIT {empresa.nit_formateado} en el PDF: confirma que es de la empresa.")
 
 
-def verificar(tipo, nombre, contenido, periodo, empresa, perfil=None, sentido="", formulario=""):
+def verificar(tipo, nombre, contenido, periodo, empresa, perfil=None, sentido="", formulario="", varios_meses=False):
     res = Resultado()
     if not _revisar_extension(tipo, nombre, res):
         return res
     if tipo in TABULARES:
-        _revisar_tabular(tipo, nombre, contenido, perfil, periodo, sentido, empresa, res)
+        _revisar_tabular(tipo, nombre, contenido, perfil, periodo, sentido, empresa, res, varios_meses)
     elif tipo == "facturas_xml":
         _revisar_xml(nombre, contenido, sentido, empresa, res)
     elif tipo == "declaracion":

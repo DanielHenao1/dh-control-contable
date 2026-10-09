@@ -29,6 +29,8 @@ A quien lleva World Office (Ideako o la empresa), en Excel o CSV:
 | Extracto bancario | fecha*, valor* (ingresos positivos, egresos negativos), descripción, referencia |
 Los nombres de columna no tienen que coincidir: si no se reconocen, se mapean una sola vez y queda un perfil guardado.
 
+**Facturas de enero a septiembre de 2026.** Descárgalas de la DIAN (facturas **recibidas** y **emitidas** por separado, con rango 01-ene-2026 a 30-sep-2026; si el portal limita el rango por consulta, baja uno por mes). En el portal de facturación electrónica de la DIAN se entra con la firma electrónica o el token de la empresa y se exporta a Excel; revisa en pantalla el nombre exacto de las opciones y el rango máximo permitido, porque no lo pude verificar. En el sistema: Cargas → Nueva carga → «Facturas electrónicas (Excel DIAN)». Si el libro trae emitidas y recibidas juntas, una hoja por mes y una columna Grupo (así viene el de la DIAN), usa el perfil **«DIAN · libro de facturas (una hoja por mes)»**, deja el sentido vacío, periodo **Septiembre 2026** y marca **«El archivo trae varios meses»** (detalle en `docs/validacion_de_cargas.md`). Si bajaste emitidas y recibidas por separado, elige el sentido en cada carga. Si bajaste un archivo por mes, súbelos uno por uno sin marcar esa casilla, cada uno en su mes.
+
 **Atajo:** pásame solo la **primera fila** (los nombres de columna, sin ningún dato) de cada archivo y te dejo los perfiles listos para que la primera carga salga sin mapear a mano.
 
 ## 4. Primera carga (septiembre de 2026), en este orden

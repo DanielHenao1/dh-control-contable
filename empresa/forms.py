@@ -10,7 +10,7 @@ class CargaForm(forms.Form):
     anio = forms.IntegerField(label="Año", min_value=2015, max_value=2100)
     mes = forms.IntegerField(label="Mes", min_value=1, max_value=12)
     sentido = forms.ChoiceField(
-        label="Sentido (solo facturas)", required=False,
+        label="Sentido (solo facturas; vacío si el archivo trae la columna Emitido/Recibido)", required=False,
         choices=[("", "—"), ("recibida", "Recibidas (compras)"), ("emitida", "Emitidas (ventas)")],
     )
     perfil = forms.ModelChoiceField(queryset=PerfilImportacion.objects.filter(activo=True), required=False,
@@ -19,6 +19,10 @@ class CargaForm(forms.Form):
         label="Formulario (solo declaraciones)", required=False,
         choices=[("", "—")] + [(k, v[0]) for k, v in FORMULARIOS.items()],
         help_text="IVA es el formulario 300; la retención en la fuente es el 350.",
+    )
+    varios_meses = forms.BooleanField(
+        label="El archivo trae varios meses: repartir las facturas por su fecha de emisión", required=False,
+        help_text="Solo facturas. Elige como periodo el último mes del rango.",
     )
     archivo = forms.FileField()
     subir_igual = forms.BooleanField(
@@ -35,9 +39,13 @@ class CargaForm(forms.Form):
 
     def clean(self):
         d = super().clean()
+        if d.get("varios_meses") and d.get("tipo") not in ("facturas_dian", "facturas_xml"):
+            self.add_error("varios_meses", "La carga de varios meses solo aplica a facturas electrónicas.")
         if d.get("tipo") == "declaracion" and not d.get("formulario"):
             self.add_error("formulario", "Elige qué formulario es la declaración.")
-        if d.get("tipo") in ("facturas_dian", "facturas_xml") and not d.get("sentido"):
+        perfil = d.get("perfil")
+        trae_sentido = bool(perfil and (perfil.mapeo or {}).get("sentido"))  # el archivo trae la columna Emitido/Recibido
+        if d.get("tipo") in ("facturas_dian", "facturas_xml") and not d.get("sentido") and not trae_sentido:
             self.add_error("sentido", "Indica si son facturas emitidas o recibidas.")
         return d
 

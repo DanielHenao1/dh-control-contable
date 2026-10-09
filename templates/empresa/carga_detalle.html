@@ -2,7 +2,7 @@
 {% block contenido %}
 <h1>{{ a.nombre_original }}</h1>
 <div class="tarjeta">
-  <p><strong>{{ a.get_tipo_display }}</strong> · periodo {{ a.periodo }} · {{ a.tamano|filesizeformat }} · estado <span class="chip">{{ a.get_estado_display }}</span>{% if a.vigente %} · <span class="chip verde">vigente</span>{% endif %}</p>
+  <p><strong>{{ a.get_tipo_display }}</strong> · periodo {{ a.periodo }} · {{ a.tamano|filesizeformat }} · estado <span class="chip">{{ a.get_estado_display }}</span>{% if a.vigente %} · <span class="chip verde">vigente</span>{% endif %}{% if a.varios_meses %} · <span class="chip">varios meses</span>{% endif %}</p>
   <p style="font-size:13px;color:var(--gris-600)">Huella SHA-256: <code>{{ a.hash_sha256 }}</code></p>
   {% if a.resumen %}<p>Resumen: {% for k, v in a.resumen.items %}<span class="chip">{{ k }}: {{ v }}</span> {% endfor %}</p>{% endif %}
 </div>
@@ -10,6 +10,9 @@
 {% if a.verificaciones.avisos %}<div class="aviso"><strong>Avisos de la revisión previa:</strong><ul>{% for e in a.verificaciones.avisos %}<li>{{ e }}</li>{% endfor %}</ul></div>{% endif %}
 {% if a.errores %}<div class="error"><strong>Problemas encontrados:</strong><ul>{% for e in a.errores|slice:":30" %}<li>Fila {{ e.fila }}: {{ e.problemas|join:"; " }}</li>{% endfor %}</ul></div>{% endif %}
 {% if lectura %}
+  {% if lectura.bloqueos %}<div class="error"><strong>No se puede importar:</strong><ul>{% for b in lectura.bloqueos %}<li>{{ b }}</li>{% endfor %}</ul></div>{% endif %}
+  {% for av in lectura.avisos %}<div class="aviso">{{ av }}</div>{% endfor %}
+  {% if lectura.info %}<p style="font-size:13px">Formato reconocido: <b>{{ lectura.info.formato }}</b> · filas de detalle a importar: <b>{{ lectura.info.filas_importadas }}</b> · filas ignoradas (agrupaciones, totales y vacías): <b>{{ lectura.info.filas_ignoradas }}</b>{% if lectura.info.totales_cuadran %} · <span class="chip verde">los totales cuadran</span>{% endif %}</p>{% endif %}
   {% if lectura.faltantes %}<div class="error">Faltan columnas por mapear: {{ lectura.faltantes|join:", " }}. <a href="{% url 'carga_mapear' a.pk %}">Configurar el mapeo de columnas</a>.</div>{% endif %}
   {% if lectura.errores %}<div class="aviso">{{ lectura.errores|length }} fila(s) con problemas de {{ lectura.total_filas }}.</div>{% endif %}
   {% if lectura.columnas %}<p style="font-size:13px">Columnas detectadas: {{ lectura.columnas|join:" · " }} — <a href="{% url 'carga_mapear' a.pk %}">Ajustar mapeo</a></p>{% endif %}
@@ -25,6 +28,12 @@
 <form method="post" action="{% url 'carga_confirmar' a.pk %}" style="margin-top:14px">{% csrf_token %}
   {% if lectura.errores %}<label><input type="checkbox" name="omitir"> Importar omitiendo las filas con problemas</label><br>{% endif %}
   <button class="btn" type="submit">Confirmar importación</button>
+</form>
+{% endif %}
+{% if permisos.administrar %}
+<form method="post" action="{% url 'carga_eliminar' a.pk %}" style="margin-top:22px;padding-top:14px;border-top:1px solid var(--borde)" onsubmit="return confirm('¿Borrar esta carga y los datos que importó? Queda registrado en la auditoría.');">{% csrf_token %}
+  <label><input type="checkbox" name="entiendo"> Entiendo que se borran también los datos importados de este archivo</label><br>
+  <button class="btn peligro" type="submit">Borrar esta carga</button>
 </form>
 {% endif %}
 {% endblock %}

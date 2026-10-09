@@ -103,3 +103,11 @@ def test_formulario_rechaza_perfil_de_otro_tipo():
 def test_desplegable_de_perfil_marca_cada_opcion_con_su_tipo():
     PerfilImportacion.objects.create(nombre="DIAN", tipo="facturas_dian")
     assert 'data-tipo="facturas_dian"' in str(CargaForm()["perfil"])
+
+
+@pytest.mark.django_db
+def test_facturas_dian_sin_perfil_ni_sentido_usa_el_perfil_dian_unico():
+    perfil = PerfilImportacion.objects.create(nombre="DIAN", tipo="facturas_dian", mapeo={"numero": "Folio", "sentido": "Grupo"})
+    form = CargaForm({"tipo": "facturas_dian", "anio": 2026, "mes": 9}, {"archivo": SimpleUploadedFile("f.xlsx", b"x")})
+    assert form.is_valid(), form.errors
+    assert form.cleaned_data["perfil"] == perfil

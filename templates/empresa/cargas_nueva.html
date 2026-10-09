@@ -25,7 +25,8 @@ var f=(v==='facturas_dian'||v==='facturas_xml');document.getElementById('fila-se
 var pf=document.getElementById('id_perfil');
 function filtrar(){if(!pf)return;var sel=pf.options[pf.selectedIndex];
 for(var i=0;i<pf.options.length;i++){var o=pf.options[i],d=o.getAttribute('data-tipo');var ok=!d||d===t.value;o.hidden=!ok;o.disabled=!ok;}
-if(sel&&sel.getAttribute('data-tipo')&&sel.getAttribute('data-tipo')!==t.value){pf.value='';}}
+if(sel&&sel.getAttribute('data-tipo')&&sel.getAttribute('data-tipo')!==t.value){pf.value='';}
+if(!pf.value&&t.value==='facturas_dian'){var c=[].filter.call(pf.options,function(o){return o.getAttribute('data-tipo')==='facturas_dian';});if(c.length===1){pf.value=c[0].value;}}}
 t.addEventListener('change',function(){ver();filtrar();});ver();filtrar();})();
 </script>
 {% endblock %}

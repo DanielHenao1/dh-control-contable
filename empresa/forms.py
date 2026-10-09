@@ -60,6 +60,11 @@ class CargaForm(forms.Form):
         if perfil and d.get("tipo") and perfil.tipo != d["tipo"]:
             self.add_error("perfil", "Ese perfil es de otro tipo de archivo. Elige uno del mismo tipo o déjalo en blanco.")
             perfil = None
+        if not perfil and not d.get("sentido") and d.get("tipo") == "facturas_dian":
+            # Sin sentido ni perfil: se usa el perfil DIAN (columna Grupo) si es el único de ese tipo.
+            candidatos = [x for x in PerfilImportacion.objects.filter(activo=True, tipo="facturas_dian") if (x.mapeo or {}).get("sentido")]
+            if len(candidatos) == 1:
+                perfil = d["perfil"] = candidatos[0]
         trae_sentido = bool(perfil and (perfil.mapeo or {}).get("sentido"))  # el archivo trae la columna Emitido/Recibido
         if d.get("tipo") in ("facturas_dian", "facturas_xml") and not d.get("sentido") and not trae_sentido:
             self.add_error("sentido", "Indica si son facturas emitidas o recibidas.")

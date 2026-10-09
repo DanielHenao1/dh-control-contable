@@ -159,3 +159,16 @@ def test_parametro_se_guarda_y_se_marca_verificado_con_un_clic(cliente_dueno, db
     cliente_dueno.post(f"/configuracion/parametro/{p.pk}/", {**datos, "verificar": "1"})
     p.refresh_from_db()
     assert p.estado == "verificado"
+
+
+def test_bandeja_muestra_por_defecto_solo_lo_abierto(cliente_dueno, db):
+    from controles.models import Hallazgo, ReglaControl
+    from empresa.models import Periodo
+
+    p = Periodo.obtener(2026, 9)
+    r = ReglaControl.objects.create(codigo="XYZ1", nombre="Regla", grupo="g", severidad="media")
+    Hallazgo.objects.create(regla=r, periodo=p, clave="a", titulo="Pendiente uno", severidad="media")
+    Hallazgo.objects.create(regla=r, periodo=p, clave="b", titulo="Ya corregido", severidad="media", estado="corregido")
+    html = cliente_dueno.get("/hallazgos/?anio=2026&mes=9").content.decode()
+    assert "Pendiente uno" in html and "Ya corregido" not in html and "1</strong> abiertos" in html
+    assert "Ya corregido" in cliente_dueno.get("/hallazgos/?anio=2026&mes=9&estado=todos").content.decode()

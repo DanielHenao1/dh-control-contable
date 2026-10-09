@@ -5,7 +5,7 @@ from contabilidad.models import Movimiento
 from empresa.models import Parametro, ParametroPendiente, Periodo
 from terceros.models import Tercero
 
-from .motor import Resultado, regla
+from .motor import NoAplica, Resultado, regla
 
 
 def pagos_acumulados(periodo):
@@ -17,6 +17,22 @@ def pagos_acumulados(periodo):
         if m.cuenta.clase in ("5", "6", "7"):
             totales[m.nit] += m.debito - m.credito
     return totales
+
+
+def anio_completo(periodo):
+    """True si hay auxiliares vigentes de los 12 meses del año: la exógena se arma con el año gravable completo."""
+    from empresa.models import ArchivoCargado
+
+    meses = set(ArchivoCargado.objects.filter(tipo="auxiliar", periodo__anio=periodo.anio, vigente=True)
+                .values_list("periodo__mes", flat=True))
+    return len(meses) == 12
+
+
+def sin_anio_completo(periodo):
+    """Resultado «no aplica» mientras falten auxiliares de algún mes del año (None si ya se puede evaluar)."""
+    if anio_completo(periodo):
+        return None
+    return NoAplica(f"la exógena se valida con los auxiliares de los 12 meses de {periodo.anio}, y aún no están todos cargados.")
 
 
 def tope(anio):
@@ -38,6 +54,9 @@ def tope(anio):
        "Resolución DIAN de información exógena del año gravable: identificación, nombre, dirección y municipio")
 def reportables_sin_datos(periodo):
     """Terceros que superan el tope durante el año pero no tienen los datos mínimos."""
+    pendiente = sin_anio_completo(periodo)
+    if pendiente:
+        return pendiente
     t = tope(periodo.anio)
     if t is None:
         return [Resultado(clave="sin-tope", titulo="Falta el tope de exógena",
@@ -63,6 +82,10 @@ def reportables_sin_datos(periodo):
 def facturas_vs_auxiliares(periodo):
     """Compara la base de facturas recibidas del tercero con sus gastos y costos en los auxiliares."""
     from facturacion.models import facturas_vigentes
+
+    pendiente = sin_anio_completo(periodo)
+    if pendiente:
+        return pendiente
 
     t = tope(periodo.anio)
     if t is None:

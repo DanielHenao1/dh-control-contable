@@ -25,6 +25,13 @@ class Resultado:
     severidad: str = ""  # vacío = la de la regla
 
 
+@dataclass
+class NoAplica:
+    """La regla todavía no aplica a este periodo (por ejemplo, exógena sin el año completo): cierra lo que haya abierto."""
+
+    motivo: str
+
+
 def regla(codigo, grupo, nombre, severidad="media", norma="", descripcion=""):
     def deco(funcion):
         REGISTRO[codigo] = {
@@ -96,6 +103,12 @@ def ejecutar_reglas(periodo: Periodo, codigos=None):
         vistos = set()
         resultados = r["funcion"](periodo)
         if resultados is None:  # regla que no aplica a este periodo: no toca lo existente
+            continue
+        if isinstance(resultados, NoAplica):
+            resumen["corregidos"] += Hallazgo.objects.filter(
+                regla=modelo, periodo=periodo, estado=Hallazgo.Estado.ABIERTO
+            ).update(estado=Hallazgo.Estado.CORREGIDO, detectado_ultima_vez=False,
+                     explicacion=f"Todavía no aplica: {resultados.motivo}")
             continue
         for res in resultados:
             vistos.add(res.clave)

@@ -138,7 +138,8 @@ def test_enero_2026_muestra_los_impuestos_de_2025_pagados(datos_iniciales, clien
     assert Obligacion.objects.get(tipo="renta_c2", clave="2025").estado == "pagada"
     # Nada anterior a CALENDARIO_DESDE (2026-01-01) y sin pendientes de impuestos hasta el 9-oct-2026
     assert not Obligacion.objects.filter(fecha_limite__lt=date(2026, 1, 1)).exists()
-    assert not Obligacion.objects.filter(tipo="exogena", clave="2025").exists()
+    # Sin fecha no se crea nada de años anteriores a 2026 (la exógena AG 2025 sí existe, con su fecha publicada)
+    assert not Obligacion.objects.filter(clave="2025", fecha_limite__isnull=True).exists()
     assert not Obligacion.objects.filter(
         tipo__in=["retefuente", "iva", "ica", "reteica", "renta_c1", "renta_c2"], fecha_limite__lte=date(2026, 10, 9)
     ).exclude(estado="pagada").exists()
@@ -177,3 +178,19 @@ def test_logo_y_favicon_en_las_paginas(cliente_dueno, datos_iniciales):
 
     for ruta in ("img/favicon.ico", "img/icon-180.png", "img/icon-32.png", "img/logo-dhstore.png"):
         assert finders.find(ruta), ruta
+
+
+@pytest.mark.django_db
+def test_exogena_nacional_y_distrital(datos_iniciales):
+    nacional = Obligacion.objects.get(tipo="exogena", clave="2025")
+    assert nacional.fecha_limite == date(2026, 5, 28) and nacional.verificacion == "dos_fuentes"
+    distrital = Obligacion.objects.get(tipo="exogena_distrital", clave="2025")
+    assert distrital.fecha_limite == date(2026, 10, 26) and distrital.estado == "pendiente"
+    assert "DDI-024115" in distrital.fuente
+    # Año gravable 2026 (se reporta en 2027): sin fecha publicada, no se inventa
+    for tipo in ("exogena", "exogena_distrital"):
+        assert Obligacion.objects.get(tipo=tipo, clave="2026").fecha_limite is None
+    # El distrital vence después de CONTROL_DESDE: sí genera alertas
+    from calendario.alertas import obligaciones_a_alertar
+
+    assert any(o.tipo == "exogena_distrital" and d == 7 for o, d in obligaciones_a_alertar(date(2026, 10, 19)))

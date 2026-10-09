@@ -85,6 +85,13 @@ FIJAS = [
     ("reteica", "2026-B4", date(2026, 9, 18), "ReteICA Bogotá, 4.º bimestre (jul-ago 2026)", "una_fuente", UNA),
     ("reteica", "2026-B5", date(2026, 11, 20), "ReteICA Bogotá, 5.º bimestre (sep-oct 2026)", "una_fuente", UNA),
     ("reteica", "2026-B6", date(2027, 1, 15), "ReteICA Bogotá, 6.º bimestre (nov-dic 2026)", "una_fuente", UNA),
+    # Información exógena: se contrasta con las fuentes; sin confirmar con los textos oficiales
+    ("exogena", "2025", date(2026, 5, 28), "Información exógena DIAN, año gravable 2025 (NIT terminado en 49)", "dos_fuentes",
+     "Calendario de la Resolución 000227 de 2025 (DIAN) por los dos últimos dígitos del NIT sin DV: 46 a 50 el 28-may-2026; "
+     "Actualícese, Buk, Siempre al Día, CuentaTe y CIJUF coinciden. Hubo plazos extraordinarios al 31-ago-2026 solo para ciertos formatos (Res. 000021 de 2026)"),
+    ("exogena_distrital", "2025", date(2026, 10, 26), "Información exógena distrital de Bogotá, año gravable 2025 (dígito 9, plataforma PIDO)", "dos_fuentes",
+     "Resolución DDI-024115 del 27-jul-2026 (Secretaría Distrital de Hacienda): dígito 9 el 26-oct-2026; Infobae y Actualícese coinciden. "
+     "Obligada si tuvo ingresos brutos >= 3.500 UVT en 2025 o es agente de retención del distrito: confirmar con el contador"),
 ]
 
 

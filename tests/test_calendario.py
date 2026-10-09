@@ -124,3 +124,23 @@ def test_calendario_se_genera_solo_al_cambiar_de_anio(datos_iniciales, monkeypat
     o = Obligacion.objects.get(tipo="retefuente", clave="2028-01")
     assert o.fecha_limite is not None and o.fecha_limite.year == 2028
     assert tasks.generar_calendario_automatico() == 0  # idempotente
+
+
+@pytest.mark.django_db
+def test_enero_2026_muestra_los_impuestos_de_2025_pagados(datos_iniciales, cliente_dueno):
+    # En enero de 2026 vencieron la retención de dic-2025 y el IVA del 3.er cuatrimestre de 2025
+    ret = Obligacion.objects.get(tipo="retefuente", clave="2025-12")
+    iva = Obligacion.objects.get(tipo="iva", clave="2025-P3")
+    assert ret.fecha_limite.year == 2026 and ret.fecha_limite.month == 1 and ret.estado == "pagada"
+    assert iva.fecha_limite.year == 2026 and iva.fecha_limite.month == 1 and iva.estado == "pagada"
+    # Renta del año gravable 2025: se declaró y pagó en 2026
+    assert Obligacion.objects.get(tipo="renta_c1", clave="2025").estado == "pagada"
+    assert Obligacion.objects.get(tipo="renta_c2", clave="2025").estado == "pagada"
+    # Nada anterior a CALENDARIO_DESDE (2026-01-01) y sin pendientes de impuestos hasta el 9-oct-2026
+    assert not Obligacion.objects.filter(fecha_limite__lt=date(2026, 1, 1)).exists()
+    assert not Obligacion.objects.filter(tipo="exogena", clave="2025").exists()
+    assert not Obligacion.objects.filter(
+        tipo__in=["retefuente", "iva", "ica", "renta_c1", "renta_c2"], fecha_limite__lte=date(2026, 10, 9)
+    ).exclude(estado="pagada").exists()
+    html = cliente_dueno.get("/calendario/?anio=2026&mes=1").content.decode()
+    assert "Retención en la fuente" in html and "Presentada y pagada" in html

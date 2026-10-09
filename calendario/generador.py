@@ -22,11 +22,22 @@ def _regla_dia_habil(obligacion, digito, fecha_ref):
     )
 
 
-def _crear(tipo, nombre, clave, periodo_texto, regla, anio_v, mes_v, laboral=False, **extra):
+def calendario_desde():
+    """Primera fecha que gestiona el sistema (parámetro CALENDARIO_DESDE). Nada anterior se crea."""
+    valor = Parametro.obtener_o("CALENDARIO_DESDE")
+    try:
+        return date.fromisoformat(valor) if valor else None
+    except ValueError:
+        return None
+
+
+def _crear(tipo, nombre, clave, periodo_texto, regla, anio_v, mes_v, laboral=False, minima=None, **extra):
     fecha, verif, fuente, nota = None, "no_verificada", "", ""
     if regla is not None:
         fecha = dia_habil_n(anio_v, mes_v, regla.dia_habil)
         verif, fuente = regla.verificacion, regla.fuente
+    if fecha is not None and minima is not None and fecha < minima:
+        return None, False
     else:
         nota = "Falta la regla de vencimiento para el último dígito del NIT; cárgala en Calendario > Reglas."
     obj, creada = Obligacion.objects.get_or_create(
@@ -54,10 +65,11 @@ def generar_obligaciones(anio_desde, anio_hasta, empresa=None):
         raise ValueError("Configura primero la empresa (NIT).")
     d = empresa.ultimo_digito
     creadas = 0
+    minima = calendario_desde()
 
     def reg(*args, **kw):
         nonlocal creadas
-        obj, c = _crear(*args, **kw)
+        obj, c = _crear(*args, minima=minima, **kw)
         creadas += int(c)
 
     for anio in range(anio_desde, anio_hasta + 1):
@@ -85,7 +97,7 @@ def generar_obligaciones(anio_desde, anio_hasta, empresa=None):
         reg("renta_c2", "Renta personas jurídicas: 2.ª cuota", f"{anio}", f"AG {anio}", r2, anio + 1, 7)
 
         # Sin fecha publicada / sin verificar
-        for tipo, nombre, nota in (
+        for tipo, nombre, nota in () if (minima and anio < minima.year) else (
             ("exogena", "Información exógena", "La DIAN fija las fechas por resolución a fin de año."),
             ("rub", "Registro de beneficiarios finales (RUB)", "Fecha y norma por confirmar con Ideako."),
         ):
@@ -102,6 +114,8 @@ def generar_obligaciones(anio_desde, anio_hasta, empresa=None):
             ("prima_diciembre", "Prima de servicios (2.º semestre)", date(anio, 12, 20), f"{anio}-dic"),
         ]
         for tipo, nombre, fecha, clave in laborales:
+            if minima and fecha < minima:
+                continue
             obj, c = Obligacion.objects.get_or_create(
                 tipo=tipo, clave=clave,
                 defaults=dict(nombre=nombre, periodo_texto=str(anio), fecha_limite=fecha, laboral=True,
@@ -110,6 +124,8 @@ def generar_obligaciones(anio_desde, anio_hasta, empresa=None):
             creadas += int(c)
 
         # Renovación de matrícula mercantil
+        if minima and date(anio, 3, 31) < minima:
+            continue
         obj, c = Obligacion.objects.get_or_create(
             tipo="matricula", clave=f"{anio}",
             defaults=dict(nombre="Renovación de matrícula mercantil", periodo_texto=str(anio),
@@ -120,7 +136,7 @@ def generar_obligaciones(anio_desde, anio_hasta, empresa=None):
 
     # Fechas fijas (ICA Bogotá, publicadas por resolución distrital)
     for r in ReglaVencimiento.objects.filter(modo="fecha_fija"):
-        if not (anio_desde <= r.fecha.year <= anio_hasta + 1):
+        if not (anio_desde <= r.fecha.year <= anio_hasta + 1) or (minima and r.fecha < minima):
             continue
         obj, c = Obligacion.objects.get_or_create(
             tipo=r.obligacion, clave=r.periodo_clave,

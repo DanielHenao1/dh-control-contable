@@ -140,7 +140,40 @@ def test_enero_2026_muestra_los_impuestos_de_2025_pagados(datos_iniciales, clien
     assert not Obligacion.objects.filter(fecha_limite__lt=date(2026, 1, 1)).exists()
     assert not Obligacion.objects.filter(tipo="exogena", clave="2025").exists()
     assert not Obligacion.objects.filter(
-        tipo__in=["retefuente", "iva", "ica", "renta_c1", "renta_c2"], fecha_limite__lte=date(2026, 10, 9)
+        tipo__in=["retefuente", "iva", "ica", "reteica", "renta_c1", "renta_c2"], fecha_limite__lte=date(2026, 10, 9)
     ).exclude(estado="pagada").exists()
     html = cliente_dueno.get("/calendario/?anio=2026&mes=1").content.decode()
     assert "Retención en la fuente" in html and "Presentada y pagada" in html
+
+
+@pytest.mark.django_db
+def test_ica_y_reteica_de_bogota_completos(datos_iniciales):
+    ica = {o.clave: o for o in Obligacion.objects.filter(tipo="ica")}
+    esperadas = {
+        "2025-B6": date(2026, 2, 13), "2026-B1": date(2026, 4, 10), "2026-B2": date(2026, 6, 12),
+        "2026-B3": date(2026, 8, 21), "2026-B4": date(2026, 10, 9), "2026-B5": date(2026, 12, 11),
+        "2026-B6": date(2027, 2, 12), "2026-anual": date(2027, 2, 26),
+    }
+    assert {k: v.fecha_limite for k, v in ica.items()} == esperadas
+    rete = {o.clave: o for o in Obligacion.objects.filter(tipo="reteica")}
+    assert {k: v.fecha_limite for k, v in rete.items()} == {
+        "2025-B6": date(2026, 1, 16), "2026-B1": date(2026, 3, 20), "2026-B2": date(2026, 5, 22),
+        "2026-B3": date(2026, 7, 17), "2026-B4": date(2026, 9, 18), "2026-B5": date(2026, 11, 20),
+        "2026-B6": date(2027, 1, 15),
+    }
+    # Todo lo vencido hasta el 9-oct-2026 está presentado y pagado; lo posterior sigue pendiente
+    for o in list(ica.values()) + list(rete.values()):
+        esperado = "pagada" if o.fecha_limite <= date(2026, 10, 9) else "pendiente"
+        assert o.estado == esperado, (o.tipo, o.clave)
+    # Las que solo tienen una fuente quedan marcadas como tales (no se presentan como verificadas)
+    assert rete["2026-B5"].verificacion == "una_fuente" and rete["2026-B1"].verificacion == "dos_fuentes"
+
+
+@pytest.mark.django_db
+def test_logo_y_favicon_en_las_paginas(cliente_dueno, datos_iniciales):
+    html = cliente_dueno.get("/").content.decode()
+    assert "img/favicon.ico" in html and "img/logo-dhstore.png" in html and "apple-touch-icon" in html
+    from django.contrib.staticfiles import finders
+
+    for ruta in ("img/favicon.ico", "img/icon-180.png", "img/icon-32.png", "img/logo-dhstore.png"):
+        assert finders.find(ruta), ruta

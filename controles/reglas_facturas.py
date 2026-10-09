@@ -1,5 +1,7 @@
 import re
+import unicodedata
 from collections import defaultdict
+from datetime import timedelta
 from decimal import Decimal
 
 from contabilidad.models import Movimiento
@@ -25,14 +27,65 @@ def _periodos_cercanos(periodo):
     )
 
 
+class IndiceDocumentos(defaultdict):
+    """documento normalizado -> movimientos, más la lista completa de movimientos (periodo anterior, actual y siguiente)."""
+
+    def __init__(self):
+        super().__init__(list)
+        self.movs = []
+        self.usados = set()  # movimientos ya asignados a una factura por la búsqueda por tercero y valor
+        self.asignadas = {}  # id de factura -> movimientos encontrados (misma respuesta si se vuelve a preguntar)
+        self.textos = []  # (movimiento, documento+descripción normalizados) para buscar el número de la factura
+
+
+_SUFIJOS_SOCIETARIOS = {"SAS", "SA", "LTDA", "ESP", "SCA", "ZOMAC", "EU", "CIA", "LIMITADA"}
+
+
+def norm_nombre(texto):
+    """Nombre de tercero comparable: sin tildes ni puntuación, sin sufijos societarios y sin espacios."""
+    t = unicodedata.normalize("NFKD", str(texto or "")).encode("ascii", "ignore").decode().upper()
+    palabras = [w for w in re.sub(r"[^A-Z0-9]+", " ", t).split() if w not in _SUFIJOS_SOCIETARIOS]
+    return "".join(palabras)
+
+
+_PALABRAS_VACIAS = {"DE", "DEL", "LA", "EL", "LOS", "LAS", "Y", "E", "CON", "PARA", "POR"}
+
+
+def _palabras(texto):
+    t = unicodedata.normalize("NFKD", str(texto or "")).encode("ascii", "ignore").decode().upper()
+    return {w for w in re.sub(r"[^A-Z0-9]+", " ", t).split() if len(w) > 1 and w not in _SUFIJOS_SOCIETARIOS and w not in _PALABRAS_VACIAS}
+
+
+def mismo_tercero(a, b):
+    """El mismo tercero aunque el nombre cambie un poco entre la DIAN y la contabilidad (siglas, razón social larga)."""
+    na, nb = norm_nombre(a), norm_nombre(b)
+    if not na or not nb:
+        return False
+    corto, largo = sorted((na, nb), key=len)
+    if na == nb or (len(corto) >= 8 and corto in largo):
+        return True
+    pa, pb = _palabras(a), _palabras(b)
+    menor, mayor = sorted((pa, pb), key=len)
+    return len(menor) >= 2 and menor <= mayor
+
+
 def indice_documentos(periodo):
     """documento normalizado -> movimientos (periodo anterior, actual y siguiente)."""
-    indice = defaultdict(list)
+    indice = IndiceDocumentos()
     qs = Movimiento.objects.filter(
         periodo__in=_periodos_cercanos(periodo), archivo__vigente=True
-    ).exclude(documento="").select_related("cuenta")
+    ).select_related("cuenta")
     for m in qs:
-        indice[norm_doc(m.documento)].append(m)
+        indice.movs.append(m)
+        indice.textos.append((m, norm_doc(f"{m.documento} {m.descripcion}")))
+        if m.documento:
+            indice[norm_doc(m.documento)].append(m)
+    # Primero las facturas cuyo número aparece en la contabilidad: ese vínculo manda sobre la búsqueda por valor.
+    for f in facturas_vigentes(periodo):
+        directos = _directo(f, indice)
+        if directos:
+            indice.asignadas[f.id] = directos
+            indice.usados.update(m.id for m in directos)
     return indice
 
 
@@ -40,27 +93,108 @@ def hay_auxiliares(periodo):
     return ArchivoCargado.objects.filter(tipo="auxiliar", periodo=periodo, vigente=True).exists()
 
 
+VENTANA_DIAS = 45  # la causación puede registrarse varios días después de la fecha de emisión
+
+
+def _cuentas_de_la_factura(f):
+    """Prefijos de cuenta donde queda causada: pasivos (22 proveedores, 23 costos y gastos por pagar) o caja y bancos
+    (11) si se pagó de contado, para las recibidas; cartera (13) para las emitidas."""
+    if f.sentido == "recibida":
+        base = Parametro.obtener_o("CAUSACION_CUENTAS_COMPRAS", ["22", "23", "11"])
+        return list(base) + list(Parametro.obtener_o("PUC_CUENTAS_POR_PAGAR") or [])
+    return list(Parametro.obtener_o("CAUSACION_CUENTAS_VENTAS", ["13"])) + list(Parametro.obtener_o("PUC_CARTERA") or [])
+
+
 def movimientos_de(f, indice):
+    """Movimientos contables que corresponden a la factura, buscados en tres pasos:
+
+    1. el documento del movimiento es el número de la factura;
+    2. el documento o la descripción del movimiento contienen el número completo de la factura (World Office
+       registra «(DTS) FV FE 11407», con su propio consecutivo y prefijo);
+    3. si el auxiliar guarda su propio consecutivo (compras: «(DTS) FC 1447»), mismo tercero y mismo valor en la cuenta
+       por pagar o de cartera, dentro de una ventana de fechas.
+    """
+    if f.id in getattr(indice, "asignadas", {}):
+        return indice.asignadas[f.id]
+    resultado = _buscar_movimientos(f, indice)
+    if hasattr(indice, "asignadas") and f.id is not None:
+        indice.asignadas[f.id] = resultado
+    return resultado
+
+
+def _directo(f, indice):
+    """Movimientos cuyo documento o descripción contienen el número de la factura."""
     llaves = {norm_doc(f.numero_completo), norm_doc(f.numero)}
     encontrados = []
     for k in llaves:
         encontrados += indice.get(k, [])
-    # Si se conoce el NIT del tercero en el movimiento, debe coincidir
+    completo = norm_doc(f.numero_completo)
+    if not encontrados and len(completo) >= 5 and hasattr(indice, "textos"):
+        encontrados = [m for m, texto in indice.textos if completo in texto]
     nit = f.nit_tercero
     return [m for m in {id(x): x for x in encontrados}.values() if not m.nit or m.nit == nit]
 
 
+def _buscar_movimientos(f, indice):
+    resultado = _directo(f, indice)
+    if resultado or not hasattr(indice, "movs"):
+        return resultado
+    nit = f.nit_tercero
+    prefijos = _cuentas_de_la_factura(f)
+    esperado = {abs(f.total), abs(f.total - f.retenciones)}
+    tolerancia = Decimal(str(Parametro.obtener_o("CAUSACION_TOLERANCIA_PESOS", 5)))
+    nombre = f.nombre_emisor if f.sentido == "recibida" else f.nombre_receptor
+    grupos = defaultdict(list)  # un mismo documento contable puede repartir la factura (cuenta por pagar + retención)
+    for m in indice.movs:
+        if not any(m.cuenta.codigo.startswith(p) for p in prefijos):
+            continue
+        if not (f.fecha - timedelta(days=5) <= m.fecha <= f.fecha + timedelta(days=VENTANA_DIAS)):
+            continue
+        if not ((m.nit and m.nit == nit) or mismo_tercero(m.tercero_nombre, nombre)):
+            continue
+        grupos[norm_doc(m.documento) or f"mov{m.id}"].append(m)
+    for movs in grupos.values():
+        if any(m.id in indice.usados for m in movs):
+            continue  # ese asiento ya corresponde a otra factura
+
+        def valor(m):
+            if f.sentido == "recibida":
+                return m.credito - m.debito if not f.es_nota_credito else m.debito - m.credito
+            return m.debito - m.credito if not f.es_nota_credito else m.credito - m.debito
+
+        solos = [m for m in movs if any(abs(valor(m) - e) <= tolerancia for e in esperado)]
+        if solos:
+            indice.usados.update(m.id for m in movs)
+            return solos[:1]
+        if any(abs(sum(valor(m) for m in movs if valor(m) > 0) - e) <= tolerancia for e in esperado):
+            indice.usados.update(m.id for m in movs)
+            return movs
+    return resultado
+
+
 def valor_causado(f, movs):
-    """Valor causado en cartera (emitidas) o cuentas por pagar (recibidas) si hay parámetros de cuentas."""
+    """Valor con que quedó causada la factura (cuentas por pagar y retenciones en compras; cartera en ventas).
+
+    Un mismo documento contable puede repartir la factura en varias cuentas, así que se suma por documento y se toma el
+    documento cuyo valor más se acerca al de la factura. None si ninguno de los movimientos está en esas cuentas
+    (por ejemplo, solo hay el pago en caja o bancos): no hay valor causado que comparar.
+    """
     if f.sentido == "recibida":
-        pref = Parametro.obtener_o("PUC_CUENTAS_POR_PAGAR")
-        if not pref:
-            return None
-        return sum((m.credito - m.debito for m in movs if any(m.cuenta.codigo.startswith(p) for p in pref)), Decimal("0"))
-    pref = Parametro.obtener_o("PUC_CARTERA")
-    if not pref:
+        prefijos = ["22", "23"] + list(Parametro.obtener_o("PUC_CUENTAS_POR_PAGAR") or [])
+    else:
+        prefijos = ["13"] + list(Parametro.obtener_o("PUC_CARTERA") or [])
+    excluir = Parametro.obtener_o("CAUSACION_CUENTAS_EXCLUIDAS", ["1355"])  # anticipo de impuestos y retenciones, no es cartera
+    por_documento = defaultdict(lambda: Decimal("0"))
+    for m in movs:
+        if any(m.cuenta.codigo.startswith(p) for p in prefijos) and not any(m.cuenta.codigo.startswith(x) for x in excluir):
+            neto = (m.credito - m.debito) if f.sentido == "recibida" else (m.debito - m.credito)
+            por_documento[norm_doc(m.documento) or f"mov{m.id}"] += neto
+    # la causación aumenta la cuenta; el pago o el recibo de caja la disminuye (y al revés en las notas crédito)
+    valores = [abs(v) for v in por_documento.values() if (v < 0 if f.es_nota_credito else v > 0)]
+    if not valores:
         return None
-    return sum((m.debito - m.credito for m in movs if any(m.cuenta.codigo.startswith(p) for p in pref)), Decimal("0"))
+    objetivo = abs(f.total)
+    return min(valores, key=lambda v: abs(v - objetivo))
 
 
 @regla("FAC001", "facturas", "Factura DIAN sin causar", "alta",
@@ -103,8 +237,8 @@ def valor_distinto(periodo):
             continue
         esperado_total = f.signo * f.total
         esperado_neto = esperado_total - f.signo * f.retenciones
-        causado_firmado = causado if not f.es_nota_credito else -abs(causado)
-        if abs(abs(causado_firmado) - abs(esperado_total)) > TOL and abs(abs(causado_firmado) - abs(esperado_neto)) > TOL:
+        tolerancia = Decimal(str(Parametro.obtener_o("CAUSACION_TOLERANCIA_PESOS", 5)))
+        if abs(causado - abs(esperado_total)) > tolerancia and abs(causado - abs(esperado_neto)) > tolerancia:
             salida.append(Resultado(
                 clave=f"{f.sentido}|{f.nit_emisor}|{f.numero_completo}",
                 titulo=f"Factura {f.numero_completo} causada por un valor distinto",

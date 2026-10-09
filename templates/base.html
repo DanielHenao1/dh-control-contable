@@ -26,7 +26,7 @@
   {% if permisos.ver %}<a href="{% url 'hallazgos' %}">Hallazgos</a><a href="{% url 'terceros' %}">Terceros</a><a href="{% url 'facturas' %}">Facturas</a>{% endif %}
   {% if permisos.ver_fiscal %}<a href="{% url 'iva_retencion' %}">IVA y retención</a><a href="{% url 'conciliaciones' %}">Conciliaciones</a><a href="{% url 'fiscal' %}">Renta, ICA, exógena</a><a href="{% url 'proyeccion' %}">Proyección</a>{% endif %}
   {% if permisos.ver %}<a href="{% url 'calendario' %}">Calendario</a><a href="{% url 'analisis' %}">Análisis</a>{% endif %}
-  {% if permisos.ver_fiscal %}<a href="{% url 'informes' %}">Informes</a>{% endif %}
+  {% if permisos.ver_fiscal %}<a href="{% url 'informes' %}">Informes</a><a href="{% url 'asistente' %}">Asistente</a>{% endif %}
   {% if permisos.ver_contratista %}<a href="{% url 'contratista' %}">Contratista</a>{% endif %}
   {% if permisos.administrar %}<a href="{% url 'configuracion' %}">Configuración</a><a href="{% url 'auditoria' %}">Auditoría</a>{% endif %}
 </nav>
@@ -39,13 +39,16 @@ if(m){m.classList.add('activo');m.setAttribute('aria-current','page');}})();
 <main>
 {% if parametros_pendientes %}<div class="aviso"><strong>{{ parametros_pendientes }} parámetro(s) tributario(s) sin verificar o vacíos.</strong> Los cálculos que dependen de ellos quedan marcados o pendientes.{% if permisos.administrar %} <a href="{% url 'configuracion' %}">Revisarlos</a>{% endif %}</div>{% endif %}
 {% for m in messages %}<div class="{% if m.tags == 'error' %}error{% elif m.tags == 'success' %}ok{% elif m.tags == 'warning' %}aviso{% else %}msg-info{% endif %}">{{ m }}</div>{% endfor %}
+{% if alertas_vencidas %}
+<details class="alerta-panel vencidas" role="alert" open>
+  <summary><span class="alerta-icono" aria-hidden="true">⚠</span><span class="alerta-titulo">{{ alertas_vencidas|length }} obligación(es) vencida(s) sin cumplir</span><span class="alerta-ver">Mostrar u ocultar</span></summary>
+  <div class="alerta-rejilla">{% for o in alertas_vencidas %}{% include "_tarjeta_obligacion.html" %}{% endfor %}</div>
+</details>
+{% endif %}
 {% if alertas_pantalla %}
-<details class="alerta-panel" role="alert" open>
+<details class="alerta-panel proximas" role="alert" open>
   <summary><span class="alerta-icono" aria-hidden="true">⚠</span><span class="alerta-titulo">{{ alertas_pantalla|length }} obligación(es) vence(n) en los próximos {{ alertas_dias }} días</span><span class="alerta-ver">Mostrar u ocultar</span></summary>
-  <div class="alerta-rejilla">{% for o in alertas_pantalla %}<a class="alerta-tarjeta {{ o.semaforo }}" href="{% url 'obligacion' o.pk %}">
-    <span class="alerta-fecha"><b>{{ o.fecha_limite|date:"d" }}</b>{{ o.fecha_limite|date:"M"|upper }}</span>
-    <span class="alerta-texto"><span class="alerta-nombre">{{ o.nombre }} {{ o.periodo_texto }}</span><span class="alerta-estado">{% if o.dias_restantes < 0 %}VENCIDA hace {{ o.dias_restantes|cut:"-" }} día(s){% elif o.dias_restantes == 0 %}Vence HOY{% else %}Vence en {{ o.dias_restantes }} día(s){% endif %}</span></span>
-  </a>{% endfor %}</div>
+  <div class="alerta-rejilla">{% for o in alertas_pantalla %}{% include "_tarjeta_obligacion.html" %}{% endfor %}</div>
 </details>
 <dialog id="alerta-venc" class="alerta-dialogo" data-dia="{{ hoy_iso }}" aria-labelledby="alerta-titulo">
   <h2 id="alerta-titulo">⚠ Vencen en los próximos {{ alertas_dias }} días</h2>

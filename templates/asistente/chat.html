@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block contenido %}
+<h1>Asistente</h1>
+{% if not activo %}
+<div class="aviso"><strong>El asistente está apagado.</strong> Falta la clave de la IA en el servidor. El administrador debe configurar <code>ANTHROPIC_API_KEY</code> en el <code>.env</code> (ver <code>docs/asistente_ia.md</code>).</div>
+{% endif %}
+<div class="chat">
+  <p class="chat-nota">Responde con los datos que el sistema ya calculó (calendario, hallazgos, cargas y parámetros). <b>No calcula impuestos ni inventa fechas</b> y no reemplaza al contador. No se envían NIT ni correos.</p>
+  <div id="chat-mensajes" class="chat-mensajes" aria-live="polite">
+    {% for m in historial %}<div class="burbuja {{ m.role }}">{{ m.content }}</div>{% empty %}<div class="burbuja assistant">Hola, soy el asistente de DH Control Contable. Pregúntame por el calendario, los hallazgos abiertos o el estado de las cargas.</div>{% endfor %}
+  </div>
+  <div class="chat-sugerencias">{% for s in sugerencias %}<button type="button" class="chip-sugerencia" data-q="{{ s }}">{{ s }}</button>{% endfor %}</div>
+  <form id="chat-form" class="chat-form" autocomplete="off">
+    <textarea id="chat-pregunta" rows="2" maxlength="{{ maximo }}" placeholder="Escribe tu pregunta…" required {% if not activo %}disabled{% endif %}></textarea>
+    <button class="btn" type="submit" id="chat-enviar" {% if not activo %}disabled{% endif %}>Enviar</button>
+  </form>
+  <form method="post" action="{% url 'asistente_limpiar' %}" class="chat-limpiar">{% csrf_token %}<button class="btn sec" type="submit">Nueva conversación</button></form>
+</div>
+<script>
+(function(){
+  var caja=document.getElementById('chat-mensajes'),f=document.getElementById('chat-form'),q=document.getElementById('chat-pregunta'),b=document.getElementById('chat-enviar');
+  var csrf=document.querySelector('#chat-form ~ form input[name=csrfmiddlewaretoken]').value;
+  function burbuja(rol,texto){var d=document.createElement('div');d.className='burbuja '+rol;d.textContent=texto;caja.appendChild(d);caja.scrollTop=caja.scrollHeight;return d;}
+  caja.scrollTop=caja.scrollHeight;
+  async function enviar(texto){
+    burbuja('user',texto);var espera=burbuja('assistant pensando','Pensando…');b.disabled=true;
+    try{
+      var r=await fetch('{% url "asistente_preguntar" %}',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrf},body:JSON.stringify({pregunta:texto})});
+      var j=await r.json();espera.classList.remove('pensando');
+      if(r.ok){espera.textContent=j.respuesta;}else{espera.classList.add('error-chat');espera.textContent=j.error||'No se pudo responder.';}
+    }catch(e){espera.classList.remove('pensando');espera.classList.add('error-chat');espera.textContent='No hubo conexión con el servidor.';}
+    b.disabled=false;caja.scrollTop=caja.scrollHeight;q.focus();
+  }
+  f.addEventListener('submit',function(e){e.preventDefault();var t=q.value.trim();if(!t)return;q.value='';enviar(t);});
+  q.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();f.requestSubmit();}});
+  document.querySelectorAll('.chip-sugerencia').forEach(function(c){c.addEventListener('click',function(){if(!q.disabled)enviar(c.dataset.q);});});
+})();
+</script>
+{% endblock %}

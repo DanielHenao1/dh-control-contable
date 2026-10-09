@@ -194,3 +194,4 @@ SITE_URL = os.environ.get("SITE_URL", "")  # para los enlaces de los correos; si
 # Asistente de IA (opcional)
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 ASISTENTE_MODELO = os.environ.get("ASISTENTE_MODELO", "claude-sonnet-5-5")
+ASISTENTE_PREGUNTAS_POR_HORA = int(os.environ.get("ASISTENTE_PREGUNTAS_POR_HORA", 30))

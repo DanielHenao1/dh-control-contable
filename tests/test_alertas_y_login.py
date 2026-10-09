@@ -28,8 +28,15 @@ def test_semaforo_urgencia_y_dias():
     assert pend.dias_restantes == 3 and pagada.dias_restantes == -5
 
 
+def _bloque(html, clase):
+    """Texto de un panel de alertas (hasta el siguiente panel o la ventana emergente)."""
+    i = html.index(f'class="alerta-panel {clase}"')
+    fin = [html.find(m, i + 10) for m in ('class="alerta-panel', "<dialog")]
+    return html[i:min([f for f in fin if f != -1] or [len(html)])]
+
+
 @pytest.mark.django_db
-def test_alerta_solo_lo_que_vence_en_los_proximos_20_dias(cliente_dueno):
+def test_dos_bloques_proximas_y_vencidas(cliente_dueno):
     crear("retefuente", "p1", 5)
     crear("iva", "limite", 20, nombre="IVA en 20 días")
     crear("iva", "lejos", 21, nombre="Renta en 21 días")
@@ -37,12 +44,21 @@ def test_alerta_solo_lo_que_vence_en_los_proximos_20_dias(cliente_dueno):
     crear("ica", "ok", 1, estado="pagada", nombre="ICA pagado")
     for url in ("/", "/calendario/"):
         html = cliente_dueno.get(url).content.decode()
-        assert 'id="alerta-venc"' in html and 'class="alerta-panel"' in html, url
-        alerta = html[html.index('class="alerta-panel"'):html.index("</dialog>")]
-        assert "Retención en la fuente" in alerta and "Vence en 5 día(s)" in alerta and "IVA en 20 días" in alerta
-        assert "próximos 20 días" in alerta
-        assert "Renta en 21 días" not in alerta and "Prima vencida" not in alerta and "ICA pagado" not in alerta
-    assert 'id="alerta-venc"' not in cliente_dueno.get("/hallazgos/").content.decode()
+        proximas, vencidas = _bloque(html, "proximas"), _bloque(html, "vencidas")
+        assert "2 obligación(es) vence(n) en los próximos 20 días" in proximas
+        assert "Retención en la fuente" in proximas and "Vence en 5 día(s)" in proximas and "IVA en 20 días" in proximas
+        assert "Renta en 21 días" not in proximas and "Prima vencida" not in proximas and "ICA pagado" not in proximas
+        assert "1 obligación(es) vencida(s) sin cumplir" in vencidas and "Prima vencida" in vencidas
+        assert "VENCIDA hace 3 día(s)" in vencidas and 'alerta-tarjeta rojo' in vencidas
+        assert "IVA en 20 días" not in vencidas
+    assert 'class="alerta-panel' not in cliente_dueno.get("/hallazgos/").content.decode()
+
+
+@pytest.mark.django_db
+def test_tablero_ya_no_repite_proximos_vencimientos(cliente_dueno):
+    crear("retefuente", "p1", 5)
+    html = cliente_dueno.get("/").content.decode()
+    assert "Próximos vencimientos" not in html and "Retención en la fuente" in _bloque(html, "proximas")
 
 
 @pytest.mark.django_db
@@ -60,10 +76,11 @@ def test_ventana_de_alerta_es_un_parametro(cliente_dueno):
 
 
 @pytest.mark.django_db
-def test_vencida_no_sale_en_la_alerta_pero_si_en_rojo_en_el_calendario(cliente_dueno):
+def test_vencida_no_abre_ventana_emergente_pero_si_su_bloque_rojo(cliente_dueno):
     hoy = timezone.localdate()
     crear("retefuente", "v", -2, nombre="Retención vencida")
-    assert 'id="alerta-venc"' not in cliente_dueno.get("/").content.decode()
+    html = cliente_dueno.get("/").content.decode()
+    assert 'id="alerta-venc"' not in html and "Retención vencida" in _bloque(html, "vencidas")
     html = cliente_dueno.get(f"/calendario/?anio={hoy.year}&mes={hoy.month}").content.decode()
     assert 'class="ob rojo urgente"' in html
 

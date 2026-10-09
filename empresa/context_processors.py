@@ -25,14 +25,18 @@ def global_(request):
         from calendario.models import Obligacion
 
         hoy = timezone.localdate()
-        # Solo lo que vence en los próximos N días (parámetro ALERTA_PANTALLA_DIAS). Lo ya vencido se ve en rojo
-        # en el calendario y en el resumen semanal.
+        # Dos bloques: lo que vence en los próximos N días (parámetro ALERTA_PANTALLA_DIAS, con ventana emergente)
+        # y todo lo ya vencido sin cumplir (tarjetas rojas, sin ventana emergente).
         dias = int(Parametro.obtener_o("ALERTA_PANTALLA_DIAS", 20))
         proximas = list(
             Obligacion.objects.filter(fecha_limite__gte=hoy, fecha_limite__lte=hoy + timedelta(days=dias))
             .exclude(estado__in=["presentada", "pagada"]).order_by("fecha_limite")
         )
         ctx["alertas_pantalla"] = proximas
+        ctx["alertas_vencidas"] = list(
+            Obligacion.objects.filter(fecha_limite__lt=hoy)
+            .exclude(estado__in=["presentada", "pagada"]).order_by("fecha_limite")
+        )
         ctx["alertas_dias"] = dias
         ctx["hoy_iso"] = hoy.isoformat()
     return ctx

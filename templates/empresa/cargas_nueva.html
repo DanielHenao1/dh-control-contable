@@ -22,6 +22,10 @@
 (function(){var t=document.getElementById('id_tipo');if(!t)return;
 function ver(){var v=t.value;document.getElementById('fila-formulario').style.display=v==='declaracion'?'':'none';
 var f=(v==='facturas_dian'||v==='facturas_xml');document.getElementById('fila-sentido').style.display=f?'':'none';document.getElementById('fila-varios').style.display=f?'':'none';}
-t.addEventListener('change',ver);ver();})();
+var pf=document.getElementById('id_perfil');
+function filtrar(){if(!pf)return;var sel=pf.options[pf.selectedIndex];
+for(var i=0;i<pf.options.length;i++){var o=pf.options[i],d=o.getAttribute('data-tipo');var ok=!d||d===t.value;o.hidden=!ok;o.disabled=!ok;}
+if(sel&&sel.getAttribute('data-tipo')&&sel.getAttribute('data-tipo')!==t.value){pf.value='';}}
+t.addEventListener('change',function(){ver();filtrar();});ver();filtrar();})();
 </script>
 {% endblock %}

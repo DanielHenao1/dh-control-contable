@@ -215,6 +215,20 @@ def sugerir_mapeo(tipo, columnas):
 
 
 def leer(contenido: bytes, nombre: str, tipo: str, perfil, max_filas=None) -> Lectura:
+    sin_mapeo = not (perfil and perfil.mapeo)
+    if tipo == "extracto_banco" and nombre.lower().endswith(".pdf"):
+        from .lectores_reales import leer_extracto_bancolombia_pdf
+
+        pdf = leer_extracto_bancolombia_pdf(contenido, max_filas)
+        if pdf is None:
+            raise ErrorImportacion("El PDF no es un extracto de cuenta de Bancolombia legible. Descarga el extracto en Excel/CSV.")
+        return pdf
+    if tipo == "auxiliar" and sin_mapeo and nombre.lower().endswith((".xlsx", ".xlsm")):
+        from .lectores_reales import leer_auxiliar_world_office
+
+        jerarquico = leer_auxiliar_world_office(contenido, max_filas)
+        if jerarquico is not None:
+            return jerarquico
     if tipo == "balance" and not (perfil and perfil.mapeo) and nombre.lower().endswith((".xlsx", ".xlsm")):
         jerarquico = leer_balance_world_office(contenido, max_filas)
         if jerarquico is not None:
@@ -321,7 +335,7 @@ def leer_balance_world_office(contenido: bytes, max_filas=None):
     col_etiqueta = max(range(min(columnas.values())), key=lambda j: crudo.iloc[fila_enc + 1:, j].map(lambda v: isinstance(v, str)).sum(), default=None)
     if col_etiqueta is None:
         return None
-    agrupacion = re.compile(r"^(\d+)\s+(.+)$")
+    agrupacion = re.compile(r"^(\d+)\s+(.+)$", flags=re.DOTALL)
     actual, filas, errores, totales_clase, total_general = None, [], [], {}, {}
     ignoradas = {"totales": 0, "agrupaciones": 0, "sin_movimiento": 0, "sin_agrupacion": 0, "vacias": 0}
     for i in range(fila_enc + 1, len(crudo)):
@@ -346,7 +360,7 @@ def leer_balance_world_office(contenido: bytes, max_filas=None):
             continue
         m = agrupacion.match(etiqueta)
         if m and not hay_valor:
-            actual = (m.group(1), m.group(2).strip())
+            actual = (m.group(1), re.sub(r"(_x000D_|\s)+", " ", m.group(2)).strip())
             ignoradas["agrupaciones"] += 1
             continue
         if not etiqueta or not hay_valor:

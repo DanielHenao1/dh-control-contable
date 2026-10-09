@@ -178,6 +178,8 @@ EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)  # puerto 587 (STARTTLS)
 EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", False)  # puerto 465 (SSL directo); no se puede combinar con TLS
 if EMAIL_USE_SSL:
     EMAIL_USE_TLS = False
+EMAIL_TIMEOUT = int(os.environ.get("EMAIL_TIMEOUT", 20))  # evita que un servidor SMTP mal configurado deje colgada la petición
+PASSWORD_RESET_TIMEOUT = 3 * 24 * 3600  # vigencia de invitaciones y enlaces de recuperación (3 días)
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "control@localhost")
 ALERTAS_DESTINATARIOS = [e for e in os.environ.get("ALERTAS_DESTINATARIOS", "").split(",") if e]
 

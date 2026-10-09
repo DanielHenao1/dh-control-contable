@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% load static %}
+{% block bodyclass %}login{% endblock %}
+{% block contenido %}
+<div class="cuenta-pagina">
+  <img class="logo-cuenta" src="{% static 'img/logo-dhstore-claro.png' %}" alt="DH Store" width="240" height="86">
+  <div class="login-tarjeta">
+    {% block tarjeta %}{% endblock %}
+  </div>
+</div>
+{% endblock %}
+{% block pie %}<div class="pie pie-login">Creado por <strong>DH Grupo Empresarial</strong></div>{% endblock %}

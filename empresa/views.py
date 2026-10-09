@@ -12,7 +12,7 @@ from django_otp import login as otp_login
 from django_otp.plugins.otp_static.models import StaticDevice, StaticToken
 from django_otp.plugins.otp_totp.models import TOTPDevice
 
-from . import cargas
+from . import cargas, cuentas
 from .auditoria import auditar_lectura
 from .forms import CargaForm, ParametroForm, PerfilForm, PeriodoEstadoForm, UsuarioForm
 from .importacion import CAMPOS_POR_TIPO, leer_dataframe, sugerir_mapeo
@@ -217,14 +217,39 @@ def parametro_editar(request, pk=None):
     return render(request, "empresa/formulario.html", {"form": form, "titulo": "Parámetro con vigencia"})
 
 
+def _invitar(request, usuario):
+    try:
+        cuentas.enviar_invitacion(request, usuario)
+    except Exception as e:  # noqa: BLE001 - se informa el motivo para que el dueño corrija el correo
+        messages.error(
+            request,
+            f"No se pudo enviar la invitación a {usuario.email}: {type(e).__name__}. Revisa el correo (SMTP) y usa «Reenviar invitación».",
+        )
+        return False
+    messages.success(request, f"Invitación enviada a {usuario.email}.")
+    return True
+
+
 @requiere("administrar")
 def usuario_nuevo(request):
     form = UsuarioForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
-        form.save()
-        messages.success(request, "Usuario creado. Deberá configurar su doble factor al ingresar.")
+        usuario = form.save()
+        RegistroAuditoria.registrar("crear", objeto=usuario, descripcion=f"Usuario {usuario.username} creado por invitación", usuario=request.user)
+        _invitar(request, usuario)
         return redirect("configuracion")
-    return render(request, "empresa/formulario.html", {"form": form, "titulo": "Nuevo usuario"})
+    return render(request, "empresa/formulario.html", {"form": form, "titulo": "Nuevo usuario (se invita por correo)"})
+
+
+@requiere("administrar")
+@require_POST
+def usuario_invitar(request, pk):
+    usuario = get_object_or_404(Usuario, pk=pk, is_active=True)
+    if not usuario.email:
+        messages.error(request, "Este usuario no tiene correo.")
+    else:
+        _invitar(request, usuario)
+    return redirect("configuracion")
 
 
 @requiere("administrar")

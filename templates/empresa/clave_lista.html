@@ -1,0 +1,7 @@
+{% extends "empresa/cuenta_base.html" %}
+{% block title %}Contraseña lista{% endblock %}
+{% block tarjeta %}
+<h2>Contraseña guardada</h2>
+<p class="sub">Ya puedes ingresar con tu usuario y tu nueva contraseña.</p>
+<p><a class="btn grande" href="{% url 'login' %}">Ingresar</a></p>
+{% endblock %}

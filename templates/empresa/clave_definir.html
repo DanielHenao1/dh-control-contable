@@ -1,0 +1,20 @@
+{% extends "empresa/cuenta_base.html" %}
+{% block title %}Crear contraseña{% endblock %}
+{% block tarjeta %}
+{% if validlink %}
+<h2>Crea tu contraseña</h2>
+<p class="sub">Mínimo 12 caracteres. Después de ingresar te pediremos configurar el doble factor.</p>
+{% if form.errors %}<div class="error" role="alert">{% for campo in form %}{% for e in campo.errors %}<div>{{ e }}</div>{% endfor %}{% endfor %}</div>{% endif %}
+<form method="post">{% csrf_token %}
+  <label for="id_new_password1">Contraseña nueva</label>
+  <div class="campo"><span class="icono" aria-hidden="true">🔒</span><input type="password" name="new_password1" id="id_new_password1" autocomplete="new-password" autofocus required></div>
+  <label for="id_new_password2">Repite la contraseña</label>
+  <div class="campo"><span class="icono" aria-hidden="true">🔒</span><input type="password" name="new_password2" id="id_new_password2" autocomplete="new-password" required></div>
+  <button class="btn grande" type="submit">Guardar contraseña</button>
+</form>
+{% else %}
+<h2>Enlace no válido</h2>
+<p class="sub">El enlace venció o ya se usó. Pide uno nuevo.</p>
+<p><a class="btn grande" href="{% url 'clave_olvidada' %}">Recuperar contraseña</a></p>
+{% endif %}
+{% endblock %}

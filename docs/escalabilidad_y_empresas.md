@@ -23,3 +23,6 @@ Para soportarlo hay que hacer un cambio grande, que conviene planear aparte:
 - Migración de datos: la empresa actual pasa a ser la empresa 1.
 - Pruebas de aislamiento: ninguna consulta debe mezclar datos entre empresas.
 Alternativa más simple: una instalación separada por empresa (otro subdominio y otro contenedor), con aislamiento total, a costa de mantener varias instalaciones.
+
+## Decisión del dueño (9-oct-2026)
+Por ahora cada empresa va en una **instalación separada** (otro subdominio y otro contenedor). Más adelante se decidirá entre clonar esta instalación por empresa o pasar todo a un solo sistema con varias empresas.

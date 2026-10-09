@@ -32,7 +32,7 @@ class UsuarioActualMiddleware:
 class RequerirDobleFactorMiddleware:
     """Un usuario autenticado sin verificar su segundo factor solo puede ver las pantallas de 2FA."""
 
-    LIBRES = ("/ingresar/", "/salir/", "/2fa/", "/static/", "/salud/")
+    LIBRES = ("/ingresar/", "/salir/", "/2fa/", "/static/", "/salud/", "/recuperar/", "/cuenta/")
 
     def __init__(self, get_response):
         self.get_response = get_response

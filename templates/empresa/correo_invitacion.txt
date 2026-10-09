@@ -1,0 +1,14 @@
+Hola {{ usuario.get_full_name|default:usuario.username }},
+
+Te invitaron a DH Control Contable (DH TRANS-STORAGE SAS) con el rol de {{ rol }}.
+
+Tu usuario es: {{ usuario.username }}
+
+Para crear tu contraseña entra a este enlace (vale {{ dias }} días):
+{{ enlace }}
+
+Después de crearla, al ingresar por primera vez te pediremos configurar el doble factor con una aplicación de autenticación en tu celular.
+
+Si no esperabas este correo, ignóralo.
+
+DH Grupo Empresarial

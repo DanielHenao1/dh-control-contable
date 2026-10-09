@@ -17,6 +17,9 @@ class Command(BaseCommand):
             f"Servidor {settings.EMAIL_HOST}:{settings.EMAIL_PORT} ({modo}), usuario {settings.EMAIL_HOST_USER or '(vacío)'}, "
             f"remitente {settings.DEFAULT_FROM_EMAIL}"
         )
+        if settings.EMAIL_PORT == 465 and not settings.EMAIL_USE_SSL:
+            self.stdout.write(self.style.WARNING(
+                "Aviso: el puerto 465 usa SSL directo. En el .env pon EMAIL_USE_SSL=1 y EMAIL_USE_TLS=0."))
         try:
             send_mail(
                 "Prueba de correo · DH Control Contable",

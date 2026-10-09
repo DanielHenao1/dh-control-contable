@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from contabilidad.models import movimientos_vigentes, saldos_vigentes
-from empresa.models import ArchivoCargado
+from empresa.models import ArchivoCargado, Parametro
 from impuestos.reglas.comun import hojas
 
 from .motor import Resultado, regla
@@ -48,8 +48,12 @@ def saldo_calculado(periodo):
 def naturaleza_contraria(periodo):
     """Cuentas de último nivel con saldo contrario a su naturaleza."""
     salida = []
+    # El IVA descontable vive en una cuenta de pasivo (2408) pero su saldo normal es débito: no es un error.
+    exentas = tuple(Parametro.obtener_o("PUC_IVA_DESCONTABLE", []) or [])
     for s in hojas(saldos_vigentes(periodo)):
         if s.cuenta.clase not in "123456" or abs(s.saldo_final) <= TOLERANCIA:
+            continue
+        if exentas and s.cuenta.codigo.startswith(exentas):
             continue
         contrario = s.saldo_final < 0
         if contrario:

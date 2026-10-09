@@ -29,31 +29,43 @@ def test_semaforo_urgencia_y_dias():
 
 
 @pytest.mark.django_db
-def test_alerta_lista_todo_lo_pendiente_del_anio(cliente_dueno):
-    hoy = timezone.localdate()
+def test_alerta_solo_lo_que_vence_en_los_proximos_20_dias(cliente_dueno):
     crear("retefuente", "p1", 5)
-    Obligacion.objects.create(tipo="iva", clave="dic", nombre="IVA de diciembre", periodo_texto="dic",
-                              fecha_limite=hoy.replace(month=12, day=31), estado="pendiente")
-    Obligacion.objects.create(tipo="prima_junio", clave="ene", nombre="Prima enero", periodo_texto="ene",
-                              fecha_limite=hoy.replace(month=1, day=2), estado="pendiente", laboral=True)
-    Obligacion.objects.create(tipo="iva", clave="sig", nombre="IVA del año siguiente", periodo_texto="sig",
-                              fecha_limite=hoy.replace(year=hoy.year + 1, month=3, day=1), estado="pendiente")
+    crear("iva", "limite", 20, nombre="IVA en 20 días")
+    crear("iva", "lejos", 21, nombre="Renta en 21 días")
+    crear("iva", "vencida", -3, nombre="Prima vencida")
     crear("ica", "ok", 1, estado="pagada", nombre="ICA pagado")
     for url in ("/", "/calendario/"):
         html = cliente_dueno.get(url).content.decode()
         assert 'id="alerta-venc"' in html and 'class="alerta-panel"' in html, url
         alerta = html[html.index('class="alerta-panel"'):html.index("</dialog>")]
-        assert "Retención en la fuente" in alerta and "Vence en 5 día(s)" in alerta
-        assert "IVA de diciembre" in alerta and "Prima enero" in alerta  # de todos los meses del año
-        assert "IVA del año siguiente" not in alerta and "ICA pagado" not in alerta
+        assert "Retención en la fuente" in alerta and "Vence en 5 día(s)" in alerta and "IVA en 20 días" in alerta
+        assert "próximos 20 días" in alerta
+        assert "Renta en 21 días" not in alerta and "Prima vencida" not in alerta and "ICA pagado" not in alerta
     assert 'id="alerta-venc"' not in cliente_dueno.get("/hallazgos/").content.decode()
 
 
 @pytest.mark.django_db
-def test_vencida_aparece_como_alerta(cliente_dueno):
-    crear("retefuente", "v", -2)
+def test_ventana_de_alerta_es_un_parametro(cliente_dueno):
+    from datetime import date
+
+    from empresa.models import Parametro
+
+    crear("iva", "lejos", 40, nombre="Obligación a 40 días")
+    assert 'id="alerta-venc"' not in cliente_dueno.get("/").content.decode()
+    Parametro.objects.create(codigo="ALERTA_PANTALLA_DIAS", descripcion="x", tipo="decimal", valor="45",
+                             vigente_desde=date(2025, 1, 1), estado="verificado")
     html = cliente_dueno.get("/").content.decode()
-    assert "VENCIDA hace 2 día(s)" in html
+    assert 'id="alerta-venc"' in html and "próximos 45 días" in html
+
+
+@pytest.mark.django_db
+def test_vencida_no_sale_en_la_alerta_pero_si_en_rojo_en_el_calendario(cliente_dueno):
+    hoy = timezone.localdate()
+    crear("retefuente", "v", -2, nombre="Retención vencida")
+    assert 'id="alerta-venc"' not in cliente_dueno.get("/").content.decode()
+    html = cliente_dueno.get(f"/calendario/?anio={hoy.year}&mes={hoy.month}").content.decode()
+    assert 'class="ob rojo urgente"' in html
 
 
 @pytest.mark.django_db

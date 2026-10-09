@@ -1,10 +1,10 @@
 # Estado del proyecto
 
-Archivo de continuidad entre sesiones. Léelo junto con `CLAUDE.md`, `docs/PROGRESO.md` (checklist por fases) y `docs/decisiones.md`. **Actualízalo al cerrar cada sesión de trabajo.** Última actualización: 9-oct-2026 (decisiones de despliegue).
+Archivo de continuidad entre sesiones. Léelo junto con `CLAUDE.md`, `docs/PROGRESO.md` (checklist por fases) y `docs/decisiones.md`. **Actualízalo al cerrar cada sesión de trabajo.** Última actualización: 9-oct-2026 (sistema en producción, listo para empezar con datos reales).
 
 ## Despliegue (9-oct-2026): el sistema ya corre en el VPS
 - **En vivo:** `https://contabilidad.dhstore.com.co` (VPS Hostinger KVM 4, Ubuntu 26.04 LTS, IP 31.97.136.172). Docker Compose con `db`, `redis`, `web`, `worker`, `beat` y `caddy`; HTTPS con Let's Encrypt; doble factor funcionando; usuario `DanielH` con rol dueño. Servidor endurecido con `deploy/bootstrap.sh` (usuario `control` con sudo, SSH solo por llave, root sin acceso SSH, ufw 22/80/443, fail2ban).
-- **Código en el servidor:** `/opt/control` (clonado con llave de despliegue **de solo lectura**). Para actualizar: `cd /opt/control && git pull && docker compose up -d --build web worker beat && docker compose exec web python manage.py cargar_datos_iniciales`.
+- **Código en el servidor:** `/opt/control` (clonado con llave de despliegue **de solo lectura**). Para actualizar: `cd /opt/control && git pull && docker compose up -d --build --force-recreate web worker beat && docker compose exec web python manage.py cargar_datos_iniciales` (`--force-recreate` para que tome los cambios del `.env`).
 - **Datos:** solo los iniciales. Todavía **no** se han cargado datos contables reales.
 - **Pendiente antes de datos reales:** copia de seguridad fuera del servidor (`docs/respaldo_en_mi_pc.md`) y prueba de restauración (puerta P0).
 - **Correo (SMTP):** buzón `contacto@dhstore.com.co` (smtp.hostinger.com, puerto 465 con SSL: `EMAIL_USE_SSL=1` y `EMAIL_USE_TLS=0`). Se configura solo en el `.env` del servidor (la contraseña nunca va al repositorio) y se prueba con `python manage.py probar_correo <correo>`. Envía alertas de vencimiento, **invitaciones a usuarios nuevos** (el dueño crea el usuario con correo y rol; la persona crea su contraseña con un enlace de 3 días y luego configura su doble factor) y **recuperación de contraseña** (`/recuperar/`, limitada a 5 solicitudes por IP y hora). El doble factor no se salta con la recuperación. Pendiente del dueño: confirmar que el envío funciona en el servidor tras corregir el `.env`.
@@ -14,11 +14,12 @@ Archivo de continuidad entre sesiones. Léelo junto con `CLAUDE.md`, `docs/PROGR
 - **Marca:** logo DH Store y favicon en `static/img/` (generados a partir del logo entregado por el dueño); el diseño se seguirá mejorando.
 - **Calendario:** `CALENDARIO_DESDE = 2026-01-01` (no se crea nada anterior). Se generan desde 2025 los períodos que vencen en 2026 (retención dic-2025, IVA 3.er cuatrimestre 2025, renta AG 2025), todos marcados presentados y pagados. Se mantiene solo (tarea diaria `generar_calendario_automatico`: año en curso y el siguiente). Las fechas de **ICA Bogotá** son fijas y salen de la resolución de cada año: hay que cargar la regla del año nuevo (si no, no se inventa).
 
-## Dónde estamos
-- Fases F0–F5 del plan construidas y fusionadas en `main` (PR #1). Sistema Django completo con datos sintéticos; **nunca se ha ejecutado con datos reales ni en el VPS**.
-- Rama de trabajo de la sesión: `claude/document-review-sd30p4` (reiniciada desde `main` tras el merge).
-- **Decisiones del dueño (9-oct-2026):** proveedor VPS = Hostinger (plan por confirmar); subdominio = `contabilidad.dhstore.com.co`; un solo VPS (KVM 4, Ubuntu 26.04 LTS, 200 GB; IP 31.97.136.172, host srv885245.hstgr.cloud) ya contratado; asistente de IA **apagado** hasta terminar las pruebas; **sin S3 ni SMTP por ahora**. Copia de seguridad fuera del servidor: **pendiente**, se empieza en producción (`docs/respaldo_en_mi_pc.md`); **debe estar activa antes del primer dato contable real**.
-- **Despliegue: pendiente de aprobación.** Plan en `docs/plan_despliegue_hostinger.md`; guía paso a paso en `docs/despliegue.md`. No se ha tocado ningún servidor ni se han pedido credenciales.
+## Dónde estamos (9-oct-2026)
+- Sistema completo desplegado en `https://contabilidad.dhstore.com.co` y fusionado en `main` hasta el PR #19 (CI de `main` en verde). **Sin datos contables reales todavía.** Se probó de punta a punta con los archivos sintéticos de `docs/ejemplos/` (carga, revisión previa, controles, pantallas).
+- Funciones añadidas tras el despliegue: calendario con ICA, ReteICA y exógenas; selector de año y mes; semáforo (rojo vencida, naranja por vencer, azul presentada sin pago, verde cumplida); bloques de vencidas y próximas en el tablero (ventana `ALERTA_PANTALLA_DIAS`, hoy 30); invitación de usuarios y recuperación de contraseña por correo; correos HTML con logo y resumen semanal de pendientes (lunes 7:00) a `ventas2@` y `gerencia@`; revisión previa de archivos cargados (`docs/validacion_de_cargas.md`); asistente de IA conversacional (apagado hasta poner `ANTHROPIC_API_KEY`); logo, favicon y diseño del ingreso.
+- Decisiones del dueño: una instalación por empresa (no multiempresa); sin S3; copia de seguridad en el PC (pendiente); asistente de IA apagado hasta terminar las pruebas; fechas laborales (cesantías y primas) se dejan **pendientes tal como están**; exógena DIAN AG 2025 presentada.
+- Guías: `docs/guia_de_pruebas.md` (qué hace cada pantalla), `docs/arranque_con_datos_reales.md` (cómo empezar con datos reales), `docs/correo_smtp.md`, `docs/asistente_ia.md`, `docs/escalabilidad_y_empresas.md`.
+- Rama de trabajo: `claude/document-review-sd30p4`, reiniciada desde `main` tras cada merge.
 
 ## Datos confirmados con el certificado de la Cámara de Comercio (expedido 1-sep-2026)
 - Matrícula mercantil de la sociedad renovada el **29-abr-2026** (último año renovado: 2026); los establecimientos DH LAPTOP STORAGE y DH BOOKS también figuran renovados 2026. El plazo legal general es el 31-mar: la renovación fue posterior; si hubo sanción o un plazo distinto, confirmar con la Cámara.
@@ -28,7 +29,7 @@ Archivo de continuidad entre sesiones. Léelo junto con `CLAUDE.md`, `docs/PROGR
 - Los datos personales del certificado (documentos de identidad) no se guardan en el repositorio.
 
 ## Estado del calendario (decisión del dueño, 9-oct-2026)
-Todos los impuestos con vencimiento **hasta el 9-oct-2026** (retefuente, IVA, ICA) se marcan "presentada y pagada", sin evidencia cargada. Solo queda pendiente la **retención de septiembre, vence el 22-oct-2026** (Ideako). `CONTROL_DESDE = 2026-10-01`: lo anterior no genera alertas. Fechas laborales (cesantías, prima): por definir si aplican (¿hay empleados con contrato laboral?).
+Todos los impuestos con vencimiento **hasta el 9-oct-2026** (retefuente, IVA, ICA) se marcan "presentada y pagada", sin evidencia cargada. Solo queda pendiente la **retención de septiembre, vence el 22-oct-2026** (Ideako). `CONTROL_DESDE = 2026-10-01`: lo anterior no genera alertas. Fechas laborales (cesantías, prima): el dueño decidió dejarlas pendientes tal como están (9-oct-2026), aunque hoy no haya contratos; alertan hasta marcarlas como cumplidas.
 
 ## Historial del CI (qué falló y por qué)
 | Corrida | Commit | Resultado | Causa | Solución |
@@ -40,11 +41,12 @@ Todos los impuestos con vencimiento **hasta el 9-oct-2026** (retefuente, IVA, IC
 Nota: el merge se hizo viendo verdes las corridas del PR; la corrida sobre `main` falló después por la prueba inestable descrita. Lección: esperar también el CI de `main` antes de dar algo por cerrado.
 
 ## Pendiente (en orden)
-1. Aprobación del plan de despliegue; Elegir proveedor S3 y SMTP (S3 es obligatorio antes de datos reales). Ver `plan_despliegue_hostinger.md` §7.
-2. Desplegar en el VPS y pasar P0 (HTTPS, 2FA, restauración de copia).
-3. P1–P4 con datos reales: ver `docs/pendientes.md` (formatos de World Office/DIAN, parámetros del contador, tarifas, topes, prefijos de cuentas).
-4. Tras las pruebas de aceptación con datos sintéticos: decidir si se activa el asistente de IA (`plan_despliegue_hostinger.md` §8).
-5. Mejoras fuera del MVP: vendorizar Chart.js, importación asíncrona, API.
+1. **Copia de seguridad fuera del servidor y prueba de restauración (P0)**: `docs/respaldo_en_mi_pc.md`. Obligatoria antes del primer dato real.
+2. Confirmar con Ideako el plan de cuentas, los conceptos de retención, la tarifa de ICA/CIIU y quién presenta la exógena distrital (26-oct-2026); luego marcar los parámetros *Verificados*. Ver `docs/arranque_con_datos_reales.md` §2.
+3. Pedir los exportes de septiembre de 2026 y hacer la primera carga real (P1–P3). El dueño puede pasar solo la fila de encabezados de cada archivo para preparar los perfiles.
+4. Cambiar la contraseña del buzón SMTP si aún no se hizo en el `.env` del servidor (se compartió en un chat).
+5. Encender el asistente de IA tras P1 y P2 (clave en el `.env`, con tope de gasto).
+6. Mejoras fuera del MVP: vendorizar Chart.js, importación asíncrona, invitaciones con más control, API.
 
 ## Cómo retomar una sesión
 ```bash

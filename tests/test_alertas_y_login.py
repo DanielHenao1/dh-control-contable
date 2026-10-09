@@ -81,3 +81,20 @@ def test_login_profesional(client):
 def test_paginas_internas_conservan_el_aviso_y_el_credito(cliente_dueno):
     html = cliente_dueno.get("/hallazgos/").content.decode()
     assert "no reemplaza a World Office" in html and "DH Grupo Empresarial" in html
+
+
+def test_probar_correo_sin_configurar_falla_claro(settings):
+    from django.core.management import call_command
+    from django.core.management.base import CommandError
+
+    settings.EMAIL_HOST = ""
+    with pytest.raises(CommandError, match="EMAIL_HOST"):
+        call_command("probar_correo", "a@ejemplo.com")
+
+
+def test_probar_correo_envia(settings, mailoutbox):
+    from django.core.management import call_command
+
+    settings.EMAIL_HOST = "smtp.ejemplo.com"
+    call_command("probar_correo", "a@ejemplo.com")
+    assert len(mailoutbox) == 1 and mailoutbox[0].to == ["a@ejemplo.com"]

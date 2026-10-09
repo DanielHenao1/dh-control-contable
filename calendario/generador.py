@@ -31,6 +31,11 @@ def calendario_desde():
         return None
 
 
+def tiene_empleados():
+    """Parámetro TIENE_EMPLEADOS: sin contratos laborales no se generan cesantías ni primas. Por defecto, sí."""
+    return (Parametro.obtener_o("TIENE_EMPLEADOS", "si") or "si").strip().lower() not in ("no", "0", "false")
+
+
 def _crear(tipo, nombre, clave, periodo_texto, regla, anio_v, mes_v, laboral=False, minima=None, **extra):
     fecha, verif, fuente, nota = None, "no_verificada", "", ""
     if regla is not None:
@@ -115,7 +120,7 @@ def generar_obligaciones(anio_desde, anio_hasta, empresa=None):
             ("prima_diciembre", "Prima de servicios (2.º semestre)", date(anio, 12, 20), f"{anio}-dic"),
         ]
         for tipo, nombre, fecha, clave in laborales:
-            if minima and fecha < minima:
+            if not tiene_empleados() or (minima and fecha < minima):
                 continue
             obj, c = Obligacion.objects.get_or_create(
                 tipo=tipo, clave=clave,

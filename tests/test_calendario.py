@@ -2,6 +2,7 @@ from datetime import date
 
 import pytest
 from django.core import mail
+from django.core.management import call_command
 
 from calendario.alertas import enviar_alertas, obligaciones_a_alertar
 from calendario.generador import generar_obligaciones
@@ -20,7 +21,7 @@ def test_calendario_del_plan(datos_iniciales):
     ica = Obligacion.objects.get(tipo="ica", clave="2026-B4")
     assert ica.fecha_limite == date(2026, 10, 9) and ica.estado == "pagada"
     assert Obligacion.objects.get(tipo="exogena", clave="2026").fecha_limite is None
-    assert Obligacion.objects.get(tipo="cesantias_intereses", clave="2027-ene").laboral
+    assert not Obligacion.objects.filter(laboral=True).exists()  # sin empleados: no hay cesantías ni primas
 
 
 @pytest.mark.django_db
@@ -77,7 +78,8 @@ def test_historico_no_cuenta_como_vencido(datos_iniciales, cliente_dueno):
     m = Obligacion.objects.get(tipo="matricula", clave="2026")
     assert m.estado == "pagada" and "29-abr-2026" in m.notas
     assert Obligacion.objects.get(tipo="matricula", clave="2027").estado == "pendiente"
-    # Lo anterior a CONTROL_DESDE se excluye aunque siga pendiente (p. ej. fechas laborales)
+    # Lo anterior a CONTROL_DESDE se excluye aunque siga pendiente
+    Obligacion.objects.create(tipo="otro", clave="vieja", nombre="Obligación vieja", fecha_limite=date(2026, 3, 1), estado="pendiente")
     pasadas = Obligacion.objects.filter(fecha_limite__lt=date(2026, 10, 1), estado="pendiente")
     assert pasadas.exists()
     assert not solo_vigentes(pasadas).exists()
@@ -211,3 +213,29 @@ def test_selector_desplegable_de_anio_y_mes(cliente_dueno, datos_iniciales):
     # Valores fuera de rango no rompen la página
     assert cliente_dueno.get("/calendario/?anio=2026&mes=13").status_code == 200
     assert cliente_dueno.get("/calendario/?anio=abc&mes=x").status_code == 200
+
+
+@pytest.mark.django_db
+def test_sin_empleados_no_hay_cesantias_ni_primas(datos_iniciales):
+    from calendario.generador import generar_obligaciones
+    from empresa.models import Parametro, RegistroAuditoria
+
+    assert Parametro.obtener_o("TIENE_EMPLEADOS") == "no"
+    assert not Obligacion.objects.filter(laboral=True).exists()
+    generar_obligaciones(2026, 2027)
+    assert not Obligacion.objects.filter(laboral=True).exists()  # el generador tampoco las vuelve a crear
+    # Con empleados vuelven a generarse
+    p = Parametro.objects.get(codigo="TIENE_EMPLEADOS")
+    p.valor = "si"
+    p.save()
+    generar_obligaciones(2026, 2026)
+    assert Obligacion.objects.filter(laboral=True, clave__startswith="2026").exists()
+    # Y al volver a «no», se quitan las pendientes y se conservan las cumplidas, con auditoría
+    cumplida = Obligacion.objects.filter(laboral=True).first()
+    cumplida.estado = "pagada"
+    cumplida.save()
+    p.valor = "no"
+    p.save()
+    call_command("cargar_datos_iniciales", verbosity=0)
+    assert list(Obligacion.objects.filter(laboral=True)) == [cumplida]
+    assert RegistroAuditoria.objects.filter(accion="eliminar", descripcion__contains="no tiene empleados").exists()

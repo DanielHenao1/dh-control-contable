@@ -19,7 +19,11 @@ def test_semaforo_urgencia_y_dias():
     futura = crear("iva", "b", 20)
     pres = crear("ica", "c", 2, estado="presentada")
     pagada = crear("ica", "d", -5, estado="pagada")
-    assert [o.semaforo for o in (pend, futura, pres, pagada)] == ["rojo", "rojo", "ambar", "verde"]
+    vencida = crear("iva", "e", -1)
+    assert [o.semaforo for o in (pend, futura, pres, pagada, vencida)] == ["naranja", "naranja", "azul", "verde", "rojo"]
+    assert vencida.etiqueta == "Vencida" and pend.etiqueta == "Pendiente" and pres.etiqueta == "Presentada"
+    exogena = crear("exogena", "x", -30, estado="presentada")
+    assert exogena.semaforo == "verde"  # informativa: presentarla basta
     assert pend.urgente and not futura.urgente and not pres.urgente and not pagada.urgente
     assert pend.dias_restantes == 3 and pagada.dias_restantes == -5
 
@@ -37,9 +41,9 @@ def test_alerta_lista_todo_lo_pendiente_del_anio(cliente_dueno):
     crear("ica", "ok", 1, estado="pagada", nombre="ICA pagado")
     for url in ("/", "/calendario/"):
         html = cliente_dueno.get(url).content.decode()
-        assert 'id="alerta-venc"' in html and 'class="alerta-roja"' in html, url
-        alerta = html[html.index('class="alerta-roja"'):html.index("</dialog>")]
-        assert "Retención en la fuente" in alerta and "vence en 5 día(s)" in alerta
+        assert 'id="alerta-venc"' in html and 'class="alerta-panel"' in html, url
+        alerta = html[html.index('class="alerta-panel"'):html.index("</dialog>")]
+        assert "Retención en la fuente" in alerta and "Vence en 5 día(s)" in alerta
         assert "IVA de diciembre" in alerta and "Prima enero" in alerta  # de todos los meses del año
         assert "IVA del año siguiente" not in alerta and "ICA pagado" not in alerta
     assert 'id="alerta-venc"' not in cliente_dueno.get("/hallazgos/").content.decode()
@@ -61,10 +65,12 @@ def test_sin_pendientes_no_hay_alerta(cliente_dueno):
 @pytest.mark.django_db
 def test_colores_en_el_calendario(cliente_dueno):
     hoy = timezone.localdate()
-    crear("retefuente", "rojo", 0, nombre="Pendiente hoy")
+    crear("retefuente", "rojo", -2, nombre="Vencida hace dos días")
+    crear("retefuente", "naranja", 3, nombre="Por vencer")
     crear("iva", "verde", 0, estado="pagada", nombre="Pagada hoy")
     html = cliente_dueno.get(f"/calendario/?anio={hoy.year}&mes={hoy.month}").content.decode()
-    assert 'class="ob rojo urgente"' in html and 'class="ob verde"' in html
+    assert 'class="ob rojo urgente"' in html and 'class="ob naranja urgente"' in html and 'class="ob verde"' in html
+    assert "Vencida</span>" in html
     assert "✓ Presentada y pagada" in html
 
 
@@ -99,3 +105,9 @@ def test_probar_correo_envia(settings, mailoutbox):
     settings.EMAIL_HOST = "smtp.ejemplo.com"
     call_command("probar_correo", "a@ejemplo.com")
     assert len(mailoutbox) == 1 and mailoutbox[0].to == ["a@ejemplo.com"]
+
+
+@pytest.mark.django_db
+def test_exogena_dian_2025_queda_presentada(datos_iniciales):
+    o = Obligacion.objects.get(tipo="exogena", clave="2025")
+    assert o.estado == "presentada" and o.semaforo == "verde"

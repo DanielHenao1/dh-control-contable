@@ -17,7 +17,7 @@
 </div>
 <div class="tabla-scroll"><table class="cal"><tr><th>Lun</th><th>Mar</th><th>Mié</th><th>Jue</th><th>Vie</th><th>Sáb</th><th>Dom</th></tr>
 {% for semana in semanas %}<tr>{% for dia, obs, dentro in semana %}<td class="{% if not dentro %}fuera{% endif %} {% if dia == hoy %}hoy{% endif %}"><strong>{{ dia.day }}</strong>
-{% for o in obs %}<a class="ob {{ o.semaforo }}{% if o.urgente %} urgente{% endif %}" href="{% url 'obligacion' o.pk %}">{{ o.nombre|truncatechars:26 }}<br><span class="chip {{ o.semaforo }}">{% if o.estado == "pagada" %}✓ {% endif %}{{ o.get_estado_display }}</span></a>{% endfor %}</td>{% endfor %}</tr>{% endfor %}</table></div>
+{% for o in obs %}<a class="ob {{ o.semaforo }}{% if o.urgente %} urgente{% endif %}" href="{% url 'obligacion' o.pk %}">{{ o.nombre|truncatechars:26 }}<br><span class="chip {{ o.semaforo }}">{% if o.semaforo == "verde" %}✓ {% endif %}{{ o.etiqueta }}</span></a>{% endfor %}</td>{% endfor %}</tr>{% endfor %}</table></div>
 <script>
 (function(){var d=document.getElementById('picker-cal');if(!d)return;document.addEventListener('click',function(e){if(d.open&&!d.contains(e.target))d.open=false;});document.addEventListener('keydown',function(e){if(e.key==='Escape')d.open=false;});})();
 </script>

@@ -1,9 +1,9 @@
 :root{
   --azul:#14284b; --azul-2:#1f3a6b; --acento:#2f7dd1; --gris-50:#f5f6f8; --gris-100:#eceef2; --gris-300:#c9cdd6; --gris-600:#5b6372; --gris-900:#1b1f27;
-  --rojo:#c0392b; --ambar:#d89614; --verde:#2e8b57; --fondo:#f5f6f8; --tarjeta:#ffffff; --texto:#1b1f27; --borde:#dfe2e8;
+  --rojo:#c0392b; --ambar:#d89614; --naranja:#e8710a; --azulchip:#2f6fbd; --verde:#2e8b57; --borde-fuerte:#a9b2c1; --fondo:#f5f6f8; --tarjeta:#ffffff; --texto:#1b1f27; --borde:#dfe2e8;
 }
 @media (prefers-color-scheme: dark){
-  :root:not([data-tema="claro"]){--fondo:#12161d;--tarjeta:#1b212b;--texto:#e8ebf0;--borde:#2c3442;--gris-50:#161b23;--gris-100:#222a36;--gris-600:#9aa3b2;--acento:#5aa2ee}
+  :root:not([data-tema="claro"]){--fondo:#12161d;--tarjeta:#1b212b;--texto:#e8ebf0;--borde:#2c3442;--borde-fuerte:#4a566d;--gris-50:#161b23;--gris-100:#222a36;--gris-600:#9aa3b2;--acento:#5aa2ee}
 }
 *{box-sizing:border-box}
 body{margin:0;font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--fondo);color:var(--texto)}
@@ -49,7 +49,7 @@ textarea{width:100%;min-height:80px}
 .btn.sec{background:transparent;color:var(--acento);border:1px solid var(--acento)}
 .btn.peligro{background:var(--rojo)}
 .chip{display:inline-block;background:var(--gris-100);border-radius:999px;padding:1px 9px;font-size:12px}
-.chip.rojo{background:#c0392b;color:#fff;font-weight:600}.chip.ambar{background:#d89614;color:#1b1f27;font-weight:600}.chip.verde{background:#2e8b57;color:#fff;font-weight:600}
+.chip.rojo{background:#c0392b;color:#fff;font-weight:600}.chip.naranja{background:#e8710a;color:#fff;font-weight:600}.chip.azul{background:#2f6fbd;color:#fff;font-weight:600}.chip.ambar{background:#d89614;color:#1b1f27;font-weight:600}.chip.verde{background:#2e8b57;color:#fff;font-weight:600}
 .cal{table-layout:fixed}.cal td{height:92px;font-size:12px}.cal td.fuera{opacity:.45}.cal td.hoy{outline:2px solid var(--acento)}
 .cal .ob{display:block;background:var(--gris-100);border-radius:4px;padding:1px 4px;margin-top:2px;text-decoration:none;color:var(--texto)}
 .pie{color:var(--gris-600);font-size:12px;text-align:center;padding:20px}
@@ -80,20 +80,22 @@ textarea{width:100%;min-height:80px}
 /* ---- Calendario: pendiente en rojo, pagado en verde ---- */
 .cal .ob{border-radius:8px;padding:4px 6px;margin-top:4px;font-weight:600;line-height:1.25}
 .cal .ob.rojo{background:#c0392b;color:#fff}
+.cal .ob.naranja{background:#e8710a;color:#fff}
+.cal .ob.azul{background:#2f6fbd;color:#fff}
 .cal .ob.verde{background:#2e8b57;color:#fff}
 .cal .ob.ambar{background:#d89614;color:#1b1f27}
 .cal .ob .chip{background:#ffffff33;color:inherit;margin-top:3px}
 .cal .ob.urgente,.chip.urgente{animation:pulso 1.6s ease-in-out infinite}
-@keyframes pulso{0%,100%{box-shadow:0 0 0 0 #c0392b00}50%{box-shadow:0 0 0 5px #c0392b66}}
+@keyframes pulso{0%,100%{box-shadow:0 0 0 0 #e8710a00}50%{box-shadow:0 0 0 5px #e8710a77}}
+.cal .ob.rojo.urgente{animation-name:pulso-rojo}
+@keyframes pulso-rojo{0%,100%{box-shadow:0 0 0 0 #c0392b00}50%{box-shadow:0 0 0 5px #c0392b77}}
 @media (prefers-reduced-motion:reduce){.cal .ob.urgente,.chip.urgente{animation:none}}
-.alerta-roja{background:#c0392b;color:#fff;border-radius:10px;padding:12px 16px;margin-bottom:14px;box-shadow:0 4px 14px #c0392b55}
-.alerta-roja ul{margin:6px 0 0 18px;padding:0;max-height:240px;overflow-y:auto}.alerta-roja li.vencida{font-weight:600}.alerta-roja a{color:#fff;text-decoration:underline}
 .alerta-dialogo{border:0;border-radius:14px;padding:22px 24px;max-width:min(520px,92vw);background:var(--tarjeta);color:var(--texto);box-shadow:0 20px 60px #000a;border-top:8px solid #c0392b}
 .alerta-dialogo::backdrop{background:#000a}
 .alerta-dialogo h2{margin:0 0 6px;color:#c0392b}
 .alerta-dialogo ul{padding-left:0;list-style:none;margin:10px 0 16px;max-height:55vh;overflow-y:auto}
-.alerta-dialogo li{padding:7px 10px;border-left:5px solid #c0392b;background:var(--gris-100);border-radius:6px;margin-bottom:6px}
-.alerta-dialogo li.urgente{background:#c0392b22}
+.alerta-dialogo li{padding:7px 10px;border-left:5px solid #e8710a;background:var(--gris-100);border-radius:6px;margin-bottom:6px}
+.alerta-dialogo li.rojo{border-left-color:#c0392b;background:#c0392b1f}.alerta-dialogo li.naranja .fecha{color:#e8710a}
 .alerta-dialogo .fecha{display:inline-block;min-width:44px;font-weight:700;color:#c0392b}
 .btn.peligro{background:#c0392b}
 
@@ -136,3 +138,37 @@ body.login .pie-login{color:var(--gris-600)}
 .logo-cuenta{width:min(240px,60%);height:auto;filter:drop-shadow(0 8px 18px #0006)}
 .cuenta-pagina .login-tarjeta p.sub{margin-bottom:18px}
 .login-tarjeta .seguro a{color:var(--acento)}
+
+/* ---- Cuadrícula del calendario ---- */
+table.cal{border:2px solid var(--borde-fuerte);border-radius:10px;border-collapse:separate;border-spacing:0;overflow:hidden}
+table.cal th,table.cal td{border-right:1px solid var(--borde-fuerte);border-bottom:1px solid var(--borde-fuerte)}
+table.cal th:last-child,table.cal td:last-child{border-right:0}
+table.cal tr:last-child td{border-bottom:0}
+table.cal th{background:var(--azul-2);color:#fff;text-align:center;font-size:13px;letter-spacing:.4px;padding:9px 4px;position:static}
+table.cal td{height:104px;padding:6px}
+table.cal td>strong{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:26px;border-radius:50%}
+table.cal td.hoy{outline:0;background:#2f7dd114;box-shadow:inset 0 0 0 2px var(--acento)}
+table.cal td.hoy>strong{background:var(--acento);color:#fff}
+table.cal td.fuera{background:var(--gris-50);opacity:.55}
+
+/* ---- Alertas de pendientes (tarjetas separadas) ---- */
+.alerta-panel{background:var(--tarjeta);border:1px solid var(--borde);border-top:5px solid #c0392b;border-radius:12px;margin-bottom:18px;box-shadow:0 6px 22px #0003}
+.alerta-panel>summary{list-style:none;cursor:pointer;display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:14px 18px}
+.alerta-panel>summary::-webkit-details-marker{display:none}
+.alerta-icono{font-size:20px;color:#c0392b}
+.alerta-titulo{font-weight:700;font-size:16px}
+.alerta-cont{border-radius:999px;padding:3px 11px;font-size:12.5px;font-weight:700;color:#fff}
+.alerta-cont.rojo{background:#c0392b}.alerta-cont.naranja{background:#e8710a}
+.alerta-ver{margin-left:auto;font-size:12px;color:var(--gris-600)}
+.alerta-rejilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;padding:0 18px 18px;max-height:420px;overflow-y:auto}
+.alerta-tarjeta{display:flex;gap:12px;align-items:center;text-decoration:none;color:var(--texto);background:var(--gris-50);border:1px solid var(--borde);border-left:6px solid #e8710a;border-radius:10px;padding:10px 12px;transition:transform .15s,box-shadow .15s}
+.alerta-tarjeta:hover{transform:translateY(-2px);box-shadow:0 6px 16px #0003}
+.alerta-tarjeta.rojo{border-left-color:#c0392b;background:#c0392b14}
+.alerta-fecha{flex:none;width:50px;border-radius:9px;background:#e8710a;color:#fff;text-align:center;font-size:11px;line-height:1.25;padding:6px 0}
+.alerta-tarjeta.rojo .alerta-fecha{background:#c0392b}
+.alerta-fecha b{display:block;font-size:19px}
+.alerta-texto{display:flex;flex-direction:column;min-width:0}
+.alerta-nombre{font-weight:600;font-size:14px;line-height:1.3}
+.alerta-estado{font-size:12.5px;font-weight:700;color:#e8710a;margin-top:2px}
+.alerta-tarjeta.rojo .alerta-estado{color:#c0392b}
+@media (max-width:760px){.alerta-ver{display:none}.alerta-rejilla{grid-template-columns:1fr}}

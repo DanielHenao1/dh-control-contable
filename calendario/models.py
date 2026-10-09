@@ -87,14 +87,24 @@ class Obligacion(models.Model):
     def cumplida(self):
         return self.estado in (self.Estado.PRESENTADA, self.Estado.PAGADA)
 
+    SIN_PAGO = ("exogena", "exogena_distrital", "rub")  # informativas: presentarlas basta, no hay nada que pagar
+
     @property
     def semaforo(self):
-        """verde = presentada y pagada; ámbar = presentada (falta el pago); rojo = pendiente."""
+        """verde = cumplida; rojo = vencida; naranja = pendiente que aún no vence; azul = presentada, falta el pago."""
         if self.estado == self.Estado.PAGADA:
             return "verde"
         if self.estado == self.Estado.PRESENTADA:
-            return "ambar"
-        return "rojo"
+            return "verde" if self.tipo in self.SIN_PAGO else "azul"
+        d = self.dias_restantes
+        return "rojo" if d is not None and d < 0 else "naranja"
+
+    @property
+    def etiqueta(self):
+        """Texto corto para el calendario: el estado, o «Vencida» si pasó la fecha sin cumplirse."""
+        if self.semaforo == "rojo":
+            return "Vencida"
+        return self.get_estado_display()
 
     @property
     def dias_restantes(self):

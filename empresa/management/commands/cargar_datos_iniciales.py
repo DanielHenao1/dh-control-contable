@@ -160,6 +160,8 @@ class Command(BaseCommand):
             fuente="Certificado de existencia y representación legal, Cámara de Comercio de Bogotá, expedido el 1-sep-2026",
             notas="Matrícula renovada el 29-abr-2026 (último año renovado: 2026); los establecimientos DH LAPTOP STORAGE y DH BOOKS también figuran renovados 2026.",
         )
+        Obligacion.objects.filter(tipo="exogena", clave="2025", estado__in=["pendiente", "en_preparacion"]).update(
+            estado="presentada", notas="Presentada, según la empresa (9-oct-2026). Conseguir el acuse como evidencia.")
         Obligacion.objects.filter(tipo="ica", clave="2026-B4").update(
             estado="pagada", notas="Declarado y pagado, según la empresa. Conseguir el acuse como evidencia.")
         Obligacion.objects.filter(tipo="retefuente", clave="2026-09", estado="pendiente").update(

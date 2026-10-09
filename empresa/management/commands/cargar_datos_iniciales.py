@@ -165,6 +165,12 @@ class Command(BaseCommand):
             estado="presentada", notas="Presentada, según la empresa (9-oct-2026). Conseguir el acuse como evidencia.")
         Obligacion.objects.filter(tipo="ica", clave="2026-B4").update(
             estado="pagada", notas="Declarado y pagado, según la empresa. Conseguir el acuse como evidencia.")
+        # La empresa confirmó (9-oct-2026) que Ideako presenta la retención de septiembre y la exógena distrital.
         Obligacion.objects.filter(tipo="retefuente", clave="2026-09", estado="pendiente").update(
-            notas="Pendiente de presentar. Incluida en el servicio de Ideako: dejarlo por escrito.")
+            notas="Pendiente de presentar. Ideako la presenta, según la empresa (9-oct-2026): guardar el acuse como evidencia.")
+        Obligacion.objects.filter(tipo="exogena_distrital", clave="2025", estado="pendiente", notas="").update(
+            notas="Pendiente de presentar. Ideako la presenta, según la empresa (9-oct-2026): guardar el acuse como evidencia.")
+        Obligacion.objects.filter(
+            tipo__in=["retefuente", "exogena_distrital"], clave__in=["2026-09", "2025"], estado="pendiente", elabora="",
+        ).update(elabora="Ideako")
         self.stdout.write(self.style.SUCCESS(f"Datos iniciales listos. Obligaciones nuevas: {n}. Marcadas como presentadas y pagadas: {n_hist}. DV del NIT: {dv}."))

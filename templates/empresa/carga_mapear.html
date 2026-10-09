@@ -13,12 +13,34 @@
       </select></p>{% endfor %}
   </div>
   <div>
-    <p><label>Fila del encabezado</label><input type="number" name="fila_encabezado" min="1" value="{{ perfil.fila_encabezado|default:1 }}"></p>
-    <p><label>Hoja (vacío = primera)</label><input name="hoja" value="{{ perfil.hoja|default:'' }}"></p>
+    <p><label>Fila del encabezado</label><input type="number" name="fila_encabezado" id="fila_encabezado" min="1" value="{{ fila }}"><br><small id="estado-columnas" style="color:var(--gris-600)">Al cambiar la fila, las columnas de las listas se leen de nuevo.</small></p>
+    <p><label>Hoja (vacío = primera)</label><input name="hoja" id="hoja" value="{{ perfil.hoja|default:'' }}"></p>
     <p><label>Separador (CSV)</label><input name="separador_csv" value="{{ perfil.separador_csv|default:',' }}" size="2"></p>
     <p><label><input type="checkbox" name="decimal_coma" {% if perfil.decimal_coma %}checked{% endif %}> Decimales con coma (1.234,56)</label></p>
     <p><label>Formato de fecha (ej. %d/%m/%Y; vacío = automático)</label><input name="formato_fecha" value="{{ perfil.formato_fecha|default:'' }}"></p>
   </div></div>
   <button class="btn" type="submit">Guardar perfil y aplicarlo</button>
 </form></div>
+<script>
+(function(){
+  var fila=document.getElementById('fila_encabezado'),hoja=document.getElementById('hoja'),estado=document.getElementById('estado-columnas'),t=null;
+  function recargar(){
+    var u='{% url "carga_columnas" a.pk %}?fila='+encodeURIComponent(fila.value||1)+'&hoja='+encodeURIComponent(hoja.value||'');
+    estado.textContent='Leyendo columnas…';
+    fetch(u,{credentials:'same-origin'}).then(function(r){return r.json().then(function(j){return {ok:r.ok,j:j};});}).then(function(x){
+      if(!x.ok){estado.textContent=x.j.error||'No se pudo leer el archivo.';estado.style.color='#c0392b';return;}
+      estado.style.color='';estado.textContent='Columnas leídas de la fila '+fila.value+': '+x.j.columnas.length+'.';
+      document.querySelectorAll('select[name^="campo_"]').forEach(function(sel){
+        var previo=sel.value,campo=sel.name.replace('campo_','');
+        sel.innerHTML='';var o=document.createElement('option');o.value='';o.textContent='— no usar —';sel.appendChild(o);
+        x.j.columnas.forEach(function(c){var op=document.createElement('option');op.value=c;op.textContent=c;sel.appendChild(op);});
+        var elegir=(previo&&x.j.columnas.indexOf(previo)>=0)?previo:(x.j.sugerido[campo]||'');
+        sel.value=elegir;
+      });
+    }).catch(function(){estado.textContent='No hubo conexión con el servidor.';estado.style.color='#c0392b';});
+  }
+  function pronto(){clearTimeout(t);t=setTimeout(recargar,350);}
+  fila.addEventListener('input',pronto);hoja.addEventListener('input',pronto);
+})();
+</script>
 {% endblock %}

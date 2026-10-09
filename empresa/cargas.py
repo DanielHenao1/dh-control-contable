@@ -133,6 +133,12 @@ def confirmar(archivo: ArchivoCargado, usuario, omitir_filas_con_error=False):
         archivo.save(update_fields=["estado", "resumen"])
         return archivo
     lectura = leer_archivo(archivo)
+    if lectura.bloqueos:  # p. ej. los totales del balance no cuadran: no se importa ni omitiendo filas
+        archivo.estado = ArchivoCargado.Estado.ERROR
+        archivo.errores = [{"fila": 0, "problemas": lectura.bloqueos}] + lectura.errores[:200]
+        archivo.resumen = lectura.info
+        archivo.save(update_fields=["estado", "errores", "resumen"])
+        return archivo
     if lectura.faltantes or (lectura.errores and not omitir_filas_con_error) or not lectura.filas:
         archivo.estado = ArchivoCargado.Estado.ERROR
         archivo.errores = (
@@ -147,6 +153,7 @@ def confirmar(archivo: ArchivoCargado, usuario, omitir_filas_con_error=False):
     with transaction.atomic():
         resumen = _importadores()[archivo.tipo](archivo, lectura.filas)
         resumen["filas_omitidas"] = len(lectura.errores)
+        resumen.update(lectura.info)
         archivo.estado = ArchivoCargado.Estado.IMPORTADO
         archivo.resumen = resumen
         archivo.errores = lectura.errores[:200]
@@ -156,3 +163,48 @@ def confirmar(archivo: ArchivoCargado, usuario, omitir_filas_con_error=False):
             "importar", objeto=archivo, descripcion=f"Importación confirmada: {archivo}", detalle=resumen, usuario=usuario
         )
     return archivo
+
+
+def eliminar(archivo: ArchivoCargado, usuario):
+    """Borra una carga y los datos que importó. Queda constancia en la auditoría (insert-only) con la huella y las cifras.
+
+    Un mes cerrado no admite el borrado. Si el archivo era el vigente, el último importado del mismo grupo pasa a serlo.
+    """
+    from django.db import models as dj_models
+
+    periodos = {archivo.periodo}
+    hijos = []
+    for rel in ArchivoCargado._meta.related_objects:
+        if rel.on_delete is not dj_models.PROTECT:
+            continue
+        consulta = rel.related_model.objects.filter(**{rel.field.name: archivo})
+        n = consulta.count()
+        if n:
+            hijos.append((rel.related_model, consulta, n))
+            if any(f.name == "periodo" for f in rel.related_model._meta.get_fields()):
+                periodos |= set(Periodo.objects.filter(pk__in=consulta.values_list("periodo", flat=True)))
+    for p in periodos:
+        if p is not None:
+            p.verificar_abierto()
+    detalle = {
+        "nombre": archivo.nombre_original, "tipo": archivo.tipo, "hash": archivo.hash_sha256, "estado": archivo.estado,
+        "periodo": str(archivo.periodo), "filas_borradas": {m.__name__: n for m, _, n in hijos},
+    }
+    era_vigente = archivo.vigente
+    grupo = {"facturas_dian", "facturas_xml"} if archivo.tipo in ("facturas_dian", "facturas_xml") else {archivo.tipo}
+    contexto = dict(tipo__in=grupo, periodo=archivo.periodo, sentido=archivo.sentido, varios_meses=archivo.varios_meses)
+    with transaction.atomic():
+        RegistroAuditoria.registrar(
+            "eliminar_carga", objeto=archivo, descripcion=f"Carga eliminada: {archivo.nombre_original}", detalle=detalle, usuario=usuario,
+        )
+        for _modelo, consulta, _n in hijos:
+            consulta.delete()
+        nombre_en_disco = archivo.archivo.name
+        archivo.delete()
+        if nombre_en_disco:
+            archivo.archivo.storage.delete(nombre_en_disco)
+        if era_vigente:
+            anterior = ArchivoCargado.objects.filter(estado=ArchivoCargado.Estado.IMPORTADO, **contexto).order_by("-creado").first()
+            if anterior:
+                anterior.marcar_vigente()
+    return detalle, [p for p in periodos if p is not None]

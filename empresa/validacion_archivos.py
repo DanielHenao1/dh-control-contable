@@ -8,7 +8,14 @@ import io
 import re
 from dataclasses import dataclass, field
 
-from .importacion import CAMPOS_POR_TIPO, ErrorImportacion, leer, leer_dataframe, sugerir_mapeo
+from .importacion import (
+    CAMPOS_POR_TIPO,
+    ErrorImportacion,
+    leer,
+    leer_balance_world_office,
+    leer_dataframe,
+    sugerir_mapeo,
+)
 
 TABULARES = ("balance", "auxiliar", "facturas_dian", "retenciones", "extracto_banco")
 EXTENSIONES = {
@@ -73,6 +80,13 @@ def _tipos_probables(columnas):
 
 
 def _revisar_tabular(tipo, nombre, contenido, perfil, periodo, sentido, empresa, res, varios_meses=False):
+    if tipo == "balance" and not (perfil and perfil.mapeo) and nombre.lower().endswith((".xlsx", ".xlsm")):
+        jerarquico = leer_balance_world_office(contenido)
+        if jerarquico is not None:  # balance de World Office con terceros: se lee con su propio lector
+            res.avisos.extend(jerarquico.bloqueos + jerarquico.avisos)
+            if not jerarquico.filas:
+                res.errores.append("El balance no tiene filas de detalle con cifras para importar.")
+            return
     try:
         df = leer_dataframe(contenido, nombre, perfil)
     except (ErrorImportacion, ValueError, OSError) as exc:

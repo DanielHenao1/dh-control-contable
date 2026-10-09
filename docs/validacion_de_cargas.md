@@ -39,6 +39,18 @@ Detalles:
 - Los *documentos soporte* (compras a no obligados a facturar) quedan como documento soporte emitido y no entran al IVA, como ya lo hacían las reglas.
 - Si todas las filas son de otra empresa se rechaza; si algunas no coinciden con su columna Grupo o con el NIT, avisa.
 
+## Balance de prueba de World Office (con terceros)
+El balance que exporta World Office es jerárquico: títulos arriba, un encabezado (Saldo inicial, Débitos, Créditos, Saldo final), filas de agrupación con código y nombre («1105 CAJA»), filas de detalle por tercero y filas «Total …». El sistema lo reconoce solo, sin perfil:
+- Busca el encabezado en las primeras 40 filas (no importa en cuál esté).
+- Importa solo las filas de **detalle**, con el código de la agrupación más cercana hacia arriba. Varios terceros de una misma cuenta se suman en un solo saldo de esa cuenta. Las agrupaciones y las filas «Total …» se ignoran.
+- Cifras en formato colombiano: `1.454.134,91`, negativos entre paréntesis y `-` como cero.
+- **Valida los totales:** los débitos y créditos importados deben coincidir con el total del archivo (o, si no hay total general, con la suma de los totales por clase 1 a 9). Si no cuadran, la carga queda **con error** y el mensaje dice la diferencia y en qué clase está; no se importa ni omitiendo filas.
+- La pantalla de la carga muestra el formato reconocido, las filas importadas, las ignoradas y si los totales cuadran.
+Un nombre de tercero que empiece por «Total» sin código se trata como detalle; solo son subtotales las filas «Total <código> …».
+
+## Borrar una carga
+El dueño puede borrar una carga desde su pantalla de detalle («Borrar esta carga»), marcando que entiende que se borran también los datos importados. Queda en la auditoría (`eliminar_carga`) con la huella, el periodo y cuántos registros se borraron; el mismo archivo se puede volver a subir. No se borra en un mes cerrado. Si era la carga vigente, la anterior importada pasa a serlo, y se recalculan los controles.
+
 ## Avisos
 Se muestran al subir y quedan en el detalle del archivo («Avisos de la revisión previa»).
 

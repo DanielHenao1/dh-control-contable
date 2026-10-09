@@ -66,9 +66,17 @@ def test_historico_no_cuenta_como_vencido(datos_iniciales, cliente_dueno):
 
     assert control_desde() == date(2026, 10, 1)
     # Las declaraciones previas quedaron como presentadas; la de septiembre sigue pendiente
-    assert Obligacion.objects.get(tipo="retefuente", clave="2026-08").estado == "presentada"
-    assert Obligacion.objects.get(tipo="iva", clave="2026-P2").estado == "presentada"
+    assert Obligacion.objects.get(tipo="retefuente", clave="2026-08").estado == "pagada"
+    assert Obligacion.objects.get(tipo="iva", clave="2026-P2").estado == "pagada"
+    assert Obligacion.objects.get(tipo="ica", clave="2026-B4").estado == "pagada"
     assert Obligacion.objects.get(tipo="retefuente", clave="2026-09").estado == "pendiente"
+    # Ningún impuesto con vencimiento hasta el 9-oct-2026 queda pendiente
+    assert not Obligacion.objects.filter(
+        tipo__in=["retefuente", "iva", "ica"], fecha_limite__lte=date(2026, 10, 9)
+    ).exclude(estado="pagada").exists()
+    m = Obligacion.objects.get(tipo="matricula", clave="2026")
+    assert m.estado == "pagada" and "29-abr-2026" in m.notas
+    assert Obligacion.objects.get(tipo="matricula", clave="2027").estado == "pendiente"
     # Lo anterior a CONTROL_DESDE se excluye aunque siga pendiente (p. ej. fechas laborales)
     pasadas = Obligacion.objects.filter(fecha_limite__lt=date(2026, 10, 1), estado="pendiente")
     assert pasadas.exists()

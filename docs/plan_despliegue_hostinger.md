@@ -91,7 +91,7 @@ Cada etapa se ejecuta solo después de tu aprobación explícita. Ninguna requie
 | Proveedor de VPS | **Hostinger, un solo VPS ya contratado**: KVM 4, Ubuntu 26.04 LTS, 200 GB de disco, 16 TB de ancho de banda, IPv4 31.97.136.172 (srv885245.hstgr.cloud). Es VPS con acceso root: cumple el requisito. Pendiente validar `docker run hello-world` en este sistema (Ubuntu 26.04 es reciente) |
 | Subdominio | **`contabilidad.dhstore.com.co`** → registro DNS tipo A hacia la IP del VPS; en `.env`: `DOMINIO=contabilidad.dhstore.com.co`, `DJANGO_ALLOWED_HOSTS=contabilidad.dhstore.com.co`, `DJANGO_CSRF_TRUSTED_ORIGINS=https://contabilidad.dhstore.com.co` |
 | Asistente de IA | **Apagado por ahora** (`ANTHROPIC_API_KEY` vacío; el botón usa la plantilla local, sin enviar nada fuera). Se activa **después de probar todo el sistema**, añadiendo la clave solo en el `.env` del servidor y reiniciando `web` (ver §8) |
-| Almacenamiento S3 para copias | **Pendiente** (no hay proveedor). Hasta tenerlo las copias quedan solo en el VPS y no cumplen 3-2-1. **Obligatorio antes de cargar datos reales** (puerta P0) |
+| Copia fuera del servidor | **Sin S3.** El dueño prefiere traer las copias a su computador (`docs/respaldo_en_mi_pc.md`) o a otro VPS más adelante. **Pendiente: se empieza en producción, y debe estar activa antes de cargar el primer dato contable real** (puerta P0) |
 | Correo SMTP para alertas | **Pendiente**. Sin SMTP las alertas salen por consola del servidor; siguen visibles en tablero y calendario. Se necesita antes de depender de los avisos por correo |
 | Plan de Hostinger actual | **Confirmado: VPS** (ver arriba). Un solo VPS; copias en bucket S3, sin segundo VPS |
 

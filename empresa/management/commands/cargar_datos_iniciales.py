@@ -119,15 +119,22 @@ class Command(BaseCommand):
         for tipo, claves in (("retefuente", ["2026-09", "2026-10", "2026-11", "2026-12"]), ("iva", ["2026-P3"])):
             Obligacion.objects.filter(tipo=tipo, clave__in=claves).update(
                 verificacion="dos_fuentes", fuente="Dos fuentes (VenciApp, Actualícese) y cálculo del día hábil coinciden")
-        # La empresa confirmó (9-oct-2026) que todas las declaraciones de 2026 anteriores a esta fecha ya se presentaron.
+        # La empresa confirmó (9-oct-2026) que todos los impuestos con vencimiento hasta el 9-oct-2026 están presentados y pagados.
         n_hist = Obligacion.objects.filter(
-            tipo__in=["retefuente", "iva", "ica"], fecha_limite__lt=date(2026, 10, 1), estado="pendiente"
+            tipo__in=["retefuente", "iva", "ica"], fecha_limite__lte=date(2026, 10, 9),
+            estado__in=["pendiente", "en_preparacion", "presentada"],
         ).update(
-            estado="presentada",
-            notas="Presentada antes de la puesta en marcha del sistema (confirmado por la empresa el 9-oct-2026). Sin evidencia cargada.",
+            estado="pagada",
+            notas="Presentada y pagada (confirmado por la empresa el 9-oct-2026). Sin evidencia cargada en el sistema.",
+        )
+        # Matrícula mercantil 2026: renovada el 29-abr-2026 según el certificado de la Cámara de Comercio de Bogotá (1-sep-2026)
+        Obligacion.objects.filter(tipo="matricula", clave="2026").update(
+            estado="pagada", verificacion="dos_fuentes",
+            fuente="Certificado de existencia y representación legal, Cámara de Comercio de Bogotá, expedido el 1-sep-2026",
+            notas="Matrícula renovada el 29-abr-2026 (último año renovado: 2026); los establecimientos DH LAPTOP STORAGE y DH BOOKS también figuran renovados 2026.",
         )
         Obligacion.objects.filter(tipo="ica", clave="2026-B4").update(
             estado="pagada", notas="Declarado y pagado, según la empresa. Conseguir el acuse como evidencia.")
         Obligacion.objects.filter(tipo="retefuente", clave="2026-09", estado="pendiente").update(
             notas="Pendiente de presentar. Incluida en el servicio de Ideako: dejarlo por escrito.")
-        self.stdout.write(self.style.SUCCESS(f"Datos iniciales listos. Obligaciones nuevas: {n}. Marcadas como históricas: {n_hist}. DV del NIT: {dv}."))
+        self.stdout.write(self.style.SUCCESS(f"Datos iniciales listos. Obligaciones nuevas: {n}. Marcadas como presentadas y pagadas: {n_hist}. DV del NIT: {dv}."))

@@ -20,8 +20,10 @@ El tablero muestra un aviso mientras haya parámetros “por verificar” o vac�
 7. **Reglas de vencimiento** de otros dígitos del NIT solo si cambia la empresa; hoy solo existen las del dígito 9.
 8. **Formulario de ReteIVA** (código 09 del RUT), quién firma cada declaración y si el RUT necesita actualización.
 9. **Beneficiarios finales (RUB)** y **exógena**: fecha y norma (el sistema las deja “sin verificar” a propósito).
-10. **Usuario aduanero (código 23)** y si hay comercio exterior.
-11. **Por escrito con Ideako:** que la retención de septiembre (22-oct-2026) está dentro del servicio, y el acuse del ICA del 4.º bimestre ya pagado.
+10. **CIIU:** el certificado de la Cámara dice 5210 donde el RUT decía 9511; aclarar cuál es el correcto. **Grupo NIIF III (microempresa):** confirmar con el contador qué estados e indicadores del sistema aplican.
+11. **Usuario aduanero (código 23)** y si hay comercio exterior.
+12. **Fechas laborales** (cesantías, prima): decidir si aplican (¿hay empleados con contrato laboral?); si no, se retiran del calendario.
+13. **Por escrito con Ideako:** que la retención de septiembre (22-oct-2026) está dentro del servicio, y el acuse del ICA del 4.º bimestre ya pagado.
 
 ## Cosas que probar con archivos reales
 - Formatos de las facturas DIAN (Excel y XML/AttachedDocument) y de los auxiliares de World Office.

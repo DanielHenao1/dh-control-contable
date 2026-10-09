@@ -11,7 +11,7 @@ from calendario.dias_habiles import asegurar_festivos
 from calendario.generador import generar_obligaciones
 from calendario.models import Obligacion, ReglaVencimiento
 from contratistas.models import Contratista
-from empresa.models import Empresa, Parametro, RegistroAuditoria
+from empresa.models import Empresa, Parametro
 from terceros.nit import calcular_dv
 
 V, PV = "verificado", "por_verificar"
@@ -51,7 +51,6 @@ PARAMETROS = [
     ("PUC_PROVISIONES_LABORALES", "Prefijos de obligaciones laborales (cesantías, intereses, prima, vacaciones)", "lista", "25", date(2025, 1, 1), None, PV, "PUC comercial; confirmar contra el plan de cuentas real"),
     ("CONTROL_DESDE", "Fecha de puesta en marcha: lo que venció antes se trata como histórico (sin alertas ni hallazgos)", "texto", "2026-10-01", date(2025, 1, 1), None, V, "Confirmado por la empresa el 9-oct-2026"),
     ("ALERTA_PANTALLA_DIAS", "Días de anticipación con que una obligación pendiente salta como alerta en pantalla", "decimal", "20", date(2025, 1, 1), None, V, "Decisión del dueño (9-oct-2026): alertas solo de lo que vence en los próximos 20 días"),
-    ("TIENE_EMPLEADOS", "¿La empresa tiene empleados con contrato laboral? (si/no). Con «no» no se generan cesantías ni primas", "texto", "no", date(2025, 1, 1), None, V, "Confirmado por la empresa el 9-oct-2026: por ahora no hay contratos laborales"),
     ("CALENDARIO_DESDE", "Primera fecha que gestiona el calendario: no se crean obligaciones con fecha anterior", "texto", "2026-01-01", date(2025, 1, 1), None, V, "Decisión del dueño (9-oct-2026): el sistema gestiona desde 2026"),
     ("TOLERANCIA_PESOS", "Diferencia máxima tolerada por redondeo (pesos)", "decimal", "1", date(2025, 1, 1), None, V, "Criterio operativo del sistema"),
     ("ALERTA_DIAS_ANTES", "Días antes del vencimiento en que se envía alerta", "lista", "15,7,3,1", date(2025, 1, 1), None, V, "Criterio operativo del sistema"),
@@ -141,14 +140,6 @@ class Command(BaseCommand):
         # Desde 2025 porque en 2026 se pagan períodos de 2025 (retención de dic-2025, IVA del 3.er cuatrimestre, renta AG 2025);
         # CALENDARIO_DESDE evita crear lo que venció antes de 2026.
         n = generar_obligaciones(2025, 2027)
-        sin_empleados = Parametro.obtener_o("TIENE_EMPLEADOS", "si").strip().lower() in ("no", "0", "false")
-        if sin_empleados:
-            laborales = Obligacion.objects.filter(laboral=True, estado__in=["pendiente", "en_preparacion"])
-            for o in laborales:
-                RegistroAuditoria.registrar(
-                    "eliminar", objeto=o, descripcion=f"Se quitó «{o.nombre} {o.periodo_texto}»: la empresa no tiene empleados",
-                    detalle={"tipo": o.tipo, "clave": o.clave, "fecha": str(o.fecha_limite)})
-            laborales.delete()
         # Estado conocido a 9-oct-2026 según la empresa
         # Contrastadas con dos fuentes y el cálculo de día hábil (plan, 9-oct-2026)
         for tipo, claves in (("retefuente", ["2026-09", "2026-10", "2026-11", "2026-12"]), ("iva", ["2026-P3"])):

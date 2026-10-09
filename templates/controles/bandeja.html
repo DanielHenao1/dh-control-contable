@@ -13,6 +13,7 @@
   {% if permisos.exportar %}<a class="btn sec" href="?{{ request.GET.urlencode }}&exportar=xlsx">Exportar a Excel</a>{% endif %}
 </form>
 {% if permisos.cargar %}<form method="post" action="{% url 'hallazgos_ejecutar' %}?anio={{ periodo.anio }}&mes={{ periodo.mes }}" style="margin-bottom:12px">{% csrf_token %}<button class="btn sec" type="submit">Volver a ejecutar los controles</button></form>{% endif %}
+<p style="color:var(--gris-600);max-width:860px">Un hallazgo es algo que el sistema encontró y conviene revisar. Haz clic en su título: ahí dice qué hacer, te lleva a la pantalla donde se corrige y permite cerrarlo como <strong>Corregido</strong> o <strong>Explicado</strong>. Los hallazgos de calendario se resuelven en la obligación (responsables, fecha verificada, acuse); los de «falta cargar» desaparecen al cargar el archivo.</p>
 <div class="tabla-scroll"><table>
 <tr><th></th><th>Regla</th><th>Hallazgo</th><th>Estado</th></tr>
 {% for h in hallazgos %}<tr>

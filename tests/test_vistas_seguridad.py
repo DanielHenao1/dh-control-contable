@@ -133,3 +133,14 @@ def test_nuevo_usuario_con_rol(cliente_dueno):
         "username": "ana", "first_name": "Ana", "last_name": "P", "email": "a@x.co", "rol": "asistente",
         "password1": "Una-clave-larga-987", "password2": "Una-clave-larga-987"})
     assert r.status_code == 302 and Usuario.objects.get(username="ana").rol == "asistente"
+
+
+def test_hallazgo_explica_que_hacer_y_a_donde_ir(cliente_dueno, db):
+    from controles.models import Hallazgo, ReglaControl
+    from empresa.models import Periodo
+
+    p = Periodo.obtener(2026, 10)
+    r = ReglaControl.objects.create(codigo="CAL002", nombre="Obligación sin responsable", grupo="calendario", severidad="media")
+    h = Hallazgo.objects.create(regla=r, periodo=p, clave="x", titulo="Retención oct: sin responsable", severidad="media", evidencia={"obligacion_id": 1})
+    html = cliente_dueno.get(f"/hallazgos/{h.pk}/").content.decode()
+    assert "Qué hacer" in html and "/calendario/obligacion/1/" in html and "Cerrar el hallazgo" in html

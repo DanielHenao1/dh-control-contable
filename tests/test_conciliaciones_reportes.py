@@ -174,3 +174,28 @@ def test_conciliar_banco_fecha_lejana_gastos_agrupados_y_sumas(datos_iniciales):
     assert any("días de diferencia" in m for m in motivos) and any("Gastos bancarios" in m for m in motivos)
     assert any("suma de 2 partidas de libros" in m for m in motivos)
     assert [b.valor for b in r["solo_banco"]] == [Decimal("-77")] and r["solo_libros"] == []
+
+
+@pytest.mark.django_db
+def test_factura_causada_con_el_consecutivo_de_world_office(datos_iniciales):
+    """World Office registra «(DTS) FV FE 11407» y «(DTS) FC DHT 1315», no el número de la factura de la DIAN."""
+    from controles.reglas_facturas import indice_documentos, movimientos_de, valor_causado
+
+    p = periodo()
+    venta = factura(p, "emitida", "11407", date(2026, 9, 11), "900902549", "800111222", 378067, 71833, prefijo="FE")
+    compra = factura(p, "recibida", "EB1", date(2026, 9, 7), "899999115", "900902549", 97680, 18559, nombre_emisor="EMPRESA DE TELECOMUNICACIONES DE BOGOTA SA ESP SIGLA ETB")
+    auxiliar(p, [
+        (date(2026, 9, 11), "FV", "(DTS) FV FE 11407", "13050501", "", 449900, 0),
+        (date(2026, 9, 11), "FV", "(DTS) FV FE 11407", "13551511", "", "2079.37", 0),      # anticipo de retención: no es cartera
+        (date(2026, 9, 11), "FV", "(DTS) FV FE 11407", "41355402", "", 0, 378067),
+        (date(2026, 9, 11), "RC", "(DTS) RC DH 7411", "13050501", "", 0, 449900),           # el recibo de caja baja la cartera
+        (date(2026, 9, 11), "FC", "(DTS) FC DHT 1315", "23355001", "", 0, "116239.62"),
+        (date(2026, 9, 11), "FC", "(DTS) FC DHT 1315", "51353501", "", "97680.35", 0),
+    ])
+    Movimiento.objects.filter(documento="(DTS) FC DHT 1315").update(tercero_nombre="EMPRESA DE TELECOMUNICACIONES ETB")
+    indice = indice_documentos(p)
+    assert movimientos_de(venta, indice)                              # por el número dentro del documento
+    assert valor_causado(venta, movimientos_de(venta, indice)) == Decimal("449900")
+    assert movimientos_de(compra, indice)                             # por tercero y valor (±$5)
+    sin = factura(p, "recibida", "X9", date(2026, 9, 8), "899999999", "900902549", 1000, 190, nombre_emisor="OTRO PROVEEDOR SAS")
+    assert not movimientos_de(sin, indice)

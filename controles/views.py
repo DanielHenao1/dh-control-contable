@@ -8,6 +8,7 @@ from empresa.permisos import requiere
 from empresa.utils import contexto_selector, periodo_desde_request
 from reportes.informe import tabla_a_excel
 
+from .acciones import accion_sugerida
 from .models import Hallazgo, ReglaControl
 from .motor import ejecutar_reglas
 
@@ -58,7 +59,7 @@ def detalle(request, pk):
             messages.success(request, "Explicación redactada.")
         return redirect("hallazgo", pk=pk)
     ia = getattr(h, "explicacion_ia", None)
-    return render(request, "controles/detalle.html", {"h": h, "ia": ia, "titulo": h.titulo, "estados": Hallazgo.Estado.choices})
+    return render(request, "controles/detalle.html", {"h": h, "ia": ia, "titulo": h.titulo, "estados": Hallazgo.Estado.choices, "accion": accion_sugerida(h)})
 
 
 @requiere("cargar")

@@ -13,7 +13,7 @@
 {% if atrasados %}<div class="error">Informe atrasado: {% for e in atrasados %}{{ e.periodo }} (debía llegar el {{ e.fecha_limite_informe|date:"d/m/Y" }}){% if not forloop.last %}, {% endif %}{% endfor %}</div>{% endif %}
 <h2>Entregas mensuales e informes</h2>
 <div class="tabla-scroll"><table><tr><th>Periodo</th><th>Entregada</th><th>Informe límite</th><th>Informe recibido</th></tr>
-{% for e in entregas %}<tr><td>{{ e.periodo }}</td><td>{{ e.entregada_el|date:"d/m/Y" }}</td><td>{{ e.fecha_limite_informe|date:"d/m/Y" }}</td>
+{% for e in entregas %}<tr><td>{{ e.periodo }}<br><small>{{ e.descripcion }}</small></td><td>{{ e.entregada_el|date:"d/m/Y" }}</td><td>{{ e.fecha_limite_informe|date:"d/m/Y" }}</td>
 <td>{% if e.informe %}{{ e.informe.recibido_el|date:"d/m/Y" }} <small>{{ e.informe.resumen|truncatechars:80 }}</small>{% elif e.informe_atrasado %}<span class="chip rojo">atrasado</span>{% else %}<span class="chip ambar">pendiente</span>{% endif %}</td></tr>
 {% empty %}<tr><td colspan="4">Sin entregas registradas.</td></tr>{% endfor %}</table></div>
 {% if puede %}

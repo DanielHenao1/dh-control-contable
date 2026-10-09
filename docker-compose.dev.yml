@@ -1,0 +1,9 @@
+# Desarrollo local con PostgreSQL y Redis (opcional: sin Docker se usa SQLite).
+services:
+  db:
+    image: postgres:16
+    environment: {POSTGRES_DB: control, POSTGRES_USER: control, POSTGRES_PASSWORD: control}
+    ports: ["5432:5432"]
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]

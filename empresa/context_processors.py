@@ -30,6 +30,7 @@ def global_(request):
         )
         ctx["alertas_pantalla"] = pendientes_anio
         ctx["alertas_vencidas"] = sum(1 for o in pendientes_anio if o.dias_restantes < 0)
+        ctx["alertas_porvencer"] = len(pendientes_anio) - ctx["alertas_vencidas"]
         ctx["alertas_anio"] = hoy.year
         ctx["hoy_iso"] = hoy.isoformat()
     return ctx

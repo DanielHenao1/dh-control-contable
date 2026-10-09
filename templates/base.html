@@ -40,14 +40,17 @@ if(m){m.classList.add('activo');m.setAttribute('aria-current','page');}})();
 {% if parametros_pendientes %}<div class="aviso"><strong>{{ parametros_pendientes }} parámetro(s) tributario(s) sin verificar o vacíos.</strong> Los cálculos que dependen de ellos quedan marcados o pendientes.{% if permisos.administrar %} <a href="{% url 'configuracion' %}">Revisarlos</a>{% endif %}</div>{% endif %}
 {% for m in messages %}<div class="{% if m.tags == 'error' %}error{% elif m.tags == 'success' %}ok{% elif m.tags == 'warning' %}aviso{% else %}msg-info{% endif %}">{{ m }}</div>{% endfor %}
 {% if alertas_pantalla %}
-<div class="alerta-roja" role="alert">
-  <strong>⚠ {{ alertas_pantalla|length }} obligación(es) pendiente(s) en {{ alertas_anio }}{% if alertas_vencidas %} · {{ alertas_vencidas }} ya vencida(s){% endif %}</strong>
-  <ul>{% for o in alertas_pantalla %}<li class="{% if o.dias_restantes < 0 %}vencida{% endif %}"><a href="{% url 'obligacion' o.pk %}">{{ o.nombre }} {{ o.periodo_texto }}</a> · {{ o.fecha_limite|date:"d/m/Y" }} · <b>{% if o.dias_restantes < 0 %}VENCIDA hace {{ o.dias_restantes|cut:"-" }} día(s){% elif o.dias_restantes == 0 %}vence HOY{% else %}vence en {{ o.dias_restantes }} día(s){% endif %}</b></li>{% endfor %}</ul>
-</div>
+<details class="alerta-panel" role="alert" open>
+  <summary><span class="alerta-icono" aria-hidden="true">⚠</span><span class="alerta-titulo">{{ alertas_pantalla|length }} obligación(es) pendiente(s) en {{ alertas_anio }}</span>{% if alertas_vencidas %}<span class="alerta-cont rojo">{{ alertas_vencidas }} vencida(s)</span>{% endif %}{% if alertas_porvencer %}<span class="alerta-cont naranja">{{ alertas_porvencer }} por vencer</span>{% endif %}<span class="alerta-ver">Mostrar u ocultar</span></summary>
+  <div class="alerta-rejilla">{% for o in alertas_pantalla %}<a class="alerta-tarjeta {{ o.semaforo }}" href="{% url 'obligacion' o.pk %}">
+    <span class="alerta-fecha"><b>{{ o.fecha_limite|date:"d" }}</b>{{ o.fecha_limite|date:"M"|upper }}</span>
+    <span class="alerta-texto"><span class="alerta-nombre">{{ o.nombre }} {{ o.periodo_texto }}</span><span class="alerta-estado">{% if o.dias_restantes < 0 %}VENCIDA hace {{ o.dias_restantes|cut:"-" }} día(s){% elif o.dias_restantes == 0 %}Vence HOY{% else %}Vence en {{ o.dias_restantes }} día(s){% endif %}</span></span>
+  </a>{% endfor %}</div>
+</details>
 <dialog id="alerta-venc" class="alerta-dialogo" data-dia="{{ hoy_iso }}" aria-labelledby="alerta-titulo">
   <h2 id="alerta-titulo">⚠ Obligaciones pendientes de {{ alertas_anio }}</h2>
   <p>Estas obligaciones siguen sin presentar o pagar. Si ya se cumplieron, regístralo en el calendario.</p>
-  <ul>{% for o in alertas_pantalla %}<li class="{% if o.urgente or o.dias_restantes < 0 %}urgente{% endif %}"><span class="fecha">{{ o.fecha_limite|date:"d/m" }}</span> {{ o.nombre }} {{ o.periodo_texto }} <b>{% if o.dias_restantes < 0 %}— VENCIDA{% elif o.dias_restantes == 0 %}— HOY{% else %}— {{ o.dias_restantes }} día(s){% endif %}</b></li>{% endfor %}</ul>
+  <ul>{% for o in alertas_pantalla %}<li class="{{ o.semaforo }}"><span class="fecha">{{ o.fecha_limite|date:"d/m" }}</span> {{ o.nombre }} {{ o.periodo_texto }} <b>{% if o.dias_restantes < 0 %}— VENCIDA{% elif o.dias_restantes == 0 %}— HOY{% else %}— {{ o.dias_restantes }} día(s){% endif %}</b></li>{% endfor %}</ul>
   <form method="dialog"><button class="btn peligro" autofocus>Entendido</button></form>
 </dialog>
 <script>

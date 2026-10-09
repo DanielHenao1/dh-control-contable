@@ -26,7 +26,7 @@
   {% if permisos.ver %}<a href="{% url 'hallazgos' %}">Hallazgos</a><a href="{% url 'terceros' %}">Terceros</a><a href="{% url 'facturas' %}">Facturas</a>{% endif %}
   {% if permisos.ver_fiscal %}<a href="{% url 'iva_retencion' %}">IVA y retención</a><a href="{% url 'conciliaciones' %}">Conciliaciones</a><a href="{% url 'fiscal' %}">Renta, ICA, exógena</a><a href="{% url 'proyeccion' %}">Proyección</a>{% endif %}
   {% if permisos.ver %}<a href="{% url 'calendario' %}">Calendario</a><a href="{% url 'analisis' %}">Análisis</a>{% endif %}
-  {% if permisos.ver_fiscal %}<a href="{% url 'informes' %}">Informes</a>{% endif %}
+  {% if permisos.ver_fiscal %}<a href="{% url 'informes' %}">Informes</a><a href="{% url 'asistente' %}">Asistente</a>{% endif %}
   {% if permisos.ver_contratista %}<a href="{% url 'contratista' %}">Contratista</a>{% endif %}
   {% if permisos.administrar %}<a href="{% url 'configuracion' %}">Configuración</a><a href="{% url 'auditoria' %}">Auditoría</a>{% endif %}
 </nav>

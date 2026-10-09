@@ -2,10 +2,10 @@
 {% block contenido %}
 <h1>Indicadores y anomalías</h1>
 {% include "_selector.html" %}
-{% for a in ind.advertencias %}<div class="aviso">{{ a }}</div>{% endfor %}
+{% if ind.advertencias %}<details class="aviso"><summary style="cursor:pointer"><strong>{{ ind.advertencias|length }} aviso(s)</strong>: faltan o están por verificar parámetros contables; esos indicadores no se calculan o quedan pendientes (Configuración → Parámetros).</summary><ul style="margin:6px 0 0 18px">{% for a in ind.advertencias %}<li>{{ a }}</li>{% endfor %}</ul></details>{% endif %}
 {% if ind.actual %}
 <div class="tabla-scroll"><table><tr><th>Indicador</th><th class="num">{{ periodo }}</th><th class="num">Mismo mes año anterior</th></tr>
-{% for k, v in ind.actual.items %}<tr><td>{{ k }}</td><td class="num">{{ v|default_if_none:"—" }}</td><td class="num">{{ ind.anio_anterior|get_item:k|default_if_none:"—" }}</td></tr>{% endfor %}</table></div>
+{% for k, v in ind.actual.items %}<tr><td>{{ k|etiqueta }}</td><td class="num">{{ v|cifra:k }}</td><td class="num">{{ ind.anio_anterior|get_item:k|cifra:k }}</td></tr>{% endfor %}</table></div>
 {% else %}<div class="aviso">Sin balance del periodo.</div>{% endif %}
 <h2>Estados financieros: comparativo por clase</h2>
 <div class="tabla-scroll"><table><tr><th>Clase</th><th class="num">{{ periodo }}</th><th class="num">Mes anterior</th><th class="num">Año anterior</th><th class="num">Var. mes</th><th class="num">Var. año</th></tr>

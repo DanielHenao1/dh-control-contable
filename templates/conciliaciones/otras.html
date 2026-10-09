@@ -6,17 +6,26 @@
 <div class="tabla-scroll"><table><tr><th>Grupo</th><th class="num">Balance (déb − créd)</th><th class="num">Auxiliares (déb − créd)</th><th class="num">Diferencia</th></tr>
 {% for f in aux_balance.filas %}<tr><td>{{ f.concepto }}</td><td class="num">{{ f.balance|pesos }}</td><td class="num">{{ f.auxiliares|pesos }}</td><td class="num {% if f.diferencia %}rojo{% endif %}">{{ f.diferencia|pesos }}</td></tr>{% endfor %}</table></div>
 <div class="dos-col">
-<div><h2>Cartera por tercero (grupo 13)</h2><p>Total {{ cartera.total|pesos }}{% if cartera.sin_tercero %} · sin tercero: {{ cartera.sin_tercero|pesos }}{% endif %}</p>
+<div><h2>Cartera por tercero (clientes, grupo 13)</h2><p style="color:var(--gris-600);font-size:13px">Movimiento del mes: positivo = nos facturaron más de lo que nos pagaron; negativo = recibimos más pagos que facturas.</p><p>Total {{ cartera.total|pesos }}{% if cartera.sin_tercero %} · sin tercero: {{ cartera.sin_tercero|pesos }}{% endif %}</p>
 <div class="tabla-scroll"><table><tr><th>NIT</th><th>Nombre</th><th class="num">Movimiento del mes</th></tr>{% for f in cartera.filas|slice:":30" %}<tr><td>{{ f.nit }}</td><td>{{ f.nombre }}</td><td class="num">{{ f.saldo|pesos }}</td></tr>{% empty %}<tr><td colspan="3">Sin datos.</td></tr>{% endfor %}</table></div></div>
-<div><h2>Proveedores por tercero (grupo 22)</h2><p>Total {{ proveedores.total|pesos }}{% if proveedores.sin_tercero %} · sin tercero: {{ proveedores.sin_tercero|pesos }}{% endif %}</p>
+<div><h2>Proveedores por tercero (grupo 22)</h2><p style="color:var(--gris-600);font-size:13px">Movimiento del mes: positivo = aumentó lo que debemos; negativo = pagamos más de lo que nos facturaron.</p><p>Total {{ proveedores.total|pesos }}{% if proveedores.sin_tercero %} · sin tercero: {{ proveedores.sin_tercero|pesos }}{% endif %}</p>
 <div class="tabla-scroll"><table><tr><th>NIT</th><th>Nombre</th><th class="num">Movimiento del mes</th></tr>{% for f in proveedores.filas|slice:":30" %}<tr><td>{{ f.nit }}</td><td>{{ f.nombre }}</td><td class="num">{{ f.saldo|pesos }}</td></tr>{% empty %}<tr><td colspan="3">Sin datos.</td></tr>{% endfor %}</table></div></div>
 </div>
-<h2>Bancos</h2>
+<h2>Banco: extracto vs libros</h2>
+<p style="color:var(--gris-600);max-width:820px">Compara cada movimiento del <strong>extracto bancario</strong> que cargaste con los movimientos de la <strong>cuenta del banco en World Office</strong> (el auxiliar). Un movimiento queda conciliado cuando el valor es igual y la fecha difiere máximo {{ banco.tolerancia_dias|default:3 }} días. Lo que no cruza queda en una de dos listas: <em>solo en el extracto</em> (el banco lo movió y en libros no está registrado) o <em>solo en libros</em> (está registrado en libros pero el banco no lo muestra).</p>
+{% if not bancos %}<div class="aviso">No hay auxiliares cargados de cuentas de caja y bancos (11…) para este mes: carga el libro auxiliar para poder conciliar.</div>{% else %}
 <form class="fila" method="get"><input type="hidden" name="anio" value="{{ periodo.anio }}"><input type="hidden" name="mes" value="{{ periodo.mes }}">
-<div><label>Prefijo de la cuenta de banco (ej. el código de tu cuenta)</label><input name="banco" value="{{ cuenta_banco }}" required></div><button class="btn" type="submit">Conciliar con el extracto cargado</button></form>
+<div><label>Cuenta contable del banco (la del plan de cuentas de World Office, no el número de la cuenta bancaria)</label>
+<select name="banco">{% for c in bancos %}<option value="{{ c.codigo }}" {% if c.codigo == cuenta_banco %}selected{% endif %}>{{ c.codigo }} · {{ c.nombre }} ({{ c.movimientos }} mov.)</option>{% endfor %}</select></div>
+<button class="btn" type="submit">Conciliar</button></form>{% endif %}
 {% if banco %}
-<p>Partidas conciliadas: <strong>{{ banco.conciliadas }}</strong> (valor igual y fecha ±{{ banco.tolerancia_dias }} días) · Total extracto {{ banco.total_banco|pesos }} · Total libros {{ banco.total_libros|pesos }}</p>
-<div class="dos-col"><div><h2>Solo en el extracto ({{ banco.solo_banco|length }})</h2><div class="tabla-scroll"><table>{% for b in banco.solo_banco %}<tr><td>{{ b.fecha|date:"d/m" }}</td><td>{{ b.descripcion }}</td><td class="num">{{ b.valor|pesos }}</td></tr>{% empty %}<tr><td>Nada pendiente.</td></tr>{% endfor %}</table></div></div>
-<div><h2>Solo en libros ({{ banco.solo_libros|length }})</h2><div class="tabla-scroll"><table>{% for m in banco.solo_libros %}<tr><td>{{ m.fecha|date:"d/m" }}</td><td>{{ m.descripcion }}</td><td class="num">{{ m.debito|pesos }} / {{ m.credito|pesos }}</td></tr>{% empty %}<tr><td>Nada pendiente.</td></tr>{% endfor %}</table></div></div></div>
+<div class="tarjetas" style="display:flex;gap:12px;flex-wrap:wrap;margin:12px 0">
+<div class="tarjeta"><div style="color:var(--gris-600);font-size:13px">Movimientos conciliados</div><strong style="font-size:22px">{{ banco.conciliadas }}</strong></div>
+<div class="tarjeta"><div style="color:var(--gris-600);font-size:13px">Solo en el extracto</div><strong style="font-size:22px" class="{% if banco.solo_banco %}rojo{% endif %}">{{ banco.solo_banco|length }}</strong></div>
+<div class="tarjeta"><div style="color:var(--gris-600);font-size:13px">Solo en libros</div><strong style="font-size:22px" class="{% if banco.solo_libros %}rojo{% endif %}">{{ banco.solo_libros|length }}</strong></div>
+<div class="tarjeta"><div style="color:var(--gris-600);font-size:13px">Neto del mes: extracto / libros</div><strong style="font-size:16px">$ {{ banco.total_banco|pesos }} / $ {{ banco.total_libros|pesos }}</strong></div>
+</div>
+<div class="dos-col"><div><h2>Solo en el extracto ({{ banco.solo_banco|length }})</h2><div class="tabla-scroll"><table><tr><th>Fecha</th><th>Descripción</th><th class="num">Valor</th></tr>{% for b in banco.solo_banco %}<tr><td>{{ b.fecha|date:"d/m" }}</td><td>{{ b.descripcion }}</td><td class="num">{{ b.valor|pesos }}</td></tr>{% empty %}<tr><td colspan="3">Nada pendiente.</td></tr>{% endfor %}</table></div></div>
+<div><h2>Solo en libros ({{ banco.solo_libros|length }})</h2><div class="tabla-scroll"><table><tr><th>Fecha</th><th>Descripción</th><th class="num">Débito / crédito</th></tr>{% for m in banco.solo_libros %}<tr><td>{{ m.fecha|date:"d/m" }}</td><td>{{ m.descripcion }}</td><td class="num">{{ m.debito|pesos }} / {{ m.credito|pesos }}</td></tr>{% empty %}<tr><td colspan="3">Nada pendiente.</td></tr>{% endfor %}</table></div></div></div>
 {% endif %}
 {% endblock %}

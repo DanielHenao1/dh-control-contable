@@ -89,16 +89,34 @@ def conciliar_auxiliares_vs_balance(periodo, grupos=None):
 
 
 def conciliar_terceros(periodo, prefijos, signo=1):
-    """Cartera (13) o proveedores (22): saldo del mes por tercero según auxiliares."""
-    por_nit = defaultdict(lambda: CERO)
-    nombres = {}
+    """Cartera (13) o proveedores (22): saldo del mes por tercero según auxiliares.
+
+    Se agrupa por NIT; si el auxiliar no trae NIT (World Office solo exporta el nombre) se agrupa por nombre.
+    """
+    por_tercero = defaultdict(lambda: CERO)
+    datos = {}
     for m in movimientos_vigentes(periodo):
         if any(m.cuenta.codigo.startswith(p) for p in prefijos):
-            por_nit[m.nit or "(sin tercero)"] += signo * (m.debito - m.credito)
-            nombres[m.nit] = m.tercero_nombre
-    filas = [{"nit": n, "nombre": nombres.get(n, ""), "saldo": v} for n, v in sorted(por_nit.items(), key=lambda x: -abs(x[1]))]
+            nombre = (m.tercero_nombre or "").strip()
+            clave = m.nit or nombre or "(sin tercero)"
+            por_tercero[clave] += signo * (m.debito - m.credito)
+            datos[clave] = (m.nit, nombre)
+    filas = [
+        {"nit": datos.get(c, ("", ""))[0], "nombre": datos.get(c, ("", ""))[1] or ("" if c == "(sin tercero)" else c), "saldo": v}
+        for c, v in sorted(por_tercero.items(), key=lambda x: -abs(x[1]))
+    ]
     return {"filas": filas, "total": sum((f["saldo"] for f in filas), CERO),
-            "sin_tercero": por_nit.get("(sin tercero)", CERO)}
+            "sin_tercero": por_tercero.get("(sin tercero)", CERO)}
+
+
+def cuentas_de_banco(periodo):
+    """Cuentas de caja y bancos (11…) con movimientos en el periodo, para elegir cuál conciliar con el extracto."""
+    cuentas = {}
+    for m in movimientos_vigentes(periodo):
+        if m.cuenta.codigo.startswith("11"):
+            c = cuentas.setdefault(m.cuenta.codigo, {"codigo": m.cuenta.codigo, "nombre": m.cuenta.nombre, "movimientos": 0})
+            c["movimientos"] += 1
+    return sorted(cuentas.values(), key=lambda c: c["codigo"])
 
 
 def conciliar_banco(periodo, prefijo_cuenta, dias=3):

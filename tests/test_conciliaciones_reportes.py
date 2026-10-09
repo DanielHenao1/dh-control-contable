@@ -9,6 +9,7 @@ from openpyxl import load_workbook
 from asistente.servicio import explicacion_local, explicar, minimizar
 from conciliaciones import servicios
 from conciliaciones.models import MovimientoBanco
+from contabilidad.models import Movimiento
 from controles.models import Hallazgo, ReglaControl
 from empresa.models import Empresa, Parametro
 from reportes.informe import generar_excel, generar_pdf
@@ -146,3 +147,30 @@ def test_excel_neutraliza_formulas():
     wb = load_workbook(io.BytesIO(tabla_a_excel("T", ["a"], [("=HYPERLINK(\"http://x\")",), ("normal",), (Decimal("5"),)])))
     ws = wb.active
     assert ws["A2"].value.startswith("'=") and ws["A3"].value == "normal" and ws["A4"].value == 5
+
+
+@pytest.mark.django_db
+def test_conciliar_banco_fecha_lejana_gastos_agrupados_y_sumas(datos_iniciales):
+    p = periodo()
+    auxiliar(p, [
+        (date(2026, 9, 28), "R1", "", "111005", "", 500, 0),            # el banco lo movió el 2/9: misma cifra, otra fecha
+        (date(2026, 9, 30), "G1", "", "111005", "", 0, "19.00"),        # un solo asiento de gravamen y comisiones
+        (date(2026, 9, 10), "E1", "", "111005", "", 0, 700),            # el banco paga 1000 y en libros se separó un descuento
+        (date(2026, 9, 10), "E2", "", "111005", "", 0, 300),
+        (date(2026, 9, 12), "E3", "", "111005", "", 0, "40.50"),        # diferencia de centavos con el extracto
+    ])
+    Movimiento.objects.filter(comprobante="G1").update(descripcion="GRAVAMEN FINANCIERO Y COMISIONES")
+    a = archivo("extracto_banco", p)
+    banco = [
+        (date(2026, 9, 2), 500, "TRANSFERENCIA"), (date(2026, 9, 3), "-10.00", "IMPTO GOBIERNO 4X1000"),
+        (date(2026, 9, 9), "-9.00", "COBRO IVA PAGOS AUTOMATICOS"), (date(2026, 9, 10), -1000, "PAGO A PROVEEDOR"),
+        (date(2026, 9, 12), "-40.00", "PAGO PSE"), (date(2026, 9, 20), -77, "OTRO"),
+    ]
+    for f, v, d in banco:
+        MovimientoBanco.objects.create(periodo=p, archivo=a, fecha=f, valor=Decimal(str(v)), descripcion=d)
+    r = servicios.conciliar_banco(p, "1110")
+    motivos = [g["motivo"] for g in r["con_revision"]]
+    assert r["exactas"] == 1 and len(r["con_revision"]) == 3  # el pago con centavos de diferencia queda exacto
+    assert any("días de diferencia" in m for m in motivos) and any("Gastos bancarios" in m for m in motivos)
+    assert any("suma de 2 partidas de libros" in m for m in motivos)
+    assert [b.valor for b in r["solo_banco"]] == [Decimal("-77")] and r["solo_libros"] == []

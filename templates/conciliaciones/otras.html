@@ -12,7 +12,7 @@
 <div class="tabla-scroll"><table><tr><th>NIT</th><th>Nombre</th><th class="num">Movimiento del mes</th></tr>{% for f in proveedores.filas|slice:":30" %}<tr><td>{{ f.nit }}</td><td>{{ f.nombre }}</td><td class="num">{{ f.saldo|pesos }}</td></tr>{% empty %}<tr><td colspan="3">Sin datos.</td></tr>{% endfor %}</table></div></div>
 </div>
 <h2>Banco: extracto vs libros</h2>
-<p style="color:var(--gris-600);max-width:820px">Compara cada movimiento del <strong>extracto bancario</strong> que cargaste con los movimientos de la <strong>cuenta del banco en World Office</strong> (el auxiliar). Un movimiento queda conciliado cuando el valor es igual y la fecha difiere máximo {{ banco.tolerancia_dias|default:3 }} días. Lo que no cruza queda en una de dos listas: <em>solo en el extracto</em> (el banco lo movió y en libros no está registrado) o <em>solo en libros</em> (está registrado en libros pero el banco no lo muestra).</p>
+<p style="color:var(--gris-600);max-width:820px">Compara cada movimiento del <strong>extracto bancario</strong> que cargaste con los movimientos de la <strong>cuenta del banco en World Office</strong> (el auxiliar). Un movimiento queda conciliado cuando el valor es igual (con $1 de tolerancia por redondeos) y la fecha difiere máximo 3 días; los que cruzan con otra fecha, o agrupados (por ejemplo los gastos bancarios), se muestran aparte para revisar. Lo que no cruza queda en una de dos listas: <em>solo en el extracto</em> (el banco lo movió y en libros no está registrado) o <em>solo en libros</em> (está registrado en libros pero el banco no lo muestra).</p>
 {% if not bancos %}<div class="aviso">No hay auxiliares cargados de cuentas de caja y bancos (11…) para este mes: carga el libro auxiliar para poder conciliar.</div>{% else %}
 <form class="fila" method="get"><input type="hidden" name="anio" value="{{ periodo.anio }}"><input type="hidden" name="mes" value="{{ periodo.mes }}">
 <div><label>Cuenta contable del banco (la del plan de cuentas de World Office, no el número de la cuenta bancaria)</label>
@@ -20,11 +20,18 @@
 <button class="btn" type="submit">Conciliar</button></form>{% endif %}
 {% if banco %}
 <div class="tarjetas" style="display:flex;gap:12px;flex-wrap:wrap;margin:12px 0">
-<div class="tarjeta"><div style="color:var(--gris-600);font-size:13px">Movimientos conciliados</div><strong style="font-size:22px">{{ banco.conciliadas }}</strong></div>
+<div class="tarjeta"><div style="color:var(--gris-600);font-size:13px">Conciliados exactos</div><strong style="font-size:22px" class="verde">{{ banco.exactas }}</strong></div>
+<div class="tarjeta"><div style="color:var(--gris-600);font-size:13px">Conciliados para revisar</div><strong style="font-size:22px">{{ banco.con_revision|length }}</strong></div>
 <div class="tarjeta"><div style="color:var(--gris-600);font-size:13px">Solo en el extracto</div><strong style="font-size:22px" class="{% if banco.solo_banco %}rojo{% endif %}">{{ banco.solo_banco|length }}</strong></div>
 <div class="tarjeta"><div style="color:var(--gris-600);font-size:13px">Solo en libros</div><strong style="font-size:22px" class="{% if banco.solo_libros %}rojo{% endif %}">{{ banco.solo_libros|length }}</strong></div>
 <div class="tarjeta"><div style="color:var(--gris-600);font-size:13px">Neto del mes: extracto / libros</div><strong style="font-size:16px">$ {{ banco.total_banco|pesos }} / $ {{ banco.total_libros|pesos }}</strong></div>
 </div>
+{% if banco.con_revision %}<h2>Conciliados para revisar ({{ banco.con_revision|length }})</h2>
+<p style="color:var(--gris-600);max-width:820px">Estas partidas sí cruzan, pero no de forma exacta: la fecha es distinta, o el banco las cobra por partes y en libros están en un solo asiento. Confirma que el motivo tiene sentido.</p>
+<div class="tabla-scroll"><table><tr><th>Motivo</th><th>Extracto</th><th>Libros</th></tr>
+{% for g in banco.con_revision %}<tr><td>{{ g.motivo }}</td>
+<td>{% for b in g.banco|slice:":4" %}{{ b.fecha|date:"d/m" }} · {{ b.descripcion|truncatechars:34 }} · <strong>{{ b.valor|pesos }}</strong><br>{% endfor %}{% if g.banco|length > 4 %}… y {{ g.banco|length|add:"-4" }} más{% endif %}</td>
+<td>{% for m in g.libros %}{{ m.fecha|date:"d/m" }} · {{ m.descripcion|truncatechars:40 }} · <strong>{{ m.debito|pesos }} / {{ m.credito|pesos }}</strong><br>{% endfor %}</td></tr>{% endfor %}</table></div>{% endif %}
 <div class="dos-col"><div><h2>Solo en el extracto ({{ banco.solo_banco|length }})</h2><div class="tabla-scroll"><table><tr><th>Fecha</th><th>Descripción</th><th class="num">Valor</th></tr>{% for b in banco.solo_banco %}<tr><td>{{ b.fecha|date:"d/m" }}</td><td>{{ b.descripcion }}</td><td class="num">{{ b.valor|pesos }}</td></tr>{% empty %}<tr><td colspan="3">Nada pendiente.</td></tr>{% endfor %}</table></div></div>
 <div><h2>Solo en libros ({{ banco.solo_libros|length }})</h2><div class="tabla-scroll"><table><tr><th>Fecha</th><th>Descripción</th><th class="num">Débito / crédito</th></tr>{% for m in banco.solo_libros %}<tr><td>{{ m.fecha|date:"d/m" }}</td><td>{{ m.descripcion }}</td><td class="num">{{ m.debito|pesos }} / {{ m.credito|pesos }}</td></tr>{% empty %}<tr><td colspan="3">Nada pendiente.</td></tr>{% endfor %}</table></div></div></div>
 {% endif %}

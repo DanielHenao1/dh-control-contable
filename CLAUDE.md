@@ -28,3 +28,8 @@ Pruebas pasando (`pytest`), `ruff check` limpio, regla documentada con su fuente
 - Pruebas: `pytest` · Estilo: `ruff check .`
 - Datos iniciales: `python manage.py cargar_datos_iniciales`
 - Ver `README.md` (local) y `docs/despliegue.md` (VPS).
+
+## Continuidad entre sesiones
+- Antes de trabajar, leer `docs/ESTADO_PROYECTO.md` (dónde vamos, qué falló, qué sigue), `docs/PROGRESO.md` y `docs/decisiones.md`. Al terminar, actualizar `docs/ESTADO_PROYECTO.md`.
+- Despliegue: `docs/plan_despliegue_hostinger.md` (plan y diagnóstico) y `docs/despliegue.md` (comandos). No ejecutar despliegues, tocar servidores ni pedir o mostrar contraseñas sin aprobación explícita del usuario.
+- No dar un cambio por cerrado hasta ver verde el CI de la rama **y** el de `main` tras el merge.

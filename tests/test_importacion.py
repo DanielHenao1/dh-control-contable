@@ -58,14 +58,15 @@ def test_csv_con_decimal_coma():
 def test_flujo_de_carga_y_vigencia(dueno):
     p = Periodo.obtener(2026, 9)
     df = pd.DataFrame({"cuenta": ["1105", "2205"], "debito": [100, 0], "credito": [0, 100], "saldo_final": [100, 100]})
-    subido = SimpleUploadedFile("balance.xlsx", xlsx(df))
+    contenido = xlsx(df)  # una sola vez: el .xlsx lleva marca de tiempo y cambia de bytes entre llamadas
+    subido = SimpleUploadedFile("balance.xlsx", contenido)
     a = cargas.registrar_archivo(subido, "balance", p, dueno)
     assert a.hash_sha256 and a.estado == "pendiente"
     a = cargas.confirmar(a, dueno)
     assert a.estado == "importado" and a.vigente and SaldoCuenta.objects.count() == 2
     # mismo archivo => duplicado
     with pytest.raises(cargas.ArchivoDuplicado):
-        cargas.registrar_archivo(SimpleUploadedFile("otro.xlsx", xlsx(df)), "balance", p, dueno)
+        cargas.registrar_archivo(SimpleUploadedFile("otro.xlsx", contenido), "balance", p, dueno)
     # uno nuevo reemplaza como vigente, el anterior se conserva
     df2 = df.copy()
     df2.loc[0, "debito"] = 150

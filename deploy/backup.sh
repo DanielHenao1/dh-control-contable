@@ -14,7 +14,7 @@ ARCHIVO="$DESTINO/control-$FECHA.tar.gz.gpg"
 docker compose exec -T db pg_dump -U control -d control --format=custom > "/tmp/control-$FECHA.dump"
 docker compose cp web:/app/media "/tmp/media-$FECHA" >/dev/null
 tar -C /tmp -czf - "control-$FECHA.dump" "media-$FECHA" \
-  | gpg --batch --yes --symmetric --cipher-algo AES256 --passphrase "$BACKUP_PASSPHRASE" -o "$ARCHIVO"
+  | gpg --batch --yes --pinentry-mode loopback --symmetric --cipher-algo AES256 --passphrase "$BACKUP_PASSPHRASE" -o "$ARCHIVO"
 rm -rf "/tmp/control-$FECHA.dump" "/tmp/media-$FECHA"
 
 if [[ -n "${BACKUP_S3_BUCKET:-}" ]]; then

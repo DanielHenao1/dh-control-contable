@@ -189,3 +189,20 @@ table.cal td.fuera{background:var(--gris-50);opacity:.55}
 .chat-form{display:flex;gap:10px;align-items:flex-end}
 .chat-form textarea{flex:1;resize:vertical;min-height:48px;border-radius:10px;border:1px solid var(--borde-fuerte);padding:9px 12px;font:inherit;background:var(--tarjeta);color:var(--texto)}
 .chat-limpiar{margin-top:10px}
+
+/* Menú hamburguesa en celular y tableta */
+.menu-toggle{display:none;background:transparent;border:1px solid #ffffff55;border-radius:8px;width:42px;height:42px;padding:0;cursor:pointer;flex-direction:column;align-items:center;justify-content:center;gap:5px;flex:none}
+.menu-toggle span{display:block;width:20px;height:2px;background:#fff;border-radius:2px;transition:transform .2s,opacity .2s}
+.barra-fija.abierto .menu-toggle span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+.barra-fija.abierto .menu-toggle span:nth-child(2){opacity:0}
+.barra-fija.abierto .menu-toggle span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+@media (max-width:900px){
+  .menu-toggle{display:flex}
+  header.top{padding:8px 12px;gap:10px}
+  header.top .usuario-nombre{display:none}
+  header.top .marca{font-size:15px;line-height:1.2;min-width:0}
+  nav.menu{display:none;flex-direction:column;gap:2px;max-height:calc(100vh - 62px);max-height:calc(100dvh - 62px);overflow-y:auto;padding:8px 12px 14px}
+  .barra-fija.abierto nav.menu{display:flex}
+  nav.menu a{padding:13px 14px;font-size:16px;text-align:left;border-radius:10px}
+  nav.menu a:hover,nav.menu a:focus-visible{transform:none}
+}

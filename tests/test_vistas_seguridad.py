@@ -172,3 +172,8 @@ def test_bandeja_muestra_por_defecto_solo_lo_abierto(cliente_dueno, db):
     html = cliente_dueno.get("/hallazgos/?anio=2026&mes=9").content.decode()
     assert "Pendiente uno" in html and "Ya corregido" not in html and "1</strong> abiertos" in html
     assert "Ya corregido" in cliente_dueno.get("/hallazgos/?anio=2026&mes=9&estado=todos").content.decode()
+
+
+def test_menu_hamburguesa_para_celular(cliente_dueno, db):
+    html = cliente_dueno.get("/").content.decode()
+    assert 'id="menu-toggle"' in html and 'aria-controls="menu-principal"' in html and 'id="menu-principal"' in html

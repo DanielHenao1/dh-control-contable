@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block contenido %}
+<h1>Catálogo de reglas de control</h1>
+<div class="tabla-scroll"><table><tr><th>Código</th><th>Grupo</th><th>Regla</th><th>Severidad</th><th>Fuente normativa</th></tr>
+{% for r in reglas %}<tr><td>{{ r.codigo }}</td><td>{{ r.grupo }}</td><td>{{ r.nombre }}<br><small>{{ r.descripcion }}</small></td><td>{{ r.get_severidad_display }}</td><td><small>{{ r.norma }}</small></td></tr>{% endfor %}</table></div>
+{% endblock %}

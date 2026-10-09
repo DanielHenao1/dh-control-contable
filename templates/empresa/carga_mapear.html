@@ -1,0 +1,24 @@
+{% extends "base.html" %}{% load utiles %}
+{% block contenido %}
+<h1>Mapear columnas</h1>
+<div class="tarjeta">
+<p>Indica qué columna de tu archivo alimenta cada campo. El perfil queda guardado y se reutiliza en las próximas cargas del mismo tipo.</p>
+<form method="post">{% csrf_token %}
+  <p><label>Nombre del perfil</label><input name="nombre" value="{{ perfil.nombre|default:'' }}" placeholder="p. ej. WO balance de prueba" required></p>
+  <div class="dos-col">
+  <div>{% for c in campos %}
+    <p><label>{{ c.etiqueta }}{% if c.requerido %} *{% endif %}</label>
+      <select name="campo_{{ c.nombre }}"><option value="">— no usar —</option>
+      {% for col in columnas %}<option value="{{ col }}" {% if sugerido|get_item:c.nombre == col %}selected{% endif %}>{{ col }}</option>{% endfor %}
+      </select></p>{% endfor %}
+  </div>
+  <div>
+    <p><label>Fila del encabezado</label><input type="number" name="fila_encabezado" min="1" value="{{ perfil.fila_encabezado|default:1 }}"></p>
+    <p><label>Hoja (vacío = primera)</label><input name="hoja" value="{{ perfil.hoja|default:'' }}"></p>
+    <p><label>Separador (CSV)</label><input name="separador_csv" value="{{ perfil.separador_csv|default:',' }}" size="2"></p>
+    <p><label><input type="checkbox" name="decimal_coma" {% if perfil.decimal_coma %}checked{% endif %}> Decimales con coma (1.234,56)</label></p>
+    <p><label>Formato de fecha (ej. %d/%m/%Y; vacío = automático)</label><input name="formato_fecha" value="{{ perfil.formato_fecha|default:'' }}"></p>
+  </div></div>
+  <button class="btn" type="submit">Guardar perfil y aplicarlo</button>
+</form></div>
+{% endblock %}

@@ -1,0 +1,10 @@
+{% extends "base.html" %}{% block title %}Verificación{% endblock %}
+{% block contenido %}
+<div class="centrado tarjeta">
+  <h1>Código de verificación</h1>
+  <form method="post">{% csrf_token %}
+    <p><label>Código de tu aplicación (o un código de recuperación)</label><input name="token" autocomplete="one-time-code" required autofocus></p>
+    <button class="btn" type="submit">Verificar</button>
+  </form>
+</div>
+{% endblock %}

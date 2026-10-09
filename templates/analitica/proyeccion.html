@@ -1,0 +1,22 @@
+{% extends "base.html" %}{% load utiles %}
+{% block contenido %}
+<h1>Proyección de impuestos</h1>
+{% include "_selector.html" %}
+<div class="aviso">Estimación de gestión: no se usa para declarar. Cada cifra muestra método, supuestos y margen.</div>
+<form method="post" action="{% url 'proyeccion_recalcular' %}?anio={{ periodo.anio }}&mes={{ periodo.mes }}">{% csrf_token %}<button class="btn" type="submit">Recalcular con los datos actuales</button></form>
+{% for a in alertas %}<div class="aviso" style="margin-top:10px">{{ a }}</div>{% endfor %}
+{% if tabla %}
+<h2>Impuesto estimado al cierre del año por escenario</h2>
+<div class="tabla-scroll"><table><tr><th>Impuesto</th><th class="num">Favorable</th><th class="num">Base</th><th class="num">Adverso</th><th class="num">Rango</th><th>Método y supuestos</th></tr>
+{% for imp, esc in tabla.items %}<tr><td><strong>{{ imp }}</strong></td>
+<td class="num">{{ esc.favorable.valor|pesos }}</td><td class="num"><strong>{{ esc.base.valor|pesos }}</strong></td><td class="num">{{ esc.adverso.valor|pesos }}</td>
+<td class="num">{{ esc.base.minimo|pesos }} – {{ esc.base.maximo|pesos }}</td>
+<td><small>{{ esc.base.supuestos.metodo|default:"—" }}</small>{% for a in esc.base.advertencias %}<br><small class="chip ambar">{{ a }}</small>{% endfor %}
+<details><summary><small>Ver supuestos</small></summary><small>{% for k, v in esc.base.supuestos.items %}{{ k }}: {{ v }}<br>{% endfor %}</small></details></td></tr>{% endfor %}</table></div>
+{% if caja %}<h2>Caja de impuestos (próximos 12 meses)</h2>
+{% for a in caja.advertencias %}<div class="aviso">{{ a }}</div>{% endfor %}
+<div class="tabla-scroll"><table><tr><th>Fecha</th><th>Obligación</th><th class="num">Monto estimado</th><th class="num">Caja proyectada</th><th>Nota</th></tr>
+{% for f in caja.filas %}<tr class="{% if f.alerta %}rojo{% endif %}"><td>{{ f.obligacion.fecha_limite|date:"d/m/Y" }}</td><td>{{ f.obligacion.nombre }} {{ f.obligacion.periodo_texto }}</td><td class="num">{{ f.monto|pesos }}</td><td class="num">{{ f.caja_proyectada|pesos }}</td><td><small>{{ f.nota }}</small>{% if f.alerta %} <span class="chip rojo">supera la caja</span>{% endif %}</td></tr>{% endfor %}</table></div>{% endif %}
+{% else %}<p>Aún no hay estimaciones para este corte. Pulsa “Recalcular”.</p>{% endif %}
+<p style="margin-top:14px"><a class="btn sec" href="{% url 'simulador' %}?anio={{ periodo.anio }}&mes={{ periodo.mes }}">Ir al simulador de cierre</a></p>
+{% endblock %}

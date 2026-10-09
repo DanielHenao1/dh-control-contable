@@ -1,0 +1,6 @@
+<form class="fila" method="get">
+  <div><label>Año</label><select name="anio">{% for a in anios %}<option value="{{ a }}" {% if a == periodo.anio %}selected{% endif %}>{{ a }}</option>{% endfor %}</select></div>
+  <div><label>Mes</label><select name="mes">{% for n, nombre in meses %}<option value="{{ n }}" {% if n == periodo.mes %}selected{% endif %}>{{ nombre }}</option>{% endfor %}</select></div>
+  <button class="btn" type="submit">Ver</button>
+  <span class="chip {% if periodo.cerrado %}rojo{% endif %}">{{ periodo.get_estado_display }}</span>
+</form>

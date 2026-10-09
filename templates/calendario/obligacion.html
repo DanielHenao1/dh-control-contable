@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block contenido %}
+<p><a href="{% url 'calendario' %}?vista=lista">← Calendario</a></p>
+<h1>{{ o.nombre }} · {{ o.periodo_texto }}</h1>
+<div class="tarjeta">
+<p><strong>Fecha límite:</strong> {{ o.fecha_limite|date:"d/m/Y"|default:"sin publicar" }} · <strong>Verificación:</strong> {{ o.get_verificacion_display }}</p>
+{% if o.fuente %}<p><strong>Fuente:</strong> {{ o.fuente }}</p>{% endif %}
+{% if o.notas %}<p>{{ o.notas }}</p>{% endif %}
+{% if o.evidencia %}<p><strong>Evidencia:</strong> {{ o.evidencia.nombre_original }}</p>{% endif %}
+</div>
+{% if puede %}
+<div class="tarjeta"><form method="post" enctype="multipart/form-data">{% csrf_token %}{{ form.as_p }}<button class="btn" type="submit">Guardar</button></form></div>
+{% else %}<div class="tarjeta"><p>Estado: {{ o.get_estado_display }}<br>Elabora: {{ o.elabora|default:"—" }} · Revisa: {{ o.revisa|default:"—" }} · Firma: {{ o.firma|default:"—" }}</p></div>{% endif %}
+{% endblock %}

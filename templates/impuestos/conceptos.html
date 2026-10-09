@@ -1,0 +1,14 @@
+{% extends "base.html" %}{% load utiles %}
+{% block contenido %}
+<h1>Conceptos de retención y tarifas de ICA</h1>
+<p style="color:var(--gris-600)">Se cargan con valores verificados por el contador. El sistema no trae tarifas por defecto.</p>
+{% if permisos.administrar %}<p><a class="btn" href="{% url 'concepto_nuevo' %}">Nuevo concepto</a> <a class="btn sec" href="{% url 'tarifa_ica_nueva' %}">Nueva tarifa de ICA</a></p>{% endif %}
+<h2>Retención en la fuente</h2>
+<div class="tabla-scroll"><table><tr><th>Código</th><th>Nombre</th><th class="num">Base mín. (UVT)</th><th class="num">Tarifa declarante %</th><th class="num">Tarifa no declarante %</th><th>Vigencia</th><th>Estado</th><th></th></tr>
+{% for c in conceptos %}<tr><td>{{ c.codigo }}</td><td>{{ c.nombre }}</td><td class="num">{{ c.base_minima_uvt|default_if_none:"—" }}</td><td class="num">{{ c.tarifa_declarante|default_if_none:"—" }}</td><td class="num">{{ c.tarifa_no_declarante|default_if_none:"—" }}</td><td>{{ c.vigente_desde|date:"d/m/Y" }}</td><td>{{ c.get_estado_display }}</td><td>{% if permisos.administrar %}<a href="{% url 'concepto_editar' c.pk %}">Editar</a>{% endif %}</td></tr>
+{% empty %}<tr><td colspan="8">Aún no hay conceptos cargados.</td></tr>{% endfor %}</table></div>
+<h2>ICA Bogotá</h2>
+<div class="tabla-scroll"><table><tr><th>CIIU</th><th>Descripción</th><th class="num">Tarifa ‰</th><th>Vigencia</th><th>Estado</th><th></th></tr>
+{% for t in tarifas_ica %}<tr><td>{{ t.ciiu }}</td><td>{{ t.descripcion }}</td><td class="num">{{ t.tarifa_por_mil|default_if_none:"—" }}</td><td>{{ t.vigente_desde|date:"d/m/Y" }}</td><td>{{ t.estado }}</td><td>{% if permisos.administrar %}<a href="{% url 'tarifa_ica_editar' t.pk %}">Editar</a>{% endif %}</td></tr>
+{% empty %}<tr><td colspan="6">Sin tarifas cargadas.</td></tr>{% endfor %}</table></div>
+{% endblock %}

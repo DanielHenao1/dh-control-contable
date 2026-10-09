@@ -1,0 +1,18 @@
+{% extends "base.html" %}{% load utiles %}
+{% block contenido %}
+<h1>Indicadores y anomalías</h1>
+{% include "_selector.html" %}
+{% for a in ind.advertencias %}<div class="aviso">{{ a }}</div>{% endfor %}
+{% if ind.actual %}
+<div class="tabla-scroll"><table><tr><th>Indicador</th><th class="num">{{ periodo }}</th><th class="num">Mismo mes año anterior</th></tr>
+{% for k, v in ind.actual.items %}<tr><td>{{ k }}</td><td class="num">{{ v|default_if_none:"—" }}</td><td class="num">{{ ind.anio_anterior|get_item:k|default_if_none:"—" }}</td></tr>{% endfor %}</table></div>
+{% else %}<div class="aviso">Sin balance del periodo.</div>{% endif %}
+<h2>Valores atípicos por cuenta (IQR y desviación robusta)</h2>
+<div class="tabla-scroll"><table><tr><th>Cuenta</th><th>Fecha</th><th>Documento</th><th>Tercero</th><th class="num">Valor</th></tr>
+{% for a in anomalias.por_cuenta %}<tr><td>{{ a.cuenta }}</td><td>{{ a.fecha|date:"d/m" }}</td><td>{{ a.documento }}</td><td>{{ a.tercero }}</td><td class="num">{{ a.valor|pesos }}</td></tr>{% empty %}<tr><td colspan="5">Sin atípicos.</td></tr>{% endfor %}</table></div>
+<h2>Terceros con volumen atípico</h2>
+<div class="tabla-scroll"><table>{% for a in anomalias.por_tercero %}<tr><td>{{ a.nit }}</td><td class="num">{{ a.total|pesos }}</td></tr>{% empty %}<tr><td>Sin atípicos.</td></tr>{% endfor %}</table></div>
+<h2>Primer dígito (ley de Benford)</h2>
+{% with b=anomalias.benford %}{% if b.suficiente %}<p>{{ b.n }} montos · χ² = {{ b.chi2|floatformat:1 }} (crítico 5%: {{ b.critico_5pct }}) → {% if b.desviado %}<span class="chip ambar">se desvía de Benford: revisar</span>{% else %}<span class="chip verde">sin desviación significativa</span>{% endif %}</p>
+{% else %}<p>Se necesitan al menos 100 montos para esta prueba (hay {{ b.n }}).</p>{% endif %}{% endwith %}
+{% endblock %}

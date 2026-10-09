@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block contenido %}
+<h1>Reglas de vencimiento</h1>
+<p style="color:var(--gris-600)">El sistema calcula las fechas con estas reglas y la tabla de festivos. Solo existen reglas verificadas; los dígitos sin regla quedan pendientes con aviso.</p>
+<div class="tabla-scroll"><table><tr><th>Obligación</th><th>Regla</th><th>Vigencia</th><th>Verificación</th><th>Fuente</th></tr>
+{% for r in reglas %}<tr><td>{{ r.obligacion }}</td><td>{{ r }}</td><td>{{ r.vigente_desde|date:"d/m/Y" }}</td><td>{{ r.get_verificacion_display }}</td><td><small>{{ r.fuente }}</small></td></tr>{% empty %}<tr><td colspan="5">Sin reglas.</td></tr>{% endfor %}</table></div>
+{% endblock %}

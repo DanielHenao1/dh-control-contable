@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block contenido %}
+<h1>Nueva carga</h1>
+<div class="tarjeta">
+<p style="color:var(--gris-600)">El archivo se guarda con su huella (SHA-256) y nunca se sobrescribe. Primero verás una vista previa; nada se importa hasta que confirmes.</p>
+<form method="post" enctype="multipart/form-data">{% csrf_token %}
+  {{ form.as_p }}
+  <button class="btn" type="submit">Subir y previsualizar</button>
+</form>
+</div>
+{% endblock %}

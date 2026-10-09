@@ -1,0 +1,13 @@
+{% extends "base.html" %}{% block title %}Doble factor{% endblock %}
+{% block contenido %}
+<div class="centrado tarjeta">
+  <h1>Configura el doble factor</h1>
+  <p>Escanea este código con Google Authenticator, Microsoft Authenticator o similar y escribe el código de 6 dígitos.</p>
+  <div class="qr">{{ qr|safe }}</div>
+  <p style="font-size:12px;color:var(--gris-600)">Si no puedes escanear, clave manual (hex): <code>{{ clave }}</code></p>
+  <form method="post">{% csrf_token %}
+    <p><label>Código de 6 dígitos</label><input name="token" inputmode="numeric" autocomplete="one-time-code" required></p>
+    <button class="btn" type="submit">Confirmar</button>
+  </form>
+</div>
+{% endblock %}

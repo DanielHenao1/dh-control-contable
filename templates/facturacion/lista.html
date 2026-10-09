@@ -1,0 +1,18 @@
+{% extends "base.html" %}{% load utiles %}
+{% block contenido %}
+<h1>Facturas DIAN vs contabilidad</h1>
+{% include "_selector.html" %}
+{% if not aux %}<div class="aviso">No hay auxiliares cargados del periodo: no se puede verificar la causación.</div>{% endif %}
+<div class="tabla-scroll" style="margin-bottom:14px"><table><tr><th>Grupo</th><th class="num">Facturas</th><th class="num">Total</th><th class="num">Causadas</th><th class="num">Sin causar</th><th class="num">Valor sin causar</th></tr>
+{% for f in resumen.filas %}<tr><td>{{ f.concepto }}</td><td class="num">{{ f.facturas }}</td><td class="num">{{ f.total|pesos }}</td><td class="num">{{ f.causadas|default_if_none:"—" }}</td><td class="num">{{ f.sin_causar|default_if_none:"—" }}</td><td class="num">{{ f.valor_sin_causar|pesos }}</td></tr>{% endfor %}</table></div>
+<form class="fila" method="get"><input type="hidden" name="anio" value="{{ periodo.anio }}"><input type="hidden" name="mes" value="{{ periodo.mes }}">
+<div><label>Sentido</label><select name="sentido"><option value="">Todas</option><option value="emitida" {% if request.GET.sentido == "emitida" %}selected{% endif %}>Emitidas</option><option value="recibida" {% if request.GET.sentido == "recibida" %}selected{% endif %}>Recibidas</option></select></div>
+<label style="padding-bottom:8px"><input type="checkbox" name="solo_sin_causar" value="1" {% if request.GET.solo_sin_causar %}checked{% endif %}> Solo sin causar</label>
+<button class="btn" type="submit">Filtrar</button>{% if permisos.exportar %}<a class="btn sec" href="?{{ request.GET.urlencode }}&exportar=xlsx">Excel</a>{% endif %}</form>
+<div class="tabla-scroll"><table><tr><th>Sentido</th><th>Documento</th><th>Fecha</th><th>Tercero</th><th class="num">IVA</th><th class="num">Total</th><th>Causada</th></tr>
+{% for x in filas %}<tr><td>{{ x.f.get_sentido_display }}</td><td>{{ x.f.numero_completo }}<br><small>{{ x.f.get_tipo_documento_display }}</small></td><td>{{ x.f.fecha|date:"d/m/Y" }}</td>
+<td>{% if x.f.sentido == "recibida" %}{{ x.f.nombre_emisor|default:x.f.nit_emisor }}{% else %}{{ x.f.nombre_receptor|default:x.f.nit_receptor }}{% endif %}</td>
+<td class="num">{{ x.f.iva|pesos }}</td><td class="num">{{ x.f.total|pesos }}</td>
+<td>{% if x.causada is None %}<span class="chip">n/d</span>{% elif x.causada %}<span class="chip verde">Sí</span>{% else %}<span class="chip rojo">No</span>{% endif %}</td></tr>
+{% empty %}<tr><td colspan="7">Sin facturas cargadas.</td></tr>{% endfor %}</table></div>
+{% endblock %}

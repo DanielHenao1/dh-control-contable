@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block contenido %}
+<h1>Perfiles de importación</h1>
+<p style="color:var(--gris-600)">Un perfil dice qué columna de tu archivo alimenta cada campo. Se crean desde la pantalla de una carga (“Ajustar mapeo”).</p>
+<div class="tabla-scroll"><table><tr><th>Nombre</th><th>Tipo</th><th>Encabezado en fila</th><th>Decimal con coma</th><th>Campos mapeados</th></tr>
+{% for p in perfiles %}<tr><td>{{ p.nombre }}</td><td>{{ p.tipo }}</td><td>{{ p.fila_encabezado }}</td><td>{{ p.decimal_coma|yesno:"Sí,No" }}</td><td>{{ p.mapeo|length }}</td></tr>
+{% empty %}<tr><td colspan="5">Aún no hay perfiles.</td></tr>{% endfor %}</table></div>
+<h2>Crear perfil vacío</h2>
+<div class="tarjeta"><form method="post">{% csrf_token %}{{ form.as_p }}<button class="btn" type="submit">Crear</button></form></div>
+{% endblock %}

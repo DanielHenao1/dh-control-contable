@@ -1,0 +1,10 @@
+{% extends "base.html" %}{% block title %}Códigos de recuperación{% endblock %}
+{% block contenido %}
+<div class="centrado tarjeta">
+  <h1>Códigos de recuperación</h1>
+  <p>Guárdalos en un lugar seguro. Cada uno sirve una sola vez si pierdes tu celular. <strong>No se vuelven a mostrar.</strong></p>
+  <pre>{% for c in codigos %}{{ c }}
+{% endfor %}</pre>
+  <a class="btn" href="{% url 'tablero' %}">Continuar</a>
+</div>
+{% endblock %}

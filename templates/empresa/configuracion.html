@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block contenido %}
+<h1>Configuración</h1>
+<h2>Parámetros con vigencia</h2>
+<p><a class="btn" href="{% url 'parametro_nuevo' %}">Nuevo parámetro</a> <a class="btn sec" href="{% url 'conceptos' %}">Conceptos de retención y tarifas ICA</a> <a class="btn sec" href="{% url 'perfiles' %}">Perfiles de importación</a></p>
+<div class="tabla-scroll"><table><tr><th>Código</th><th>Valor</th><th>Vigencia</th><th>Estado</th><th>Fuente</th><th></th></tr>
+{% for p in parametros %}<tr>
+<td><strong>{{ p.codigo }}</strong><br><small>{{ p.descripcion }}</small></td>
+<td>{% if p.valor %}{{ p.valor }}{% else %}<span class="chip rojo">vacío</span>{% endif %}</td>
+<td>{{ p.vigente_desde|date:"d/m/Y" }} → {{ p.vigente_hasta|date:"d/m/Y"|default:"abierta" }}</td>
+<td><span class="chip {% if p.estado == 'verificado' %}verde{% else %}ambar{% endif %}">{{ p.get_estado_display }}</span></td>
+<td><small>{{ p.fuente }}</small></td><td><a href="{% url 'parametro_editar' p.pk %}">Editar</a></td></tr>{% endfor %}</table></div>
+<h2>Periodos</h2>
+<div class="tabla-scroll"><table><tr><th>Periodo</th><th>Estado</th><th>Cambiar</th></tr>
+{% for p in periodos %}<tr><td>{{ p }}</td><td>{{ p.get_estado_display }}</td><td>
+<form method="post" action="{% url 'periodo_estado' p.pk %}" style="display:flex;gap:6px">{% csrf_token %}
+<select name="estado">{% for v, n in p.Estado.choices %}<option value="{{ v }}" {% if v == p.estado %}selected{% endif %}>{{ n }}</option>{% endfor %}</select>
+<button class="btn sec" type="submit">Aplicar</button></form></td></tr>{% endfor %}</table></div>
+<h2>Usuarios</h2>
+<p><a class="btn" href="{% url 'usuario_nuevo' %}">Nuevo usuario</a></p>
+<div class="tabla-scroll"><table><tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Activo</th></tr>
+{% for u in usuarios %}<tr><td>{{ u.username }}</td><td>{{ u.get_full_name }}</td><td>{{ u.get_rol_display }}</td><td>{{ u.is_active|yesno:"Sí,No" }}</td></tr>{% endfor %}</table></div>
+{% endblock %}

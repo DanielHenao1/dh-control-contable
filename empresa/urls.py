@@ -1,0 +1,24 @@
+from django.contrib.auth.views import LogoutView
+from django.urls import path
+
+from . import views
+
+urlpatterns = [
+    path("ingresar/", views.Ingreso.as_view(), name="login"),
+    path("salir/", LogoutView.as_view(), name="logout"),
+    path("salud/", views.salud, name="salud"),
+    path("2fa/configurar/", views.configurar_2fa, name="2fa_configurar"),
+    path("2fa/verificar/", views.verificar_2fa, name="2fa_verificar"),
+    path("cargas/", views.cargas_lista, name="cargas"),
+    path("cargas/nueva/", views.cargas_nueva, name="carga_nueva"),
+    path("cargas/<int:pk>/", views.carga_detalle, name="carga_detalle"),
+    path("cargas/<int:pk>/confirmar/", views.carga_confirmar, name="carga_confirmar"),
+    path("cargas/<int:pk>/mapear/", views.carga_mapear, name="carga_mapear"),
+    path("perfiles/", views.perfiles_lista, name="perfiles"),
+    path("configuracion/", views.configuracion, name="configuracion"),
+    path("configuracion/parametro/nuevo/", views.parametro_editar, name="parametro_nuevo"),
+    path("configuracion/parametro/<int:pk>/", views.parametro_editar, name="parametro_editar"),
+    path("configuracion/usuario/nuevo/", views.usuario_nuevo, name="usuario_nuevo"),
+    path("configuracion/periodo/<int:pk>/estado/", views.periodo_estado, name="periodo_estado"),
+    path("auditoria/", views.auditoria, name="auditoria"),
+]

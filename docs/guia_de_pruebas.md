@@ -24,7 +24,7 @@ Roles: **dueño** (todo), **contador** (lectura y gestión de hallazgos, sin car
 - Para las pruebas con los ejemplos, deja *Verificado* estos dos: `PUC_IVA_GENERADO = 240801` y `PUC_IVA_DESCONTABLE = 240802`. Con datos reales van las cuentas del plan de World Office.
 - **Conceptos de retención** (Renta, ICA, exógena → Conceptos): crea `compras`, base mínima 27 UVT, tarifa 2,5 % (declarante), *Verificado*, vigente desde 1-ene-2026. Es solo para la prueba; las tarifas reales las confirma el contador.
 - **Periodos**: abierto → en revisión → cerrado. Un periodo cerrado no admite cargas.
-- `TIENE_EMPLEADOS = no`: el calendario no trae cesantías ni primas. Si algún día hay contratos, se cambia a `si`.
+- Las fechas laborales (cesantías y primas) se dejan en el calendario como pendientes, aunque hoy no haya contratos: siguen alertando hasta que se marquen cumplidas.
 - `ALERTA_PANTALLA_DIAS`: días de anticipación de la alerta en pantalla (hoy 30).
 
 ## 4. Cargas (menú Cargas → Nueva carga)

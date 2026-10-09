@@ -1,0 +1,21 @@
+{% extends "base.html" %}{% load utiles %}
+{% block contenido %}
+<h1>Simulador de cierre: “qué pasa si”</h1>
+{% include "_selector.html" %}
+<div class="aviso">Estimación de gestión. Las decisiones con efecto tributario se revisan con el contador antes de ejecutarlas. Requiere haber recalculado la proyección del corte.</div>
+<div class="tarjeta"><form method="post">{% csrf_token %}{{ form.as_p }}<button class="btn" type="submit">Simular y guardar</button></form></div>
+{% if resultado %}
+{% if resultado.error %}<div class="error">{{ resultado.error }}</div>{% else %}
+<div class="tabla-scroll"><table>
+<tr><th>Utilidad anual base</th><td class="num">{{ resultado.utilidad_base|pesos }}</td></tr>
+<tr><th>Utilidad anual simulada</th><td class="num">{{ resultado.utilidad_simulada|pesos }}</td></tr>
+<tr><th>Impuesto de renta base</th><td class="num">{{ resultado.impuesto_base|pesos }}</td></tr>
+<tr><th>Impuesto de renta simulado</th><td class="num">{{ resultado.impuesto_simulado|pesos }}</td></tr>
+<tr><th>Variación del impuesto</th><td class="num">{{ resultado.variacion_impuesto|pesos }}</td></tr>
+<tr><th>Variación de caja (referencial)</th><td class="num">{{ resultado.variacion_caja|pesos }}</td></tr></table></div>
+{% for a in resultado.advertencias %}<div class="aviso" style="margin-top:8px">{{ a }}</div>{% endfor %}
+<p style="color:var(--gris-600)">{{ resultado.nota }}</p>{% endif %}{% endif %}
+<h2>Simulaciones guardadas</h2>
+<div class="tabla-scroll"><table><tr><th>Fecha</th><th>Nombre</th><th>Autor</th><th class="num">Impuesto simulado</th></tr>
+{% for s in historial %}<tr><td>{{ s.creado|date:"d/m/Y H:i" }}</td><td>{{ s.nombre }} <span class="chip">estimación</span></td><td>{{ s.autor.username }}</td><td class="num">{{ s.resultado.impuesto_simulado|default:"—" }}</td></tr>{% empty %}<tr><td colspan="4">Sin simulaciones.</td></tr>{% endfor %}</table></div>
+{% endblock %}

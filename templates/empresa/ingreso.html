@@ -1,0 +1,14 @@
+{% extends "base.html" %}{% block title %}Ingresar{% endblock %}
+{% block contenido %}
+<div class="centrado tarjeta">
+  <h1>DH Control Contable</h1>
+  <p style="color:var(--gris-600)">Ingresa con tu usuario. Luego te pediremos el código de tu aplicación de autenticación.</p>
+  {% if form.errors %}<div class="error">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>{% endif %}
+  <form method="post">{% csrf_token %}
+    <p><label>Usuario</label>{{ form.username }}</p>
+    <p><label>Contraseña</label>{{ form.password }}</p>
+    <input type="hidden" name="next" value="{{ next }}">
+    <button class="btn" type="submit">Ingresar</button>
+  </form>
+</div>
+{% endblock %}

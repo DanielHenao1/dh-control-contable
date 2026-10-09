@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block contenido %}
+<h1>Registro de auditoría</h1>
+<form class="fila" method="get"><div><label>Acción</label><input name="accion" value="{{ request.GET.accion }}"></div><div><label>Usuario</label><input name="usuario" value="{{ request.GET.usuario }}"></div><button class="btn" type="submit">Filtrar</button></form>
+<div class="tabla-scroll"><table><tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Objeto</th><th>Descripción</th><th>IP</th></tr>
+{% for r in registros %}<tr><td>{{ r.fecha|date:"d/m/Y H:i:s" }}</td><td>{{ r.usuario_texto }}</td><td>{{ r.accion }}</td><td>{{ r.modelo }} {{ r.objeto_id }}</td><td>{{ r.descripcion }}</td><td>{{ r.ip|default:"" }}</td></tr>{% endfor %}</table></div>
+{% endblock %}

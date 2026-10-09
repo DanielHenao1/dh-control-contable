@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block contenido %}
+<h1>{{ titulo }}</h1>
+<div class="tarjeta">
+<form method="post" enctype="multipart/form-data">{% csrf_token %}
+  {{ form.as_p }}
+  <button class="btn" type="submit">Guardar</button>
+</form>
+</div>
+{% endblock %}

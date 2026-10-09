@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block contenido %}
+<p><a href="{% url 'hallazgos' %}?anio={{ h.periodo.anio }}&mes={{ h.periodo.mes }}">← Hallazgos</a></p>
+<h1>{{ h.titulo }}</h1>
+<div class="tarjeta">
+  <p><span class="chip {{ h.semaforo }}">{{ h.get_severidad_display }}</span> <span class="chip">{{ h.get_estado_display }}</span> · periodo {{ h.periodo }}</p>
+  <p>{{ h.detalle }}</p>
+  <h2>De dónde sale</h2>
+  <p><strong>Regla {{ h.regla.codigo }}:</strong> {{ h.regla.nombre }}.<br>{{ h.regla.descripcion }}</p>
+  {% if h.regla.norma %}<p><strong>Fuente normativa:</strong> {{ h.regla.norma }}</p>{% endif %}
+  {% if h.cifras %}<div class="tabla-scroll"><table><tr><th>Cifra</th><th class="num">Valor</th></tr>{% for k, v in h.cifras.items %}<tr><td>{{ k }}</td><td class="num">{{ v }}</td></tr>{% endfor %}</table></div>{% endif %}
+</div>
+{% if ia %}<div class="tarjeta"><h2>Explicación del asistente</h2><p>{{ ia.texto }}</p><small style="color:var(--gris-600)">Modelo: {{ ia.modelo }}. Redacta sobre cifras ya calculadas; no calcula ni decide.</small></div>{% endif %}
+{% if permisos.gestionar_hallazgos %}
+<div class="tarjeta"><h2>Gestionar</h2>
+<form method="post">{% csrf_token %}<input type="hidden" name="accion" value="estado">
+  <p><label>Estado</label><select name="estado">{% for v, n in estados %}<option value="{{ v }}" {% if v == h.estado %}selected{% endif %}>{{ n }}</option>{% endfor %}</select></p>
+  <p><label>Explicación (obligatoria si lo marcas como explicado)</label><textarea name="explicacion">{{ h.explicacion }}</textarea></p>
+  <button class="btn" type="submit">Guardar</button></form>
+<form method="post" style="margin-top:10px">{% csrf_token %}<input type="hidden" name="accion" value="ia"><button class="btn sec" type="submit">Redactar explicación con el asistente</button></form>
+</div>{% elif h.explicacion %}<div class="tarjeta"><h2>Explicación</h2><p>{{ h.explicacion }}</p></div>{% endif %}
+{% endblock %}

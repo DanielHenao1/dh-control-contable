@@ -1,0 +1,36 @@
+{% load static %}<!doctype html>
+<html lang="es-CO">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}{{ titulo|default:"Control contable" }}{% endblock %} · DH Control Contable</title>
+<link rel="stylesheet" href="{% static 'app.css' %}">
+{% block head %}{% endblock %}
+</head>
+<body>
+{% if user.is_authenticated %}
+<header class="top">
+  <div class="marca">DH Control Contable<small>{% if empresa_actual %}{{ empresa_actual.razon_social }} · NIT {{ empresa_actual.nit_formateado }}{% else %}Configura la empresa{% endif %}</small></div>
+  <div class="espacio"></div>
+  <span style="font-size:13px">{{ user.nombre_visible }}</span>
+  <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">Salir</button></form>
+</header>
+<nav class="menu" aria-label="Principal">
+  {% if user.rol != "contratista" %}<a href="{% url 'tablero' %}" {% if request.path == "/" %}class="activo"{% endif %}>Tablero</a>{% endif %}
+  {% if permisos.cargar %}<a href="{% url 'cargas' %}">Cargas</a>{% endif %}
+  {% if permisos.ver %}<a href="{% url 'hallazgos' %}">Hallazgos</a><a href="{% url 'terceros' %}">Terceros</a><a href="{% url 'facturas' %}">Facturas</a>{% endif %}
+  {% if permisos.ver_fiscal %}<a href="{% url 'iva_retencion' %}">IVA y retención</a><a href="{% url 'conciliaciones' %}">Conciliaciones</a><a href="{% url 'fiscal' %}">Renta, ICA, exógena</a><a href="{% url 'proyeccion' %}">Proyección</a>{% endif %}
+  {% if permisos.ver %}<a href="{% url 'calendario' %}">Calendario</a><a href="{% url 'analisis' %}">Análisis</a>{% endif %}
+  {% if permisos.ver_fiscal %}<a href="{% url 'informes' %}">Informes</a>{% endif %}
+  {% if permisos.ver_contratista %}<a href="{% url 'contratista' %}">Contratista</a>{% endif %}
+  {% if permisos.administrar %}<a href="{% url 'configuracion' %}">Configuración</a><a href="{% url 'auditoria' %}">Auditoría</a>{% endif %}
+</nav>
+{% endif %}
+<main>
+{% if parametros_pendientes %}<div class="aviso"><strong>{{ parametros_pendientes }} parámetro(s) tributario(s) sin verificar o vacíos.</strong> Los cálculos que dependen de ellos quedan marcados o pendientes.{% if permisos.administrar %} <a href="{% url 'configuracion' %}">Revisarlos</a>{% endif %}</div>{% endif %}
+{% for m in messages %}<div class="{% if m.tags == 'error' %}error{% elif m.tags == 'success' %}ok{% elif m.tags == 'warning' %}aviso{% else %}msg-info{% endif %}">{{ m }}</div>{% endfor %}
+{% block contenido %}{% endblock %}
+</main>
+<div class="pie">Sistema de control: no reemplaza a World Office ni presenta declaraciones. Las cifras son un apoyo; la firma sigue siendo del profesional responsable.</div>
+</body>
+</html>

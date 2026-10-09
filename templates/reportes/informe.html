@@ -1,0 +1,21 @@
+{% load utiles %}<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Informe mensual {{ periodo }}</title>
+<style>
+@page{size:A4;margin:18mm}
+body{font:11pt/1.4 Helvetica,Arial,sans-serif;color:#1b1f27}
+h1{color:#14284b;font-size:18pt;margin:0}h2{color:#14284b;font-size:13pt;border-bottom:1px solid #14284b;padding-bottom:2px;margin-top:18px}
+table{width:100%;border-collapse:collapse;font-size:10pt}th,td{border-bottom:1px solid #ddd;padding:4px 6px;text-align:left}th{background:#eef1f6}
+.num{text-align:right}.sema{padding:2px 10px;border-radius:10px;color:#fff;font-weight:bold}.rojo{background:#c0392b}.ambar{background:#d89614}.verde{background:#2e8b57}
+small{color:#555}
+</style></head><body>
+<h1>Informe mensual de control contable</h1>
+<p>{{ empresa.razon_social }} · NIT {{ empresa.nit_formateado }}<br>Periodo {{ periodo }} · generado {{ generado|date:"d/m/Y H:i" }}</p>
+<p>Estado general: <span class="sema {{ semaforo }}">{% if semaforo == "rojo" %}Atención{% elif semaforo == "ambar" %}Revisar{% else %}En orden{% endif %}</span> · Hallazgos abiertos: alta {{ conteo.alta }}, media {{ conteo.media }}, baja {{ conteo.baja }} · explicados {{ conteo.explicados }} · corregidos {{ conteo.corregidos }}</p>
+<h2>Indicadores</h2>
+<table><tr><th>Indicador</th><th class="num">Actual</th><th class="num">Año anterior</th></tr>
+{% for k, v in indicadores.actual.items %}<tr><td>{{ k }}</td><td class="num">{{ v|default_if_none:"—" }}</td><td class="num">{{ indicadores.anio_anterior|get_item:k|default_if_none:"—" }}</td></tr>{% empty %}<tr><td colspan="3">Sin balance cargado.</td></tr>{% endfor %}</table>
+<h2>Hallazgos abiertos</h2>
+<table>{% for h in hallazgos_abiertos %}<tr><td>{{ h.get_severidad_display }}</td><td>{{ h.regla.codigo }}</td><td>{{ h.titulo }}<br><small>{{ h.detalle }}</small></td></tr>{% empty %}<tr><td>Ninguno.</td></tr>{% endfor %}</table>
+<h2>Próximos vencimientos</h2>
+<table>{% for o in proximas %}<tr><td>{{ o.fecha_limite|date:"d/m/Y" }}</td><td>{{ o.nombre }} {{ o.periodo_texto }}</td><td>{{ o.get_estado_display }}</td><td><small>{{ o.get_verificacion_display }}</small></td></tr>{% endfor %}</table>
+<p><small>Este informe es una segunda verificación independiente; no reemplaza a World Office ni constituye declaración. Las fechas se calculan por regla y la DIAN prevalece ante cualquier diferencia.</small></p>
+</body></html>

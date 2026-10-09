@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block contenido %}
+<h1>Terceros</h1>
+<form class="fila" method="get"><div><label>Buscar por NIT o nombre</label><input name="q" value="{{ q }}"></div>
+<label style="padding-bottom:8px"><input type="checkbox" name="problemas" value="1" {% if request.GET.problemas %}checked{% endif %}> Solo con problemas</label>
+<button class="btn" type="submit">Filtrar</button>{% if permisos.exportar %}<a class="btn sec" href="?{{ request.GET.urlencode }}&exportar=xlsx">Excel</a>{% endif %}</form>
+<div class="tabla-scroll"><table><tr><th>NIT</th><th>DV</th><th>Razón social</th><th>Datos faltantes (exógena)</th><th></th></tr>
+{% for t in terceros %}<tr><td>{{ t.nit }}</td>
+<td>{{ t.dv|default:"—" }}{% if t.dv and not t.dv_correcto %} <span class="chip rojo">debe ser {{ t.dv_calculado }}</span>{% elif not t.dv %} <span class="chip ambar">sin DV (calculado {{ t.dv_calculado }})</span>{% endif %}</td>
+<td>{{ t.razon_social }}</td><td>{{ t.faltantes_exogena|join:", " }}</td><td>{% if permisos.cargar %}<a href="{% url 'tercero_editar' t.pk %}">Editar</a>{% endif %}</td></tr>
+{% empty %}<tr><td colspan="5">Sin terceros.</td></tr>{% endfor %}</table></div>
+{% endblock %}

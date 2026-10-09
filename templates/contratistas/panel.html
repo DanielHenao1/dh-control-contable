@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block contenido %}
+<h1>Contratista</h1>
+{% if not contratista %}<div class="aviso">Aún no hay contratista registrado. Ejecuta <code>python manage.py cargar_datos_iniciales</code> o créalo desde el administrador.</div>
+{% else %}
+<div class="tarjeta">
+<p><strong>{{ contratista.nombre }}</strong> · contrato {{ contratista.contrato }} · {{ contratista.inicio|date:"d/m/Y" }} → {{ contratista.fin|date:"d/m/Y" }}
+{% if contratista.vigente %}<span class="chip verde">vigente</span>{% endif %}</p>
+<p>Honorarios mensuales: {{ contratista.honorarios_mensuales|default:"—" }}{% if contratista.honorarios_mas_iva %} + IVA{% endif %} · informe dentro de {{ contratista.dias_informe }} días de cada entrega</p>
+{% if contratista.alcance %}<p><strong>Alcance:</strong> {{ contratista.alcance }}</p>{% endif %}
+{% if contratista.exclusiones %}<p><strong>No cubre:</strong> {{ contratista.exclusiones }}</p>{% endif %}
+</div>
+{% if atrasados %}<div class="error">Informe atrasado: {% for e in atrasados %}{{ e.periodo }} (debía llegar el {{ e.fecha_limite_informe|date:"d/m/Y" }}){% if not forloop.last %}, {% endif %}{% endfor %}</div>{% endif %}
+<h2>Entregas mensuales e informes</h2>
+<div class="tabla-scroll"><table><tr><th>Periodo</th><th>Entregada</th><th>Informe límite</th><th>Informe recibido</th></tr>
+{% for e in entregas %}<tr><td>{{ e.periodo }}<br><small>{{ e.descripcion }}</small></td><td>{{ e.entregada_el|date:"d/m/Y" }}</td><td>{{ e.fecha_limite_informe|date:"d/m/Y" }}</td>
+<td>{% if e.informe %}{{ e.informe.recibido_el|date:"d/m/Y" }} <small>{{ e.informe.resumen|truncatechars:80 }}</small>{% elif e.informe_atrasado %}<span class="chip rojo">atrasado</span>{% else %}<span class="chip ambar">pendiente</span>{% endif %}</td></tr>
+{% empty %}<tr><td colspan="4">Sin entregas registradas.</td></tr>{% endfor %}</table></div>
+{% if puede %}
+<div class="dos-col">
+<div class="tarjeta"><h2 style="margin-top:0">Registrar entrega</h2><form method="post" action="{% url 'contratista_entrega' %}">{% csrf_token %}{{ form_entrega.as_p }}<button class="btn" type="submit">Guardar</button></form></div>
+<div class="tarjeta"><h2 style="margin-top:0">Registrar informe recibido</h2><form method="post" action="{% url 'contratista_informe' %}">{% csrf_token %}{{ form_informe.as_p }}<button class="btn" type="submit">Guardar</button></form></div>
+</div>
+<div class="tarjeta"><h2 style="margin-top:0">Nueva observación para el contratista</h2><form method="post" action="{% url 'contratista_observacion' %}">{% csrf_token %}{{ form_obs.as_p }}<button class="btn" type="submit">Registrar</button></form></div>
+{% endif %}
+<h2>Observaciones</h2>
+{% for o in observaciones %}<div class="tarjeta"><p>{{ o.texto }}</p><small>{{ o.creada|date:"d/m/Y" }} · <span class="chip">{{ o.get_estado_display }}</span></small>
+<form method="post" action="{% url 'contratista_responder' o.pk %}" style="margin-top:8px">{% csrf_token %}<textarea name="respuesta" placeholder="Respuesta">{{ o.respuesta }}</textarea>
+<select name="estado"><option value="pendiente">Pendiente</option><option value="respondida" {% if o.estado == "respondida" %}selected{% endif %}>Respondida</option><option value="cerrada" {% if o.estado == "cerrada" %}selected{% endif %}>Cerrada</option></select> <button class="btn sec" type="submit">Guardar</button></form></div>
+{% empty %}<p>Sin observaciones.</p>{% endfor %}
+{% endif %}
+{% endblock %}

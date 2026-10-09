@@ -1,0 +1,2 @@
+{% if calculo.advertencias %}<div class="aviso"><strong>Ojo:</strong><ul style="margin:4px 0 0 18px">{% for a in calculo.advertencias %}<li>{{ a }}</li>{% endfor %}</ul></div>{% endif %}
+{% if calculo.supuestos %}<details><summary style="cursor:pointer;color:var(--gris-600)">Supuestos del cálculo</summary><ul>{% for s in calculo.supuestos %}<li>{{ s }}</li>{% endfor %}</ul></details>{% endif %}

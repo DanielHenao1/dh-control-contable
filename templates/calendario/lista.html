@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block contenido %}
+<h1>Calendario</h1>
+<p><a class="btn sec" href="?vista=mes">Mes</a> <a class="btn sec" href="?vista=lista">Lista</a> <a class="btn sec" href="{% url 'calendario_reglas' %}">Reglas</a>
+{% if permisos.administrar %}<form method="post" action="{% url 'calendario_generar' %}" style="display:inline">{% csrf_token %}<button class="btn" type="submit">Recalcular por regla</button></form>{% endif %}</p>
+<div class="tabla-scroll"><table><tr><th>Fecha límite</th><th>Obligación</th><th>Período</th><th>Estado</th><th>Verificación</th><th>Responsables (elabora / revisa / firma)</th></tr>
+{% for o in obligaciones %}<tr><td>{{ o.fecha_limite|date:"d/m/Y" }}</td><td><a href="{% url 'obligacion' o.pk %}">{{ o.nombre }}</a>{% if o.laboral %} <span class="chip">laboral</span>{% endif %}</td><td>{{ o.periodo_texto }}</td>
+<td><span class="chip {% if o.cumplida %}verde{% elif o.fecha_limite < hoy %}rojo{% else %}ambar{% endif %}">{{ o.get_estado_display }}</span></td><td><small>{{ o.get_verificacion_display }}</small></td><td>{{ o.elabora|default:"—" }} / {{ o.revisa|default:"—" }} / {{ o.firma|default:"—" }}</td></tr>
+{% empty %}<tr><td colspan="6">Sin obligaciones. {% if permisos.administrar %}Usa “Recalcular por regla”.{% endif %}</td></tr>{% endfor %}</table></div>
+{% if sin_fecha %}<h2>Sin fecha publicada o sin regla</h2><div class="tabla-scroll"><table>{% for o in sin_fecha %}<tr><td><a href="{% url 'obligacion' o.pk %}">{{ o.nombre }}</a> {{ o.periodo_texto }}</td><td>{{ o.notas }}</td></tr>{% endfor %}</table></div>{% endif %}
+{% endblock %}

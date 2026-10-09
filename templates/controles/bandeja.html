@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block contenido %}
+<h1>Hallazgos</h1>
+{% include "_selector.html" %}
+<form class="fila" method="get">
+  <input type="hidden" name="anio" value="{{ periodo.anio }}"><input type="hidden" name="mes" value="{{ periodo.mes }}">
+  <div><label>Estado</label><select name="estado"><option value="">Todos</option>
+    <option value="abierto" {% if filtros.estado == "abierto" %}selected{% endif %}>Abierto</option><option value="explicado" {% if filtros.estado == "explicado" %}selected{% endif %}>Explicado</option><option value="corregido" {% if filtros.estado == "corregido" %}selected{% endif %}>Corregido</option></select></div>
+  <div><label>Severidad</label><select name="severidad"><option value="">Todas</option><option value="alta" {% if filtros.severidad == "alta" %}selected{% endif %}>Alta</option><option value="media" {% if filtros.severidad == "media" %}selected{% endif %}>Media</option><option value="baja" {% if filtros.severidad == "baja" %}selected{% endif %}>Baja</option></select></div>
+  <div><label>Grupo</label><select name="grupo"><option value="">Todos</option>{% for g in grupos %}<option {% if filtros.grupo == g %}selected{% endif %}>{{ g }}</option>{% endfor %}</select></div>
+  <div><label>Buscar</label><input name="q" value="{{ filtros.q }}"></div>
+  <button class="btn" type="submit">Filtrar</button>
+  {% if permisos.exportar %}<a class="btn sec" href="?{{ request.GET.urlencode }}&exportar=xlsx">Exportar a Excel</a>{% endif %}
+</form>
+{% if permisos.cargar %}<form method="post" action="{% url 'hallazgos_ejecutar' %}?anio={{ periodo.anio }}&mes={{ periodo.mes }}" style="margin-bottom:12px">{% csrf_token %}<button class="btn sec" type="submit">Volver a ejecutar los controles</button></form>{% endif %}
+<div class="tabla-scroll"><table>
+<tr><th></th><th>Regla</th><th>Hallazgo</th><th>Estado</th></tr>
+{% for h in hallazgos %}<tr>
+<td><span class="chip {{ h.semaforo }}">{{ h.get_severidad_display }}</span></td>
+<td><small>{{ h.regla.codigo }}<br>{{ h.regla.grupo }}</small></td>
+<td><a href="{% url 'hallazgo' h.pk %}">{{ h.titulo }}</a><br><small style="color:var(--gris-600)">{{ h.detalle|truncatechars:160 }}</small></td>
+<td>{{ h.get_estado_display }}</td></tr>
+{% empty %}<tr><td colspan="4">Sin hallazgos con estos filtros. Si no has cargado datos del periodo, empieza por <a href="{% url 'carga_nueva' %}">Cargas</a>.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

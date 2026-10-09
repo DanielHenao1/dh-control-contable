@@ -1,0 +1,22 @@
+{% extends "base.html" %}{% load utiles %}
+{% block contenido %}
+<h1>Conciliaciones</h1>
+{% include "_selector.html" %}
+<h2>Auxiliares vs balance por grupo de cuentas</h2>
+<div class="tabla-scroll"><table><tr><th>Grupo</th><th class="num">Balance (déb − créd)</th><th class="num">Auxiliares (déb − créd)</th><th class="num">Diferencia</th></tr>
+{% for f in aux_balance.filas %}<tr><td>{{ f.concepto }}</td><td class="num">{{ f.balance|pesos }}</td><td class="num">{{ f.auxiliares|pesos }}</td><td class="num {% if f.diferencia %}rojo{% endif %}">{{ f.diferencia|pesos }}</td></tr>{% endfor %}</table></div>
+<div class="dos-col">
+<div><h2>Cartera por tercero (grupo 13)</h2><p>Total {{ cartera.total|pesos }}{% if cartera.sin_tercero %} · sin tercero: {{ cartera.sin_tercero|pesos }}{% endif %}</p>
+<div class="tabla-scroll"><table><tr><th>NIT</th><th>Nombre</th><th class="num">Movimiento del mes</th></tr>{% for f in cartera.filas|slice:":30" %}<tr><td>{{ f.nit }}</td><td>{{ f.nombre }}</td><td class="num">{{ f.saldo|pesos }}</td></tr>{% empty %}<tr><td colspan="3">Sin datos.</td></tr>{% endfor %}</table></div></div>
+<div><h2>Proveedores por tercero (grupo 22)</h2><p>Total {{ proveedores.total|pesos }}{% if proveedores.sin_tercero %} · sin tercero: {{ proveedores.sin_tercero|pesos }}{% endif %}</p>
+<div class="tabla-scroll"><table><tr><th>NIT</th><th>Nombre</th><th class="num">Movimiento del mes</th></tr>{% for f in proveedores.filas|slice:":30" %}<tr><td>{{ f.nit }}</td><td>{{ f.nombre }}</td><td class="num">{{ f.saldo|pesos }}</td></tr>{% empty %}<tr><td colspan="3">Sin datos.</td></tr>{% endfor %}</table></div></div>
+</div>
+<h2>Bancos</h2>
+<form class="fila" method="get"><input type="hidden" name="anio" value="{{ periodo.anio }}"><input type="hidden" name="mes" value="{{ periodo.mes }}">
+<div><label>Prefijo de la cuenta de banco (ej. el código de tu cuenta)</label><input name="banco" value="{{ cuenta_banco }}" required></div><button class="btn" type="submit">Conciliar con el extracto cargado</button></form>
+{% if banco %}
+<p>Partidas conciliadas: <strong>{{ banco.conciliadas }}</strong> (valor igual y fecha ±{{ banco.tolerancia_dias }} días) · Total extracto {{ banco.total_banco|pesos }} · Total libros {{ banco.total_libros|pesos }}</p>
+<div class="dos-col"><div><h2>Solo en el extracto ({{ banco.solo_banco|length }})</h2><div class="tabla-scroll"><table>{% for b in banco.solo_banco %}<tr><td>{{ b.fecha|date:"d/m" }}</td><td>{{ b.descripcion }}</td><td class="num">{{ b.valor|pesos }}</td></tr>{% empty %}<tr><td>Nada pendiente.</td></tr>{% endfor %}</table></div></div>
+<div><h2>Solo en libros ({{ banco.solo_libros|length }})</h2><div class="tabla-scroll"><table>{% for m in banco.solo_libros %}<tr><td>{{ m.fecha|date:"d/m" }}</td><td>{{ m.descripcion }}</td><td class="num">{{ m.debito|pesos }} / {{ m.credito|pesos }}</td></tr>{% empty %}<tr><td>Nada pendiente.</td></tr>{% endfor %}</table></div></div></div>
+{% endif %}
+{% endblock %}

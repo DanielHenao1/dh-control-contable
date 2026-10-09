@@ -51,7 +51,6 @@ PARAMETROS = [
     ("PUC_PROVISIONES_LABORALES", "Prefijos de obligaciones laborales (cesantías, intereses, prima, vacaciones)", "lista", "25", date(2025, 1, 1), None, PV, "PUC comercial; confirmar contra el plan de cuentas real"),
     ("CONTROL_DESDE", "Fecha de puesta en marcha: lo que venció antes se trata como histórico (sin alertas ni hallazgos)", "texto", "2026-10-01", date(2025, 1, 1), None, V, "Confirmado por la empresa el 9-oct-2026"),
     ("CALENDARIO_DESDE", "Primera fecha que gestiona el calendario: no se crean obligaciones con fecha anterior", "texto", "2026-01-01", date(2025, 1, 1), None, V, "Decisión del dueño (9-oct-2026): el sistema gestiona desde 2026"),
-    ("ALERTA_PANTALLA_DIAS", "Días de anticipación con que una obligación pendiente salta como alerta en pantalla", "decimal", "30", date(2025, 1, 1), None, V, "Criterio operativo del sistema"),
     ("TOLERANCIA_PESOS", "Diferencia máxima tolerada por redondeo (pesos)", "decimal", "1", date(2025, 1, 1), None, V, "Criterio operativo del sistema"),
     ("ALERTA_DIAS_ANTES", "Días antes del vencimiento en que se envía alerta", "lista", "15,7,3,1", date(2025, 1, 1), None, V, "Criterio operativo del sistema"),
     ("ESTIMACION_UMBRAL_CAMBIO", "Cambio relativo entre meses que dispara alerta de estimación", "decimal", "0.10", date(2025, 1, 1), None, V, "Criterio operativo del sistema"),

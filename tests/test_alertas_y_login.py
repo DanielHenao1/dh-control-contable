@@ -25,16 +25,23 @@ def test_semaforo_urgencia_y_dias():
 
 
 @pytest.mark.django_db
-def test_alerta_en_pantalla_solo_en_tablero_y_calendario(cliente_dueno):
+def test_alerta_lista_todo_lo_pendiente_del_anio(cliente_dueno):
+    hoy = timezone.localdate()
     crear("retefuente", "p1", 5)
-    crear("iva", "p2", 90, nombre="IVA lejano")
+    Obligacion.objects.create(tipo="iva", clave="dic", nombre="IVA de diciembre", periodo_texto="dic",
+                              fecha_limite=hoy.replace(month=12, day=31), estado="pendiente")
+    Obligacion.objects.create(tipo="prima_junio", clave="ene", nombre="Prima enero", periodo_texto="ene",
+                              fecha_limite=hoy.replace(month=1, day=2), estado="pendiente", laboral=True)
+    Obligacion.objects.create(tipo="iva", clave="sig", nombre="IVA del año siguiente", periodo_texto="sig",
+                              fecha_limite=hoy.replace(year=hoy.year + 1, month=3, day=1), estado="pendiente")
     crear("ica", "ok", 1, estado="pagada", nombre="ICA pagado")
     for url in ("/", "/calendario/"):
         html = cliente_dueno.get(url).content.decode()
         assert 'id="alerta-venc"' in html and 'class="alerta-roja"' in html, url
         alerta = html[html.index('class="alerta-roja"'):html.index("</dialog>")]
         assert "Retención en la fuente" in alerta and "vence en 5 día(s)" in alerta
-        assert "IVA lejano" not in alerta and "ICA pagado" not in alerta  # fuera de la ventana o ya pagado
+        assert "IVA de diciembre" in alerta and "Prima enero" in alerta  # de todos los meses del año
+        assert "IVA del año siguiente" not in alerta and "ICA pagado" not in alerta
     assert 'id="alerta-venc"' not in cliente_dueno.get("/hallazgos/").content.decode()
 
 
@@ -66,7 +73,7 @@ def test_login_profesional(client):
     html = client.get("/ingresar/").content.decode()
     assert "DH Grupo Empresarial" in html and "Creado por" in html
     assert "no reemplaza a World Office" not in html  # el aviso largo ya no estorba en el ingreso
-    assert "img/logo-dhstore.png" in html and 'id="ver-clave"' in html
+    assert "img/logo-dhstore-claro.png" in html and 'id="ver-clave"' in html
     assert 'autocomplete="username"' in html and 'autocomplete="current-password"' in html
 
 

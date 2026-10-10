@@ -19,13 +19,24 @@ def pagos_acumulados(periodo):
     return totales
 
 
-def anio_completo(periodo):
-    """True si hay auxiliares vigentes de los 12 meses del año: la exógena se arma con el año gravable completo."""
+def meses_con_auxiliares(anio):
+    """Meses del año con libro auxiliar vigente: de archivos mensuales o repartidos por un libro de varios meses."""
     from empresa.models import ArchivoCargado
 
-    meses = set(ArchivoCargado.objects.filter(tipo="auxiliar", periodo__anio=periodo.anio, vigente=True)
-                .values_list("periodo__mes", flat=True))
-    return len(meses) == 12
+    meses = set()
+    for a in ArchivoCargado.objects.filter(tipo="auxiliar", vigente=True, periodo__anio=anio).select_related("periodo"):
+        if a.varios_meses:
+            meses |= {int(m[5:7]) for m in (a.resumen or {}).get("meses", []) if m.startswith(f"{anio}-")}
+        else:
+            meses.add(a.periodo.mes)
+    for a in ArchivoCargado.objects.filter(tipo="auxiliar", vigente=True, varios_meses=True).exclude(periodo__anio=anio):
+        meses |= {int(m[5:7]) for m in (a.resumen or {}).get("meses", []) if m.startswith(f"{anio}-")}
+    return meses
+
+
+def anio_completo(periodo):
+    """True si hay auxiliares vigentes de los 12 meses del año: la exógena se arma con el año gravable completo."""
+    return len(meses_con_auxiliares(periodo.anio)) == 12
 
 
 def sin_anio_completo(periodo):

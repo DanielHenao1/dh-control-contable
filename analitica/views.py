@@ -161,3 +161,35 @@ def _a_json(d):
 
     return json.loads(json.dumps(d, default=str))
 
+
+
+@requiere("ver_fiscal")
+def anual(request):
+    """Consolidado de todo un año: cobertura por mes, resultados, comprobación de exógena y pagos por tercero."""
+    from django.http import HttpResponse
+
+    from reportes.informe import tabla_a_excel
+
+    from . import anual as servicio
+
+    hoy = timezone.localdate()
+    try:
+        anio = int(request.GET.get("anio") or hoy.year)
+    except ValueError:
+        anio = hoy.year
+    pagos = servicio.pagos_por_tercero(anio)
+    if request.GET.get("exportar") == "xlsx" and request.user.puede("exportar"):
+        datos = tabla_a_excel(f"Pagos {anio}", ["NIT", "Tercero", "Pagos del año (costos y gastos)"], [(f["nit"], f["nombre"], f["total"]) for f in pagos])
+        r = HttpResponse(datos, content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        r["Content-Disposition"] = f'attachment; filename="pagos-por-tercero-{anio}.xlsx"'
+        return r
+    cobertura = servicio.cobertura(anio)
+    meses_resultados, total = servicio.resultados_por_mes(anio)
+    obligaciones, uvt, aviso_uvt = servicio.obligacion_exogena(anio, total["ingresos"])
+    ctx = {
+        "titulo": f"Consolidado {anio}", "anio": anio, "anios": sorted({hoy.year - 2, hoy.year - 1, hoy.year, hoy.year + 1, anio}),
+        "cobertura": cobertura, "meses_completos": sum(1 for c in cobertura if c["auxiliar"]),
+        "resultados": meses_resultados, "total": total, "obligaciones": obligaciones, "uvt": uvt, "aviso_uvt": aviso_uvt,
+        "pagos": pagos[:150], "total_pagos": len(pagos), "sin_nit": sum(1 for f in pagos if not f["nit"]),
+    }
+    return render(request, "analitica/anual.html", ctx)

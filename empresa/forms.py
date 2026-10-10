@@ -34,8 +34,8 @@ class CargaForm(forms.Form):
         help_text="IVA es el formulario 300; la retención en la fuente es el 350.",
     )
     varios_meses = forms.BooleanField(
-        label="El archivo trae varios meses: repartir las facturas por su fecha de emisión", required=False,
-        help_text="Solo facturas. Elige como periodo el último mes del rango.",
+        label="El archivo trae varios meses: repartir por la fecha de cada registro", required=False,
+        help_text="Facturas o libro auxiliar (por ejemplo, todo el año). Elige como periodo el último mes del rango.",
     )
     archivo = forms.FileField()
     subir_igual = forms.BooleanField(
@@ -52,8 +52,8 @@ class CargaForm(forms.Form):
 
     def clean(self):
         d = super().clean()
-        if d.get("varios_meses") and d.get("tipo") not in ("facturas_dian", "facturas_xml"):
-            self.add_error("varios_meses", "La carga de varios meses solo aplica a facturas electrónicas.")
+        if d.get("varios_meses") and d.get("tipo") not in ("facturas_dian", "facturas_xml", "auxiliar"):
+            self.add_error("varios_meses", "La carga de varios meses solo aplica a facturas electrónicas y al libro auxiliar.")
         if d.get("tipo") == "declaracion" and not d.get("formulario"):
             self.add_error("formulario", "Elige qué formulario es la declaración.")
         perfil = d.get("perfil")

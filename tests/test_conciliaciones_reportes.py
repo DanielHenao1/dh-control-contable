@@ -199,3 +199,36 @@ def test_factura_causada_con_el_consecutivo_de_world_office(datos_iniciales):
     assert movimientos_de(compra, indice)                             # por tercero y valor (±$5)
     sin = factura(p, "recibida", "X9", date(2026, 9, 8), "899999999", "900902549", 1000, 190, nombre_emisor="OTRO PROVEEDOR SAS")
     assert not movimientos_de(sin, indice)
+
+
+@pytest.mark.django_db
+def test_libro_auxiliar_de_todo_el_anio_se_reparte_por_mes_y_completa_la_exogena(datos_iniciales, cliente_dueno):
+    from datetime import date as d
+
+    from controles.reglas_exogena import anio_completo, meses_con_auxiliares
+    from empresa import cargas
+    from empresa.models import ArchivoCargado, Periodo
+
+    p12 = Periodo.obtener(2025, 12)
+    a = ArchivoCargado.objects.create(tipo="auxiliar", nombre_original="aux2025.xlsx", hash_sha256="a" * 64, tamano=1, periodo=p12,
+                                      varios_meses=True, estado="pendiente", archivo="cargas/x/a.xlsx")
+    filas = [{"fecha": d(2025, m, 15), "cuenta": "513535", "debito": Decimal("100"), "credito": Decimal("0")} for m in range(1, 13)]
+    filas.append({"fecha": d(2025, 3, 2), "cuenta": "413554", "debito": Decimal("0"), "credito": Decimal("5000")})
+    from contabilidad.importadores import importar_auxiliar
+
+    resumen = importar_auxiliar(a, filas)
+    a.estado, a.resumen, a.vigente = "importado", resumen, True
+    a.save()
+    assert resumen["meses"][0] == "2025-01" and len(resumen["meses"]) == 12
+    assert meses_con_auxiliares(2025) == set(range(1, 13)) and anio_completo(p12)
+    assert Movimiento.objects.filter(periodo__mes=3, periodo__anio=2025).count() == 2
+
+    html = cliente_dueno.get("/anual/?anio=2025").content.decode()
+    assert "12 de 12 meses" in html and "Exógena nacional (DIAN)" in html and "Exógena distrital (Bogotá)" in html
+    assert "Pendiente de parámetro" in html  # DIAN: falta el umbral; distrital: 3.500 UVT × UVT 2025 no se alcanza con $5.000
+    assert "No alcanza el umbral" in html
+
+    mensual = ArchivoCargado.objects.create(tipo="auxiliar", nombre_original="m.xlsx", hash_sha256="b" * 64, tamano=1,
+                                            periodo=Periodo.obtener(2025, 6), estado="pendiente", archivo="cargas/x/m.xlsx")
+    with pytest.raises(cargas.ConflictoDeMeses):
+        cargas._verificar_conflicto_de_meses_auxiliar(mensual, [])

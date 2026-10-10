@@ -1,0 +1,39 @@
+{% extends "base.html" %}{% load utiles %}
+{% block contenido %}
+<h1>Consolidado anual {{ anio }}</h1>
+<form class="fila" method="get">
+  <div><label>Año</label><select name="anio">{% for a in anios %}<option value="{{ a }}" {% if a == anio %}selected{% endif %}>{{ a }}</option>{% endfor %}</select></div>
+  <button class="btn" type="submit">Ver</button>
+</form>
+<p style="color:var(--gris-600);max-width:860px">Junta todo lo cargado del año. Para que quede completo carga los auxiliares de los 12 meses: puedes subir <strong>un solo libro auxiliar del año</strong> en Cargas → Nueva carga, tipo «Auxiliares», marcando «El archivo trae varios meses» y eligiendo diciembre como periodo.</p>
+
+<h2>¿Qué hay cargado?</h2>
+<div class="tabla-scroll"><table><tr><th>Mes</th><th>Balance</th><th>Auxiliares</th><th>Facturas</th></tr>
+{% for c in cobertura %}<tr><td>{{ c.nombre }}</td>
+<td>{% if c.balance %}<span class="chip verde">Sí</span>{% else %}<span class="chip">—</span>{% endif %}</td>
+<td>{% if c.auxiliar %}<span class="chip verde">Sí</span>{% else %}<span class="chip ambar">Falta</span>{% endif %}</td>
+<td>{% if c.facturas %}<span class="chip verde">Sí</span>{% else %}<span class="chip">—</span>{% endif %}</td></tr>{% endfor %}</table></div>
+<p>Auxiliares cargados: <strong>{{ meses_completos }} de 12 meses</strong>. {% if meses_completos < 12 %}Mientras no estén los 12, las comprobaciones de exógena del año no se evalúan.{% endif %}</p>
+
+<h2>Resultados del año (según los auxiliares)</h2>
+<div class="tabla-scroll"><table><tr><th>Mes</th><th class="num">Ingresos</th><th class="num">Costos</th><th class="num">Gastos</th><th class="num">Utilidad</th></tr>
+{% for r in resultados %}<tr><td>{{ r.nombre }}</td><td class="num">{{ r.ingresos|pesos }}</td><td class="num">{{ r.costos|pesos }}</td><td class="num">{{ r.gastos|pesos }}</td><td class="num {% if r.utilidad < 0 %}rojo{% endif %}">{{ r.utilidad|pesos }}</td></tr>{% endfor %}
+<tr><th>Año</th><th class="num">{{ total.ingresos|pesos }}</th><th class="num">{{ total.costos|pesos }}</th><th class="num">{{ total.gastos|pesos }}</th><th class="num">{{ total.utilidad|pesos }}</th></tr></table></div>
+
+<h2>¿Hay que reportar exógena? Nacional y distrital son distintas</h2>
+<p style="color:var(--gris-600);max-width:860px">La exógena de la DIAN y la distrital de Bogotá son informes diferentes: cada una tiene su norma, su umbral, sus formatos y su plataforma (la distrital se presenta en PIDO). Aquí se comprueba con los ingresos del año si la empresa llega al umbral de cada una. {% if uvt %}UVT del año: {{ uvt|pesos }}{% if aviso_uvt %} ({{ aviso_uvt }}){% endif %}.{% else %}Falta la UVT del año.{% endif %}</p>
+<div class="alerta-rejilla" style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
+{% for o in obligaciones %}<div class="tarjeta"><h3 style="margin:0 0 6px">{{ o.nombre }}</h3>
+<p><span class="chip {% if o.estado == 'obligado' %}rojo{% elif o.estado == 'no_obligado' %}verde{% else %}ambar{% endif %}">{% if o.estado == 'obligado' %}Debe reportar{% elif o.estado == 'no_obligado' %}No alcanza el umbral{% else %}Pendiente de parámetro{% endif %}</span></p>
+<p>{{ o.texto }}</p>
+{% if o.umbral_uvt %}<p>Umbral: {{ o.umbral_uvt }} UVT{% if o.tope %} = <strong>{{ o.tope|pesos }}</strong>{% endif %} · Ingresos del año: <strong>{{ total.ingresos|pesos }}</strong>{% if o.aviso %} <span style="color:var(--gris-600)">({{ o.aviso }})</span>{% endif %}</p>{% endif %}
+<p style="color:var(--gris-600);font-size:13px">{{ o.norma }}. {{ o.extra }}</p></div>{% endfor %}
+</div>
+
+<h2>Pagos del año por tercero (base de la exógena)</h2>
+<p style="color:var(--gris-600);max-width:860px">Suma de costos y gastos (clases 5, 6 y 7) por tercero en el año. {% if sin_nit %}<strong>{{ sin_nit }} terceros no traen NIT</strong>: el auxiliar de World Office exporta solo el nombre. Para presentar la exógena hace falta el NIT, la dirección y la ciudad de cada tercero (maestro de terceros de World Office).{% endif %}</p>
+{% if permisos.exportar and pagos %}<p><a class="btn sec" href="?anio={{ anio }}&exportar=xlsx">Exportar a Excel</a></p>{% endif %}
+<div class="tabla-scroll"><table><tr><th>NIT</th><th>Tercero</th><th class="num">Pagos del año</th></tr>
+{% for f in pagos %}<tr><td>{{ f.nit|default:"—" }}</td><td>{{ f.nombre }}</td><td class="num">{{ f.total|pesos }}</td></tr>{% empty %}<tr><td colspan="3">Sin auxiliares cargados de {{ anio }}.</td></tr>{% endfor %}</table></div>
+{% if total_pagos > 150 %}<p>Se muestran los 150 mayores de {{ total_pagos }}; el Excel trae todos.</p>{% endif %}
+{% endblock %}

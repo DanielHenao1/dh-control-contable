@@ -15,7 +15,7 @@ def global_(request):
     # Un parámetro cuenta una sola vez, por el valor que rige hoy (no por cada vigencia histórica o futura).
     hoy = timezone.localdate()
     pendientes = 0
-    for codigo in Parametro.objects.values_list("codigo", flat=True).distinct():
+    for codigo in Parametro.objects.order_by().values_list("codigo", flat=True).distinct():
         actual = Parametro.vigente(codigo, hoy) or Parametro.objects.filter(codigo=codigo).order_by("-vigente_desde").first()
         if actual is not None and actual.pendiente:
             pendientes += 1

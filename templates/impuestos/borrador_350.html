@@ -1,0 +1,9 @@
+{% extends "base.html" %}{% load utiles %}
+{% block contenido %}
+<h1>Borrador del formulario 350 · Retención en la fuente</h1>
+{% include "_selector.html" %}
+<div class="aviso"><strong>BORRADOR · NO PRESENTAR.</strong> Armado con el balance y los auxiliares del periodo para contrastarlo con el que presenta el contratista.</div>
+{% if permisos.exportar %}<p><a class="btn" href="?anio={{ periodo.anio }}&mes={{ periodo.mes }}&formato=pdf">Descargar PDF</a> <a class="btn sec" href="?anio={{ periodo.anio }}&mes={{ periodo.mes }}&formato=xlsx">Descargar Excel</a></p>{% endif %}
+{% include "impuestos/_borrador_350.html" %}
+<p><a href="{% url 'retencion' %}?anio={{ periodo.anio }}&mes={{ periodo.mes }}">Volver a Retención en la fuente</a></p>
+{% endblock %}

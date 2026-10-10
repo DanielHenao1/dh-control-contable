@@ -5,6 +5,7 @@ from . import views
 urlpatterns = [
     path("fiscal/", views.fiscal, name="fiscal"),
     path("renta/", views.renta, name="renta"),
+    path("retencion/borrador/", views.borrador_350, name="borrador_350"),
     path("ica/", views.ica, name="ica"),
     path("reteica/", views.reteica, name="reteica"),
     path("exogena-nacional/", views.exogena_nacional, name="exogena_nacional"),

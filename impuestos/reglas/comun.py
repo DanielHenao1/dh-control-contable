@@ -80,3 +80,9 @@ def movimiento_neto(periodo, prefijos, naturaleza):
         if any(s.cuenta.codigo.startswith(p) for p in prefijos):
             total += (s.credito - s.debito) if naturaleza == "C" else (s.debito - s.credito)
     return total
+
+
+def credito_del_mes(periodo, prefijos):
+    """Créditos del mes en las cuentas por prefijo (p. ej. la retención practicada; los débitos son el pago del mes anterior)."""
+    qs = SaldoCuenta.objects.filter(periodo=periodo, archivo__vigente=True)
+    return sum((s.credito for s in hojas(qs.select_related("cuenta")) if any(s.cuenta.codigo.startswith(p) for p in prefijos)), CERO)

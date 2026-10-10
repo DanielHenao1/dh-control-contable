@@ -11,9 +11,10 @@
 1. **Retención practicada del mes** = créditos del mes de las cuentas de retención (`PUC_RETEFUENTE`, 2365). Los débitos son el pago de la retención del mes anterior a la DIAN y no se restan.
 2. **Concepto** de cada subcuenta: parámetro `RETEFUENTE_MAPA_CUENTAS` (prefijo de cuenta = concepto del formulario). Las cuentas sin concepto se muestran en «Otros pagos» con una advertencia.
 3. **Base** = retención ÷ tarifa, con la tarifa tomada del nombre de la subcuenta. Sin tarifa en el nombre, la base queda en 0 con advertencia.
-4. **Personas jurídicas o naturales:** según cada movimiento del auxiliar: tipo de persona del maestro de terceros; si falta, por el NIT (9 dígitos que empiezan por 8 o 9 = jurídica; cédula = natural), con advertencia. Sin auxiliar, todo se muestra como jurídicas.
-5. **Retenciones de IVA** (casilla 131): créditos del mes de `PUC_RETEIVA`.
-6. Quedan para diligenciar a mano: retenciones en exceso o anuladas (129), timbre (135), sanciones (137) y el pago.
+4. **Personas jurídicas o naturales:** según cada movimiento del auxiliar. El auxiliar de World Office solo trae el nombre del tercero, así que se busca en el maestro de terceros por NIT o por nombre (sin importar el orden de las palabras ni «S.A.S.» o «SAS»). Si el tercero tiene tipo de persona, se usa; si no, se deduce por el NIT (9 dígitos que empiezan por 8 o 9 = jurídica; cédula = natural) y, si tampoco hay tercero, por el nombre (SAS, LTDA, SOCIEDAD, FUNDACIÓN… = jurídica; el resto, natural). Lo deducido se avisa con el número de movimientos. Sin auxiliar, todo se muestra como jurídicas.
+5. **Total:** cada casilla se aproxima a miles y los totales suman las casillas aproximadas, así que pueden diferir unos miles del balance (por ejemplo 707.000 contra 706.353).
+6. **Retenciones de IVA** (casilla 131): créditos del mes de `PUC_RETEIVA`.
+7. Quedan para diligenciar a mano: retenciones en exceso o anuladas (129), timbre (135), sanciones (137) y el pago.
 
 ## Cómo se obtiene
 Cargar el balance y el libro auxiliar del mes (y el maestro de terceros). En Impuestos → Retención en la fuente: «Ver y descargar borrador del formulario 350» (pantalla, PDF y Excel; las descargas piden permiso de exportar y quedan en la auditoría).

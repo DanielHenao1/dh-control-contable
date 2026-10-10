@@ -69,3 +69,75 @@ def vincular_movimientos(usuario=None):
             detalle={"movimientos": movimientos, "nombres": len(nombres)}, usuario=usuario,
         )
     return {"movimientos": movimientos, "nombres": len(nombres)}
+
+
+# Palabras que, en el nombre de un tercero, indican una persona jurídica (el nombre de una persona natural no las trae).
+PALABRAS_JURIDICAS = {
+    "SAS", "SA", "LTDA", "EU", "SCA", "ESP", "CIA", "LIMITADA", "COMPANIA", "CORPORACION", "FUNDACION", "ASOCIACION",
+    "COOPERATIVA", "LIGA", "SOCIEDAD", "CLUB", "DIRECCION", "CAMARA", "EMPRESA", "UNIVERSIDAD", "BANCO", "GRUPO",
+    "INSTITUTO", "COLEGIO", "FEDERACION", "CONJUNTO", "EDIFICIO", "MUNICIPIO", "ALCALDIA", "SECRETARIA", "MINISTERIO",
+    "SERVICIOS", "SUMINISTROS", "SISTEMAS", "TECNOLOGIA", "TECNOLOGICOS", "INVERSIONES", "DISTRIBUIDORA", "TRANSPORTES",
+    "INDUSTRIAL", "INDUSTRIALES", "COMERCIALIZADORA", "CONSTRUCCIONES", "SOLUCIONES", "INGENIERIA", "CENTRAL",
+}
+
+
+def _palabras_del_nombre(nombre):
+    import re
+    import unicodedata
+
+    t = unicodedata.normalize("NFKD", str(nombre or "")).encode("ascii", "ignore").decode().upper()
+    t = re.sub(r"[^A-Z0-9]+", " ", t).strip()
+    t = re.sub(r"\bS A S\b", "SAS", t)
+    t = re.sub(r"\bS A\b", "SA", t)
+    return set(t.split())
+
+
+def tipo_por_nit(nit):
+    """9 dígitos que empiezan por 8 o 9 = empresa (NIT); una cédula es una persona natural."""
+    return "juridica" if len(nit) == 9 and nit[0] in "89" else "natural"
+
+
+def tipo_por_nombre(nombre):
+    return "juridica" if _palabras_del_nombre(nombre) & PALABRAS_JURIDICAS else "natural"
+
+
+class ClasificadorDePersonas:
+    """Persona jurídica o natural de un tercero: maestro de terceros (por NIT o por nombre), luego el NIT y por último el nombre."""
+
+    def __init__(self):
+        from controles.reglas_facturas import mismo_tercero, norm_nombre
+
+        self._mismo, self._norm = mismo_tercero, norm_nombre
+        self.por_nit = {t.nit: t for t in Tercero.objects.all()}
+        self.por_nombre = {}
+        for t in self.por_nit.values():
+            if t.razon_social:
+                self.por_nombre.setdefault(norm_nombre(t.razon_social), []).append(t)
+        self._cache = {}
+
+    def tercero_de(self, nit, nombre):
+        if nit and nit in self.por_nit:
+            return self.por_nit[nit]
+        if not nombre:
+            return None
+        clave = self._norm(nombre)
+        if clave in self._cache:
+            return self._cache[clave]
+        encontrados = self.por_nombre.get(clave, [])
+        if len(encontrados) != 1:
+            encontrados = [t for lista in self.por_nombre.values() for t in lista if self._mismo(nombre, t.razon_social)] if not encontrados else []
+        self._cache[clave] = encontrados[0] if len(encontrados) == 1 else None
+        return self._cache[clave]
+
+    def clasificar(self, nit, nombre):
+        """(tipo, origen): origen = «maestro» (dato del tercero), «nit» o «nombre» (deducido)."""
+        t = self.tercero_de(nit, nombre)
+        if t is not None and t.tipo_persona:
+            return t.tipo_persona, "maestro"
+        if t is not None:
+            return tipo_por_nit(t.nit), "nit"
+        if nit:
+            return tipo_por_nit(nit), "nit"
+        if nombre:
+            return tipo_por_nombre(nombre), "nombre"
+        return "", ""

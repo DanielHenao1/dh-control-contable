@@ -53,7 +53,7 @@ def test_borrador_350_reproduce_la_estructura_de_una_declaracion_presentada(dato
     assert (asv["j"]["base"], asv["j"]["retencion"], asv["n"]["base"], asv["n"]["retencion"]) == (Decimal("2249000"), Decimal("25000"), Decimal("820000"), Decimal("9000"))
     assert r["total_renta"] == Decimal("706000") and r["total_retenciones"] == Decimal("706000")
     assert r["valores"]["debitos_del_balance"] == Decimal("705995")  # no se restan
-    assert any("se dedujo por el NIT" in a for a in r["calculo"]["advertencias"])  # las cédulas no están en el maestro
+    assert any("Tipo de persona deducido" in a for a in r["calculo"]["advertencias"])  # las cédulas no están en el maestro
 
 
 @pytest.mark.django_db
@@ -91,3 +91,23 @@ def test_la_retencion_contable_es_la_practicada_del_mes(datos_iniciales):
 
     p = _datos_del_mes()
     assert borrador_retefuente(p).valores["contabilidad"] == Decimal("705253")  # créditos, sin restar el pago del mes anterior
+
+
+@pytest.mark.django_db
+def test_tipo_de_persona_por_nombre_cuando_el_auxiliar_no_trae_nit(datos_iniciales):
+    from contabilidad.models import Cuenta, Movimiento
+
+    from .helpers import archivo
+
+    p = periodo(2026, 6)
+    balance(p, [("23653002", "ARRENDAMIENTO BIENES INMUEBLES 3,5%", 0, 0, 350000, 350000)])
+    Tercero.objects.create(nit="1019000009", razon_social="GOMEZ PEREZ ANA MARIA", origen="factura")  # la DIAN trae cédula y nombre
+    a = archivo("auxiliar", p)
+    cuenta = Cuenta.objects.get(codigo="23653002")
+    for nombre, valor in (("PEREZ GOMEZ ANA MARIA", 70000), ("INMOBILIARIA LA 80 S.A.S.", 140000), ("LOPEZ RUIZ JUAN CARLOS", 140000)):
+        Movimiento.objects.create(periodo=p, archivo=a, fecha=date(2026, 6, 5), cuenta=cuenta, nit="", tercero_nombre=nombre, credito=Decimal(valor))
+    r = borrador_350(p)
+    arr = fila(r, "arrendamientos")
+    # 70.000 (nombre en otro orden, cédula del maestro) + 140.000 (persona sin registro) = 210.000 naturales; 140.000 jurídica por «S.A.S.»
+    assert arr["n"]["retencion"] == Decimal("210000") and arr["j"]["retencion"] == Decimal("140000")
+    assert any("1 movimiento(s) por el NIT y 2 por el nombre" in a for a in r["calculo"]["advertencias"])

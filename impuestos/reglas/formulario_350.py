@@ -6,7 +6,7 @@ Reglas (ver docs/reglas/formulario_350.md):
   del mes anterior a la DIAN y no se restan.
 - Cada subcuenta se asigna a un concepto del formulario con el parámetro RETEFUENTE_MAPA_CUENTAS (por prefijo de cuenta).
 - La base se estima como retención ÷ tarifa; la tarifa sale del nombre de la subcuenta de World Office (por ejemplo «… 11%»).
-- Personas jurídicas o naturales según el tercero de cada movimiento del auxiliar (maestro de terceros o, si falta, el NIT).
+- Personas jurídicas o naturales según el tercero de cada movimiento del auxiliar: maestro de terceros (por NIT o por nombre) y, si falta, el NIT o el nombre.
 - Cada casilla se aproxima al múltiplo de mil más cercano (Estatuto Tributario art. 577) y los totales suman las casillas aproximadas.
 """
 import re
@@ -15,7 +15,7 @@ from decimal import ROUND_HALF_UP, Decimal
 
 from contabilidad.models import Movimiento, saldos_vigentes
 from empresa.models import Periodo
-from terceros.models import Tercero
+from terceros.servicios import ClasificadorDePersonas
 
 from .comun import CERO, Calculo, hojas
 
@@ -81,32 +81,22 @@ def _clave_de(codigo, mapa):
     return None
 
 
-def tipo_de_persona(nit, maestro):
-    """('juridica'|'natural'|'', inferido). Primero el maestro de terceros; si no, el NIT (9 dígitos = empresa; cédula = persona)."""
-    t = maestro.get(nit)
-    if t is not None and t.tipo_persona:
-        return t.tipo_persona, False
-    if not nit:
-        return "", False
-    return ("juridica" if len(nit) == 9 and nit[0] in "89" else "natural"), True
-
-
-def _reparto(periodo, codigo, maestro):
-    """Proporción de los créditos de una cuenta por tipo de persona: {'juridica': x, 'natural': y} (suman 1) y cuántos se infirieron."""
-    por_tipo, inferidos, sin_tercero = defaultdict(lambda: CERO), 0, CERO
-    for nit, credito in Movimiento.objects.filter(
+def _reparto(periodo, codigo, clasificador, origenes):
+    """Proporción de los créditos de una cuenta por tipo de persona ({'juridica': x, 'natural': y}, suman 1) o None."""
+    por_tipo, sin_tercero = defaultdict(lambda: CERO), CERO
+    for nit, nombre, credito in Movimiento.objects.filter(
         periodo=periodo, archivo__vigente=True, cuenta__codigo=codigo, credito__gt=0
-    ).values_list("nit", "credito"):
-        tipo, inferido = tipo_de_persona(nit, maestro)
+    ).values_list("nit", "tercero_nombre", "credito"):
+        tipo, origen = clasificador.clasificar(nit, nombre)
         if tipo:
             por_tipo[tipo] += credito
-            inferidos += int(inferido)
+            origenes[origen] += 1
         else:
             sin_tercero += credito
     total = sum(por_tipo.values(), CERO)
     if not total:
-        return None, inferidos, sin_tercero
-    return {t: v / total for t, v in por_tipo.items()}, inferidos, sin_tercero
+        return None
+    return {t: v / total for t, v in por_tipo.items()}
 
 
 def borrador_350(periodo: Periodo):
@@ -117,11 +107,11 @@ def borrador_350(periodo: Periodo):
     cuentas = [s for s in hojas(saldos_vigentes(periodo).select_related("cuenta")) if any(s.cuenta.codigo.startswith(p) for p in prefijos)]
     if not cuentas:
         c.advertencias.append("No hay balance cargado con cuentas de retención en la fuente para el periodo.")
-    maestro = {t.nit: t for t in Tercero.objects.all()}
+    clasificador, origenes = ClasificadorDePersonas(), defaultdict(int)
     hay_auxiliar = Movimiento.objects.filter(periodo=periodo, archivo__vigente=True).exists()
     if cuentas and not hay_auxiliar:
         c.advertencias.append("Sin libro auxiliar no se puede separar personas jurídicas y naturales: todo se muestra como personas jurídicas.")
-    total_balance, debitos, inferidos, sin_clasificar, sin_tarifa, sin_mapa = CERO, CERO, 0, CERO, [], []
+    total_balance, debitos, sin_clasificar, sin_tarifa, sin_mapa = CERO, CERO, CERO, [], []
     for s in cuentas:
         debitos += s.debito
         valor = s.credito  # retención practicada en el mes
@@ -132,8 +122,7 @@ def borrador_350(periodo: Periodo):
         if clave is None:
             clave = "otros_pagos"
             sin_mapa.append(s.cuenta.codigo)
-        reparto, n_inferidos, sin_tercero = _reparto(periodo, s.cuenta.codigo, maestro) if hay_auxiliar else (None, 0, CERO)
-        inferidos += n_inferidos
+        reparto = _reparto(periodo, s.cuenta.codigo, clasificador, origenes) if hay_auxiliar else None
         if reparto is None:
             reparto = {"juridica": Decimal(1)}
             if hay_auxiliar:
@@ -153,8 +142,11 @@ def borrador_350(periodo: Periodo):
         c.advertencias.append(f"Sin tarifa en el nombre de la cuenta ({', '.join(sorted(set(sin_tarifa)))}): la base de esas retenciones queda en 0.")
     if sin_clasificar:
         c.advertencias.append("Hay retenciones cuyo tercero no está en el auxiliar: se mostraron como personas jurídicas.")
-    if inferidos:
-        c.advertencias.append(f"{inferidos} movimiento(s) sin tipo de persona en el maestro de terceros: se dedujo por el NIT. Cargue el maestro de terceros para confirmarlo.")
+    if origenes["nit"] or origenes["nombre"]:
+        c.advertencias.append(
+            f"Tipo de persona deducido sin el maestro de terceros: {origenes['nit']} movimiento(s) por el NIT y {origenes['nombre']} por el nombre "
+            "(un nombre con SAS, LTDA, SOCIEDAD, etc. es persona jurídica; el resto, natural). Cargue el maestro de terceros para confirmarlo."
+        )
     filas, total_renta = [], CERO
     for clave, etiqueta, jur, nat in TODOS:
         fila = {"clave": clave, "etiqueta": etiqueta, "autorretencion": clave.startswith("auto_")}

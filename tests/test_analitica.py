@@ -58,7 +58,7 @@ def test_indicadores_y_anomalias(datos_iniciales):
     a = r["actual"]
     assert a["ingresos"] == Decimal("5000") and a["utilidad"] == Decimal("2000")
     assert a["margen_neto"] == Decimal("0.4") and a["endeudamiento"] == Decimal("0.4")
-    assert any("PUC_PASIVO_CORRIENTE" in x for x in r["advertencias"])  # sigue por verificar: falta el vencimiento de las obligaciones financieras
+    assert not any("PUC_PASIVO_CORRIENTE" in x for x in r["advertencias"])  # verificado: ninguna obligación financiera vence en 12 meses
     assert not any("PUC_ACTIVO_CORRIENTE" in x for x in r["advertencias"])
     filas = [(date(2026, 6, 1 + i % 20), "C", f"D{i}", "5195", "900111", 100 + i % 3, 0) for i in range(30)]
     filas.append((date(2026, 6, 2), "C", "DX", "5195", "900111", 90000, 0))
@@ -206,3 +206,28 @@ def test_el_tope_de_iva_queda_verificado_con_el_articulo_600(datos_iniciales):
 
     p = Parametro.vigente("IVA_TOPE_BIMESTRAL_UVT", date(2026, 10, 10))
     assert p.valor == "92000" and not p.pendiente and "600" in p.fuente
+
+
+@pytest.mark.django_db
+def test_regimen_ordinario_del_rut_y_respuestas_del_dueno_dejan_los_parametros_verificados(datos_iniciales):
+    from datetime import date
+
+    hoy = date(2026, 10, 10)
+    for codigo in ("RENTA_TARIFA", "RENTA_TASA_MINIMA", "PUC_PASIVO_CORRIENTE"):
+        assert not Parametro.vigente(codigo, hoy).pendiente, codigo
+    assert Parametro.vigente("RENTA_ANTICIPO_PORCENTAJE", hoy).valor == "0.75"
+    assert Parametro.vigente("RENTA_ANTICIPO_PORCENTAJE", hoy).pendiente  # falta la confirmación de la contadora
+    Parametro.objects.filter(codigo="PUC_CAJA_BANCOS").update(valor="1110", estado="por_verificar")
+    from django.core.management import call_command
+
+    call_command("cargar_datos_iniciales", verbosity=0)
+    assert not Parametro.vigente("PUC_CAJA_BANCOS", hoy).pendiente
+
+
+@pytest.mark.django_db
+def test_configuracion_muestra_por_defecto_solo_lo_vigente(cliente_dueno, datos_iniciales):
+    html = cliente_dueno.get("/configuracion/").content.decode()
+    assert "01/01/2025 → 31/12/2025" not in html  # las vigencias anteriores quedan ocultas
+    assert "01/01/2025 → 31/12/2025" in cliente_dueno.get("/configuracion/?ver=historico").content.decode()
+    pendientes = cliente_dueno.get("/configuracion/?ver=pendientes").content.decode()
+    assert "EXOGENA_TOPE_PESOS" in pendientes and "PUC_INGRESOS" not in pendientes

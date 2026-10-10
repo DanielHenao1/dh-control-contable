@@ -222,6 +222,8 @@ class Command(BaseCommand):
         asegurar_vigencias()
         self._confirmar_pasivo_financiero_2026()
         self._confirmar_tope_iva()
+        self._confirmar_regimen_ordinario()
+        self._confirmar_respuestas_del_dueno()
         self._recalcular_controles()
         self.stdout.write(self.style.SUCCESS(f"Datos iniciales listos. Obligaciones nuevas: {n}. Marcadas como presentadas y pagadas: {n_hist}. DV del NIT: {dv}."))
 
@@ -249,6 +251,23 @@ class Command(BaseCommand):
         Parametro.objects.filter(codigo="PUC_PASIVO_FINANCIERO_CORRIENTE", vigente_desde=date(2026, 1, 1), valor="").exclude(estado=V).update(
             valor="0", estado=V, fuente="Informado por el dueño el 10-oct-2026: ninguna deuda financiera vence en los próximos 12 meses; revisar con la contadora al cierre",
         )
+
+    def _confirmar_regimen_ordinario(self):
+        """RUT (actualización del 15-abr-2025, impreso el 17-jul-2026): responsabilidad 05, impuesto de renta régimen ordinario (no SIMPLE, que sería la 47)."""
+        rut = "RUT: responsabilidad 05 (renta, régimen ordinario; sin la 47 del SIMPLE), persona jurídica"
+        Parametro.objects.filter(codigo="RENTA_TARIFA", valor="0.35").exclude(estado=V).update(
+            estado=V, fuente=f"Estatuto Tributario art. 240 (35 % sociedades, Ley 2277 de 2022); {rut}"[:300])
+        Parametro.objects.filter(codigo="RENTA_TASA_MINIMA", valor="0.15").exclude(estado=V).update(
+            estado=V, fuente=f"Estatuto Tributario art. 240 par. 6 (tasa mínima de tributación 15 %); {rut}"[:300])
+        Parametro.objects.filter(codigo="RENTA_ANTICIPO_PORCENTAJE", valor="", vigente_hasta__isnull=True).update(
+            valor="0.75", fuente="Estatuto Tributario art. 807: 75 % desde el tercer año de declaración (la empresa declara desde 2015); falta confirmarlo con la contadora"[:300])
+
+    def _confirmar_respuestas_del_dueno(self):
+        """Respuestas del dueño del 9 y 10-oct-2026: la contadora fijó 1110 para bancos y ninguna obligación financiera vence en 12 meses."""
+        Parametro.objects.filter(codigo="PUC_CAJA_BANCOS", valor="1110").exclude(estado=V).update(
+            estado=V, fuente="Confirmado por la contadora (informado por el dueño el 9-oct-2026): la cuenta de bancos es la 1110")
+        Parametro.objects.filter(codigo="PUC_PASIVO_CORRIENTE", valor="22,23,24,25,26,28").exclude(estado=V).update(
+            estado=V, fuente="Informado por el dueño el 10-oct-2026: ninguna obligación financiera (grupo 21) vence en menos de 12 meses, así que el corriente es 22 a 26 y 28; revisar al cierre"[:300])
 
     def _confirmar_tope_iva(self):
         """Estatuto Tributario art. 600: IVA bimestral con ingresos brutos del año anterior de 92.000 UVT o más; cuatrimestral para los demás."""

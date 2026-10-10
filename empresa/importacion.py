@@ -83,13 +83,23 @@ CAMPOS_POR_TIPO = {
         Campo("fecha", "Fecha", "fecha", True),
         Campo("descripcion", "Descripción"),
         Campo("referencia", "Referencia"),
-        Campo("valor", "Valor (+ ingreso / - egreso)", "numero", True),
+        Campo("valor", "Valor (+ ingreso / - egreso)", "numero"),
+        Campo("debito", "Débitos o cargos (salidas), si el extracto los trae separados", "numero"),
+        Campo("credito", "Créditos o abonos (entradas), si el extracto los trae separados", "numero"),
     ],
 }
 
 
 # Otros nombres con que los exportes suelen llamar a cada campo (se comparan ya normalizados).
 ALIAS_POR_TIPO = {
+    "extracto_banco": {
+        "fecha": ("fecha", "fecha movimiento", "fecha de movimiento", "fecha operacion", "fecha transaccion"),
+        "descripcion": ("descripcion", "detalle", "concepto", "movimiento"),
+        "referencia": ("referencia", "referencia 1", "documento", "no documento", "numero documento"),
+        "valor": ("valor", "monto", "importe", "valor movimiento"),
+        "debito": ("debito", "debitos", "cargos", "cargo", "retiros", "valor debito"),
+        "credito": ("credito", "creditos", "abonos", "abono", "depositos", "valor credito"),
+    },
     "terceros": {
         "nit": ("nit", "identificacion", "numero de identificacion", "nit cedula", "nit o cedula", "cedula nit", "documento", "no identificacion", "cc nit"),
         "dv": ("dv", "digito verificacion", "digito de verificacion"),
@@ -271,6 +281,10 @@ def leer(contenido: bytes, nombre: str, tipo: str, perfil, max_filas=None) -> Le
     faltantes = [
         c.etiqueta for c in campos if c.requerido and (c.nombre not in mapeo or mapeo[c.nombre] not in columnas)
     ]
+    if tipo == "extracto_banco":
+        tiene = lambda k: k in mapeo and mapeo[k] in columnas  # noqa: E731
+        if not (tiene("valor") or (tiene("debito") and tiene("credito"))):
+            faltantes.append("Valor (o las dos columnas Débitos y Créditos)")
     lectura = Lectura(columnas=columnas, filas=[], total_filas=len(df), faltantes=faltantes)
     if faltantes:
         return lectura
@@ -296,6 +310,8 @@ def leer(contenido: bytes, nombre: str, tipo: str, perfil, max_filas=None) -> Le
                         raise ValueError("valor requerido vacío")
             except ValueError as exc:
                 problemas.append(f"{c.etiqueta}: {exc}")
+        if tipo == "extracto_banco" and not problemas and mapeo.get("valor") not in columnas:
+            registro["valor"] = registro.get("credito", Decimal("0")) - registro.get("debito", Decimal("0"))  # abonos suman, cargos restan
         if problemas:
             lectura.errores.append({"fila": i + 1 + (perfil.fila_encabezado if perfil else 1), "problemas": problemas})
         else:

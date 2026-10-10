@@ -32,10 +32,13 @@ NOMBRES = {
 
 # Formularios de la DIAN que se pueden subir como declaración (número, nombre y texto que debe aparecer).
 FORMULARIOS = {
-    "300": ("Formulario 300 · IVA", ("impuesto sobre las ventas", "ventas")),
-    "350": ("Formulario 350 · Retención en la fuente", ("retenci",)),
-    "110": ("Formulario 110 · Renta personas jurídicas", ("renta",)),
     "ica": ("ICA Bogotá (Secretaría de Hacienda)", ("industria y comercio", "ica")),
+    "reteica": ("ReteICA Bogotá (retención de ICA)", ("reteica", "retención del impuesto de industria", "retencion del impuesto de industria", "retenciones de ica")),
+    "350": ("Formulario 350 · Retención en la fuente", ("retenci",)),
+    "300": ("Formulario 300 · IVA", ("impuesto sobre las ventas", "ventas")),
+    "110": ("Formulario 110 · Renta personas jurídicas", ("renta",)),
+    "exo_dist": ("Exógena distrital de Bogotá (constancia de presentación)", ("exógena", "exogena", "información")),
+    "exo_dian": ("Exógena nacional DIAN (constancia de presentación)", ("exógena", "exogena", "información")),
     "otro": ("Otra declaración", ()),
 }
 
@@ -76,8 +79,11 @@ def _tipos_probables(columnas):
     probables = []
     for t in TABULARES:
         mapeo = sugerir_mapeo(t, columnas)
-        if all(c.nombre in mapeo for c in CAMPOS_POR_TIPO[t] if c.requerido):
-            probables.append(t)
+        if not all(c.nombre in mapeo for c in CAMPOS_POR_TIPO[t] if c.requerido):
+            continue
+        if t == "extracto_banco" and not ("valor" in mapeo or ("debito" in mapeo and "credito" in mapeo)):
+            continue
+        probables.append(t)
     return probables
 
 
@@ -231,7 +237,7 @@ def _revisar_declaracion(contenido, formulario, empresa, res):
         res.errores.append("El archivo no es un PDF válido.")
         return
     if not formulario:
-        res.errores.append("Elige qué declaración es (formulario 300, 350, 110, ICA u otra).")
+        res.errores.append("Elige qué declaración es (ICA, ReteICA, retención, IVA, renta, exógena distrital, exógena nacional u otra).")
         return
     texto = _texto_pdf(contenido)
     if texto is None:

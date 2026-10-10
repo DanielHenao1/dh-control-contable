@@ -31,7 +31,7 @@ class CargaForm(forms.Form):
     formulario = forms.ChoiceField(
         label="Formulario (solo declaraciones)", required=False,
         choices=[("", "—")] + [(k, v[0]) for k, v in FORMULARIOS.items()],
-        help_text="IVA es el formulario 300; la retención en la fuente es el 350.",
+        help_text="IVA es el formulario 300; la retención en la fuente es el 350. ICA y ReteICA son de la Secretaría de Hacienda de Bogotá.",
     )
     varios_meses = forms.BooleanField(
         label="El archivo trae varios meses: repartir por la fecha de cada registro", required=False,

@@ -12,6 +12,7 @@
 <div class="tabla-scroll"><table><tr><th>NIT</th><th>Nombre</th><th class="num">Movimiento del mes</th></tr>{% for f in proveedores.filas|slice:":30" %}<tr><td>{{ f.nit }}</td><td>{{ f.nombre }}</td><td class="num">{{ f.saldo|pesos }}</td></tr>{% empty %}<tr><td colspan="3">Sin datos.</td></tr>{% endfor %}</table></div></div>
 </div>
 <h2>Banco: extracto vs libros</h2>
+{% if permisos.cargar %}<p><a class="btn" href="{% url 'carga_nueva' %}?tipo=extracto_banco">Cargar extracto bancario (PDF o Excel)</a></p>{% endif %}
 <p style="color:var(--gris-600);max-width:820px">Compara cada movimiento del <strong>extracto bancario</strong> que cargaste con los movimientos de la <strong>cuenta del banco en World Office</strong> (el auxiliar). Un movimiento queda conciliado cuando el valor es igual (con $1 de tolerancia por redondeos) y la fecha difiere máximo 3 días; los que cruzan con otra fecha, o agrupados (por ejemplo los gastos bancarios), se muestran aparte para revisar. Lo que no cruza queda en una de dos listas: <em>solo en el extracto</em> (el banco lo movió y en libros no está registrado) o <em>solo en libros</em> (está registrado en libros pero el banco no lo muestra).</p>
 {% if not bancos %}<div class="aviso">No hay auxiliares cargados de cuentas de caja y bancos (11…) para este mes: carga el libro auxiliar para poder conciliar.</div>{% else %}
 <form class="fila" method="get"><input type="hidden" name="anio" value="{{ periodo.anio }}"><input type="hidden" name="mes" value="{{ periodo.mes }}">

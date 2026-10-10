@@ -26,7 +26,20 @@
   {% if user.rol != "contratista" %}<a href="{% url 'tablero' %}" {% if request.path == "/" %}class="activo"{% endif %}>Tablero</a>{% endif %}
   {% if permisos.cargar %}<a href="{% url 'cargas' %}">Cargas</a>{% endif %}
   {% if permisos.ver %}<a href="{% url 'hallazgos' %}">Hallazgos</a><a href="{% url 'terceros' %}">Terceros</a><a href="{% url 'facturas' %}">Facturas</a>{% endif %}
-  {% if permisos.ver_fiscal %}<a href="{% url 'iva_retencion' %}">IVA y retención</a><a href="{% url 'conciliaciones' %}">Conciliaciones</a><a href="{% url 'fiscal' %}">Renta, ICA, exógena</a><a href="{% url 'anual' %}">Consolidado anual</a><a href="{% url 'proyeccion' %}">Proyección</a>{% endif %}
+  {% if permisos.ver_fiscal %}<a href="{% url 'conciliaciones' %}">Conciliaciones</a>
+  <div class="menu-grupo">
+    <button type="button" class="menu-grupo-boton" aria-expanded="false" aria-haspopup="true">Impuestos <span aria-hidden="true">▾</span></button>
+    <div class="menu-sub">
+      <a href="{% url 'ica' %}">ICA</a>
+      <a href="{% url 'reteica' %}">ReteICA</a>
+      <a href="{% url 'retencion' %}">Retención en la fuente</a>
+      <a href="{% url 'iva' %}">IVA</a>
+      <a href="{% url 'renta' %}">Renta</a>
+      <a href="{% url 'exogena_distrital' %}">Exógena distrital</a>
+      <a href="{% url 'exogena_nacional' %}">Exógena nacional</a>
+    </div>
+  </div>
+  <a href="{% url 'anual' %}">Consolidado anual</a><a href="{% url 'proyeccion' %}">Proyección</a>{% endif %}
   {% if permisos.ver %}<a href="{% url 'calendario' %}">Calendario</a><a href="{% url 'analisis' %}">Análisis</a>{% endif %}
   {% if permisos.ver_fiscal %}<a href="{% url 'informes' %}">Informes</a><a href="{% url 'asistente' %}">Asistente</a>{% endif %}
   {% if permisos.ver_contratista %}<a href="{% url 'contratista' %}">Contratista</a>{% endif %}
@@ -36,7 +49,10 @@
 <script>
 (function(){var p=location.pathname,m=null,l=0;document.querySelectorAll('nav.menu a').forEach(function(a){var h=a.getAttribute('href');
 if((h==='/'?p==='/':p.indexOf(h)===0)&&h.length>l){m=a;l=h.length;}});
-if(m){m.classList.add('activo');m.setAttribute('aria-current','page');}
+if(m){m.classList.add('activo');m.setAttribute('aria-current','page');var g=m.closest('.menu-grupo');if(g){g.querySelector('.menu-grupo-boton').classList.add('activo');}}
+document.querySelectorAll('.menu-grupo-boton').forEach(function(bt){bt.addEventListener('click',function(e){e.stopPropagation();var g=bt.parentNode,a=g.classList.toggle('abierto');if(a&&window.innerWidth>900){var r=bt.getBoundingClientRect(),sub=g.querySelector('.menu-sub');sub.style.top=(r.bottom+6)+'px';sub.style.left=Math.max(8,Math.min(r.left,window.innerWidth-sub.offsetWidth-8))+'px';}bt.setAttribute('aria-expanded',a?'true':'false');});});
+document.addEventListener('click',function(e){document.querySelectorAll('.menu-grupo.abierto').forEach(function(g){if(!g.contains(e.target)){g.classList.remove('abierto');g.querySelector('.menu-grupo-boton').setAttribute('aria-expanded','false');}});});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')document.querySelectorAll('.menu-grupo.abierto').forEach(function(g){g.classList.remove('abierto');});});
 var b=document.getElementById('menu-toggle'),bar=document.querySelector('.barra-fija');
 function cerrar(){bar.classList.remove('abierto');b.setAttribute('aria-expanded','false');b.setAttribute('aria-label','Abrir el menú');}
 if(b&&bar){b.addEventListener('click',function(){var a=bar.classList.toggle('abierto');b.setAttribute('aria-expanded',a?'true':'false');b.setAttribute('aria-label',a?'Cerrar el menú':'Abrir el menú');});

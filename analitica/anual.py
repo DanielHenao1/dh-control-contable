@@ -75,7 +75,8 @@ def _umbral(codigo, fecha):
     return valor, aviso
 
 
-def obligacion_exogena(anio, ingresos):
+def obligacion_exogena(anio, ingresos, solo=None):
+    completo = len(meses_con_auxiliares(anio)) >= 12
     """Dos comprobaciones por separado: la exógena nacional (DIAN) y la distrital de Bogotá tienen normas, umbrales y formatos distintos."""
     fecha = date(anio, 12, 31)
     try:
@@ -91,6 +92,8 @@ def obligacion_exogena(anio, ingresos):
          "Resolución DDI-024115 de 2026 de la Secretaría Distrital de Hacienda (año gravable 2025)",
          "También están obligados los agentes de retención del distrito y otros sujetos por su actividad, sin importar el umbral."),
     ):
+        if solo and codigo != solo:
+            continue
         umbral, aviso = _umbral(codigo, fecha)
         fila = {"nombre": nombre, "norma": norma, "extra": extra, "umbral_uvt": umbral, "codigo": codigo, "aviso": aviso}
         if umbral in (None, "") or uvt is None:
@@ -100,6 +103,8 @@ def obligacion_exogena(anio, ingresos):
             fila["tope"] = tope
             if ingresos >= tope:
                 fila.update(estado="obligado", texto="Los ingresos del año alcanzan el umbral: debe reportar.")
+            elif not completo:
+                fila.update(estado="pendiente", texto="Con los meses cargados no se alcanza el umbral, pero faltan auxiliares de algunos meses: no es concluyente hasta cargar los 12.")
             else:
                 fila.update(estado="no_obligado", texto="Los ingresos del año no alcanzan el umbral. Confirma que no lo obligue otra condición.")
         salida.append(fila)

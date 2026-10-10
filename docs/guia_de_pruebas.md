@@ -67,7 +67,7 @@ Semáforo del mes (verde/ámbar/rojo según hallazgos), indicadores (ingresos, u
 ## 8. IVA y retención, Conciliaciones, Renta/ICA/exógena
 - **IVA y retención**: IVA del cuatrimestre (propio con facturas, contabilidad, declarado) y retención del mes (teórica, pagos, contabilidad, declarada). Con los ejemplos: generado 1.710.000 = 1.710.000; descontable 817.000 vs 703.000. Los «supuestos del cálculo» están al pie.
 - **Conciliaciones**: auxiliares vs balance por grupo, cartera y proveedores por tercero, y **bancos**: escribe el prefijo de la cuenta del banco (`111005` en el ejemplo) para ver qué hay solo en el extracto (cargo bancario de 12.000) y qué solo en libros.
-- **Renta, ICA, exógena**: renta estimada al corte, diferencias contable-fiscal, ICA Bogotá del bimestre, validación de exógena y registro de **declaraciones** del año (aquí se anota lo que presenta Ideako).
+- **Impuestos (menú desplegable) → Renta, ICA, Exógena y Declaraciones**: renta estimada al corte, diferencias contable-fiscal, ICA Bogotá del bimestre, validación de exógena y registro de **declaraciones** del año (aquí se anota lo que presenta Ideako).
 
 ## 9. Proyección, simulador y análisis
 - **Proyección**: impuesto estimado al cierre del año por escenario y caja de impuestos de 12 meses (se recalcula con los datos actuales).

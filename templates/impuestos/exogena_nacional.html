@@ -1,0 +1,17 @@
+{% extends "base.html" %}{% load utiles %}
+{% block contenido %}
+<h1>Exógena nacional (DIAN)</h1>
+{% include "_selector.html" %}
+<div class="aviso">Borradores propios para contrastar con los del contratista. Nunca para presentar.</div>
+<p style="color:var(--gris-600);max-width:860px">Es un informe distinto de la exógena distrital de Bogotá: tiene su propia norma, umbral y formatos. Para comprobar el umbral del año completo carga los auxiliares de los 12 meses (<a href="{% url 'anual' %}">Consolidado anual</a>).</p>
+<div class="tarjeta" style="max-width:760px"><h3 style="margin:0 0 6px">{{ obligacion.nombre }}</h3>
+<p><span class="chip {% if obligacion.estado == 'obligado' %}rojo{% elif obligacion.estado == 'no_obligado' %}verde{% else %}ambar{% endif %}">{% if obligacion.estado == 'obligado' %}Debe reportar{% elif obligacion.estado == 'no_obligado' %}No alcanza el umbral{% else %}Pendiente{% endif %}</span></p>
+<p>{{ obligacion.texto }}</p>
+{% if obligacion.umbral_uvt %}<p>Umbral: {{ obligacion.umbral_uvt }} UVT{% if obligacion.tope %} = <strong>{{ obligacion.tope|pesos }}</strong>{% endif %} · Ingresos del año {{ periodo.anio }} (según auxiliares): <strong>{{ total.ingresos|pesos }}</strong>{% if obligacion.aviso %} <span style="color:var(--gris-600)">({{ obligacion.aviso }})</span>{% endif %}</p>{% endif %}
+<p style="color:var(--gris-600);font-size:13px">{{ obligacion.norma }}. {{ obligacion.extra }}</p></div>
+{% include "impuestos/_vencimientos.html" %}
+<h2>Validación durante el año</h2>
+{% if tope_exogena %}<p>Tope de reporte por tercero: <strong>{{ tope_exogena|pesos }}</strong></p>{% else %}<div class="aviso">Falta el tope de exógena (parámetro EXOGENA_TOPE_PESOS o EXOGENA_TOPE_UVT). Cárgalo desde la resolución vigente.</div>{% endif %}
+<div class="tabla-scroll"><table><tr><th>NIT</th><th>Tercero</th><th class="num">Pagos acumulados</th><th>Reportable</th><th>Datos faltantes</th></tr>
+{% for e in exogena %}<tr><td>{{ e.nit }}</td><td>{{ e.nombre }}</td><td class="num">{{ e.total|pesos }}</td><td>{% if e.reportable %}<span class="chip ambar">Sí</span>{% else %}No{% endif %}</td><td>{{ e.faltantes|join:", " }}</td></tr>{% empty %}<tr><td colspan="5">Sin pagos cargados.</td></tr>{% endfor %}</table></div>
+{% endblock %}

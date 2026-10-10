@@ -21,6 +21,13 @@ nav.menu a:hover,nav.menu a:focus-visible{background:#ffffff26;color:#fff;transf
 nav.menu a.activo{color:#14284b;background:#ffcd00;font-weight:700;box-shadow:0 3px 10px #0004}
 nav.menu a.activo:hover{background:#ffd633;color:#14284b}
 @media (max-width:1100px){nav.menu{justify-content:flex-start}}
+.menu-grupo{position:relative;flex:none}
+.menu-grupo-boton{background:transparent;border:0;color:#dbe5f7;font:inherit;font-size:13.5px;font-weight:500;letter-spacing:.2px;padding:7px 11px;border-radius:999px;cursor:pointer;white-space:nowrap}
+.menu-grupo-boton:hover,.menu-grupo-boton:focus-visible,.menu-grupo.abierto .menu-grupo-boton{background:#ffffff26;color:#fff;outline:none}
+.menu-grupo-boton.activo{color:#14284b;background:#ffcd00;font-weight:700}
+.menu-sub{display:none;position:fixed;z-index:50;min-width:290px;background:var(--azul-2);border:1px solid #ffffff2e;border-radius:12px;box-shadow:0 10px 28px #0007;padding:6px;flex-direction:column}
+.menu-grupo.abierto .menu-sub{display:flex}
+.menu-sub a{border-radius:8px!important;text-align:left!important;white-space:normal!important}
 main{max-width:1180px;margin:0 auto;padding:16px}
 h1{font-size:22px;margin:4px 0 12px}h2{font-size:17px;margin:20px 0 8px}
 .tarjeta{background:var(--tarjeta);border:1px solid var(--borde);border-radius:10px;padding:14px;margin-bottom:14px}
@@ -205,4 +212,7 @@ table.cal td.fuera{background:var(--gris-50);opacity:.55}
   .barra-fija.abierto nav.menu{display:flex}
   nav.menu a{padding:13px 14px;font-size:16px;text-align:left;border-radius:10px}
   nav.menu a:hover,nav.menu a:focus-visible{transform:none}
+  .menu-grupo{width:100%}
+  .menu-grupo-boton{width:100%;text-align:left;padding:13px 14px;font-size:16px;border-radius:10px}
+  .menu-sub{position:static;box-shadow:none;border:0;border-left:2px solid #ffffff40;border-radius:0;margin:2px 0 4px 14px;padding:0 0 0 6px;min-width:0;background:transparent}
 }

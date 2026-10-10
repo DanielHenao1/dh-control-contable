@@ -1,0 +1,17 @@
+{% extends "base.html" %}{% load utiles %}
+{% block contenido %}
+<h1>Renta</h1>
+{% include "_selector.html" %}
+<div class="aviso">Borradores propios para contrastar con los del contratista. Nunca para presentar.</div>
+<h2>Renta {{ periodo.anio }} · estimación al corte</h2>
+<div class="tabla-scroll"><table>
+{% for k, v in renta.valores.items %}<tr><th style="width:320px">{{ k|etiqueta }}</th><td class="num">{% if k == "corte" %}{{ v }}{% else %}{{ v|cifra:k }}{% endif %}</td></tr>{% empty %}<tr><td>Sin datos.</td></tr>{% endfor %}</table></div>
+{% include "conciliaciones/_calculo.html" with calculo=renta %}
+<h2>Conciliación fiscal vs contable</h2>
+{% if permisos.administrar %}<p><a class="btn" href="{% url 'diferencia_nueva' %}">Nueva diferencia</a></p>{% endif %}
+<div class="tabla-scroll"><table><tr><th>Concepto</th><th>Tipo</th><th class="num">Valor</th><th>Soporte</th><th>Explicada</th><th></th></tr>
+{% for d in diferencias %}<tr><td>{{ d.concepto }}</td><td>{{ d.get_tipo_display }}</td><td class="num">{{ d.valor|pesos }}</td><td>{{ d.soporte }}</td><td>{{ d.explicada|yesno:"Sí,No" }}</td><td>{% if permisos.administrar %}<a href="{% url 'diferencia_editar' d.pk %}">Editar</a>{% endif %}</td></tr>
+{% empty %}<tr><td colspan="6">Sin diferencias registradas.</td></tr>{% endfor %}</table></div>
+{% include "impuestos/_vencimientos.html" %}
+<p><a href="{% url 'declaraciones' %}">Declaraciones registradas del año</a></p>
+{% endblock %}

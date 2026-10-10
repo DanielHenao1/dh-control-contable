@@ -24,7 +24,7 @@
 <p style="color:var(--gris-600);max-width:860px">La exógena de la DIAN y la distrital de Bogotá son informes diferentes: cada una tiene su norma, su umbral, sus formatos y su plataforma (la distrital se presenta en PIDO). Aquí se comprueba con los ingresos del año si la empresa llega al umbral de cada una. {% if uvt %}UVT del año: {{ uvt|pesos }}{% if aviso_uvt %} ({{ aviso_uvt }}){% endif %}.{% else %}Falta la UVT del año.{% endif %}</p>
 <div class="alerta-rejilla" style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
 {% for o in obligaciones %}<div class="tarjeta"><h3 style="margin:0 0 6px">{{ o.nombre }}</h3>
-<p><span class="chip {% if o.estado == 'obligado' %}rojo{% elif o.estado == 'no_obligado' %}verde{% else %}ambar{% endif %}">{% if o.estado == 'obligado' %}Debe reportar{% elif o.estado == 'no_obligado' %}No alcanza el umbral{% else %}Pendiente de parámetro{% endif %}</span></p>
+<p><span class="chip {% if o.estado == 'obligado' %}rojo{% elif o.estado == 'no_obligado' %}verde{% else %}ambar{% endif %}">{% if o.estado == 'obligado' %}Debe reportar{% elif o.estado == 'no_obligado' %}No alcanza el umbral{% else %}Pendiente{% endif %}</span></p>
 <p>{{ o.texto }}</p>
 {% if o.umbral_uvt %}<p>Umbral: {{ o.umbral_uvt }} UVT{% if o.tope %} = <strong>{{ o.tope|pesos }}</strong>{% endif %} · Ingresos del año: <strong>{{ total.ingresos|pesos }}</strong>{% if o.aviso %} <span style="color:var(--gris-600)">({{ o.aviso }})</span>{% endif %}</p>{% endif %}
 <p style="color:var(--gris-600);font-size:13px">{{ o.norma }}. {{ o.extra }}</p></div>{% endfor %}

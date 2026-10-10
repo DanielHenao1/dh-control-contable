@@ -1,0 +1,4 @@
+<h2>Vencimientos {{ periodo.anio }}</h2>
+<div class="tabla-scroll"><table><tr><th>Obligación</th><th>Período</th><th>Fecha límite</th><th>Estado</th><th>Verificación de la fecha</th></tr>
+{% for o in vencimientos %}<tr><td><a href="{% url 'obligacion' o.pk %}">{{ o.nombre }}</a></td><td>{{ o.periodo_texto }}</td><td>{{ o.fecha_limite|date:"d/m/Y" }}</td><td>{{ o.get_estado_display }}</td><td>{{ o.get_verificacion_display }}</td></tr>
+{% empty %}<tr><td colspan="5">Sin fechas cargadas para {{ periodo.anio }}. Se muestran en el <a href="{% url 'calendario' %}">calendario</a> cuando existan.</td></tr>{% endfor %}</table></div>

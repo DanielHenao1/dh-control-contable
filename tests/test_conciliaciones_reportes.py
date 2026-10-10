@@ -138,7 +138,7 @@ def test_tablero_con_datos(cliente_dueno, datos_iniciales):
     assert r.status_code == 200 and b"Ingresos acumulados" in r.content
     assert Empresa.actual().nit_formateado == "900.902.549-7"
     Parametro.objects.filter(codigo="RENTA_TARIFA").delete()
-    assert cliente_dueno.get("/fiscal/?anio=2026&mes=9").status_code == 200
+    assert cliente_dueno.get("/renta/?anio=2026&mes=9").status_code == 200
 
 
 def test_excel_neutraliza_formulas():
@@ -225,7 +225,7 @@ def test_libro_auxiliar_de_todo_el_anio_se_reparte_por_mes_y_completa_la_exogena
 
     html = cliente_dueno.get("/anual/?anio=2025").content.decode()
     assert "12 de 12 meses" in html and "Exógena nacional (DIAN)" in html and "Exógena distrital (Bogotá)" in html
-    assert "Pendiente de parámetro" in html  # DIAN: falta el umbral; distrital: 3.500 UVT × UVT 2025 no se alcanza con $5.000
+    assert "Pendiente" in html  # DIAN: falta el umbral; distrital: 3.500 UVT × UVT 2025 no se alcanza con $5.000
     assert "No alcanza el umbral" in html
 
     mensual = ArchivoCargado.objects.create(tipo="auxiliar", nombre_original="m.xlsx", hash_sha256="b" * 64, tamano=1,

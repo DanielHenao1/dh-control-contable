@@ -1,0 +1,7 @@
+{% extends "base.html" %}{% load utiles %}
+{% block contenido %}
+<h1>ReteICA Bogotá</h1>
+{% include "_selector.html" %}
+<div class="aviso">Pendiente: el sistema todavía no calcula la retención de ICA practicada. Para hacerlo faltan la cuenta contable donde World Office registra la ReteICA (parámetro por definir con la contadora) y la tarifa por actividad del tercero. Mientras tanto se muestran sus fechas límite.</div>
+{% include "impuestos/_vencimientos.html" %}
+{% endblock %}

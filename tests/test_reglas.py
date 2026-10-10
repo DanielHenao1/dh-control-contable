@@ -297,8 +297,23 @@ def test_plan_de_cuentas_llena_los_parametros_sin_pisar_lo_editado(datos_inicial
 
     assert p("PUC_IVA_DESCONTABLE").valor == "240802" and p("PUC_IVA_DESCONTABLE").estado == "verificado"
     assert p("PUC_CARTERA").valor == "1305" and p("PUC_CAJA_BANCOS").valor == "1105,1110,1120"
-    assert p("PUC_PASIVO_CORRIENTE").estado == "por_verificar" and p("PUC_PASIVO_CORRIENTE").valor  # propuesta pendiente
+    assert p("PUC_ACTIVO_CORRIENTE").estado == "verificado" and p("PUC_COSTOS").valor == "6,7"
+    assert p("PUC_ACTIVOS_FIJOS").estado == "verificado" and p("PUC_NO_DEDUCIBLES").estado == "verificado"
+    # lo único sin definir: qué obligaciones financieras vencen en menos de un año (el balance no lo dice)
+    assert p("PUC_PASIVO_CORRIENTE").estado == "por_verificar" and "21" not in p("PUC_PASIVO_CORRIENTE").valor.split(",")
+    # un servidor que ya tenía la propuesta anterior (por verificar) la recibe actualizada
+    Parametro.objects.filter(codigo="PUC_ACTIVO_CORRIENTE").update(estado="por_verificar")
+    call_command("cargar_datos_iniciales")
+    assert p("PUC_ACTIVO_CORRIENTE").estado == "verificado"
     Parametro.objects.filter(codigo="PUC_INGRESOS").update(valor="41,42", estado="por_verificar")  # alguien lo editó
     Parametro.objects.filter(codigo="PUC_CARTERA").update(valor="1305,1380", estado="verificado")
     call_command("cargar_datos_iniciales")
     assert p("PUC_INGRESOS").valor == "41,42" and p("PUC_CARTERA").valor == "1305,1380"
+
+
+def test_las_fuentes_del_plan_de_cuentas_caben_en_el_campo():
+    """Parametro.fuente admite 300 caracteres; SQLite no lo exige pero PostgreSQL sí."""
+    from empresa.management.commands.cargar_datos_iniciales import FUENTE_PLAN, PLAN_DE_CUENTAS
+
+    largos = [c for c, _, _, nota, _ in PLAN_DE_CUENTAS if len(f"{FUENTE_PLAN}: {nota}") > 300]
+    assert not largos, largos

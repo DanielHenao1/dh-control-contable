@@ -30,17 +30,16 @@
   <div class="menu-grupo">
     <button type="button" class="menu-grupo-boton" aria-expanded="false" aria-haspopup="true">Impuestos <span aria-hidden="true">▾</span></button>
     <div class="menu-sub">
-      <a href="{% url 'iva' %}">IVA</a>
+      <a href="{% url 'ica' %}">ICA</a>
+      <a href="{% url 'reteica' %}">ReteICA</a>
       <a href="{% url 'retencion' %}">Retención en la fuente</a>
+      <a href="{% url 'iva' %}">IVA</a>
       <a href="{% url 'renta' %}">Renta</a>
-      <a href="{% url 'ica' %}">ICA Bogotá</a>
-      <a href="{% url 'exogena' %}">Exógena (validación)</a>
-      <a href="{% url 'anual' %}">Consolidado anual (exógena DIAN y distrital)</a>
-      <a href="{% url 'declaraciones' %}">Declaraciones</a>
-      <a href="{% url 'conceptos' %}">Conceptos de retención y tarifas ICA</a>
-      <a href="{% url 'proyeccion' %}">Proyección de impuestos</a>
+      <a href="{% url 'exogena_distrital' %}">Exógena distrital</a>
+      <a href="{% url 'exogena_nacional' %}">Exógena nacional</a>
     </div>
-  </div>{% endif %}
+  </div>
+  <a href="{% url 'anual' %}">Consolidado anual</a><a href="{% url 'proyeccion' %}">Proyección</a>{% endif %}
   {% if permisos.ver %}<a href="{% url 'calendario' %}">Calendario</a><a href="{% url 'analisis' %}">Análisis</a>{% endif %}
   {% if permisos.ver_fiscal %}<a href="{% url 'informes' %}">Informes</a><a href="{% url 'asistente' %}">Asistente</a>{% endif %}
   {% if permisos.ver_contratista %}<a href="{% url 'contratista' %}">Contratista</a>{% endif %}

@@ -12,4 +12,6 @@
 <div class="tabla-scroll"><table><tr><th>Concepto</th><th>Tipo</th><th class="num">Valor</th><th>Soporte</th><th>Explicada</th><th></th></tr>
 {% for d in diferencias %}<tr><td>{{ d.concepto }}</td><td>{{ d.get_tipo_display }}</td><td class="num">{{ d.valor|pesos }}</td><td>{{ d.soporte }}</td><td>{{ d.explicada|yesno:"Sí,No" }}</td><td>{% if permisos.administrar %}<a href="{% url 'diferencia_editar' d.pk %}">Editar</a>{% endif %}</td></tr>
 {% empty %}<tr><td colspan="6">Sin diferencias registradas.</td></tr>{% endfor %}</table></div>
+{% include "impuestos/_vencimientos.html" %}
+<p><a href="{% url 'declaraciones' %}">Declaraciones registradas del año</a></p>
 {% endblock %}

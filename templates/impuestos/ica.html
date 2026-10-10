@@ -6,4 +6,6 @@
 <h2>ICA Bogotá · bimestre {{ bimestre }}</h2>
 <div class="tabla-scroll"><table>{% for k, v in ica.valores.items %}<tr><th style="width:320px">{{ k|etiqueta }}</th><td class="num">{% if k == "corte" %}{{ v }}{% else %}{{ v|cifra:k }}{% endif %}</td></tr>{% empty %}<tr><td>Sin datos.</td></tr>{% endfor %}</table></div>
 {% include "conciliaciones/_calculo.html" with calculo=ica %}
+{% include "impuestos/_vencimientos.html" %}
+<p><a href="{% url 'conceptos' %}">Tarifas de ICA por actividad</a></p>
 {% endblock %}

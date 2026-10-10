@@ -7,4 +7,5 @@
 {% for f in iva.filas %}<tr><td>{{ f.concepto }}</td><td class="num">{{ f.propio|pesos }}</td><td class="num">{{ f.contabilidad|pesos }}</td>
 <td class="num {% if f.dif_contabilidad %}rojo{% endif %}">{{ f.dif_contabilidad|pesos }}</td><td class="num">{{ f.declarado|pesos }}</td><td class="num">{{ f.dif_declarado|pesos }}</td></tr>{% endfor %}</table></div>
 {% include "conciliaciones/_calculo.html" with calculo=iva.calculo %}
+{% include "impuestos/_vencimientos.html" %}
 {% endblock %}

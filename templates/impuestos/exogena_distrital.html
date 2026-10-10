@@ -1,0 +1,19 @@
+{% extends "base.html" %}{% load utiles %}
+{% block contenido %}
+<h1>Exógena distrital (Bogotá)</h1>
+{% include "_selector.html" %}
+<div class="aviso">Borradores propios para contrastar con los del contratista. Nunca para presentar.</div>
+<p style="color:var(--gris-600);max-width:860px">Informe de la Secretaría Distrital de Hacienda, distinto de la exógena de la DIAN: se presenta en la plataforma PIDO. Pendiente: los formatos de cada grupo, hasta verificar los anexos de la resolución.</p>
+<div class="tarjeta" style="max-width:760px"><h3 style="margin:0 0 6px">{{ obligacion.nombre }}</h3>
+<p><span class="chip {% if obligacion.estado == 'obligado' %}rojo{% elif obligacion.estado == 'no_obligado' %}verde{% else %}ambar{% endif %}">{% if obligacion.estado == 'obligado' %}Debe reportar{% elif obligacion.estado == 'no_obligado' %}No alcanza el umbral{% else %}Pendiente{% endif %}</span></p>
+<p>{{ obligacion.texto }}</p>
+{% if obligacion.umbral_uvt %}<p>Umbral: {{ obligacion.umbral_uvt }} UVT{% if obligacion.tope %} = <strong>{{ obligacion.tope|pesos }}</strong>{% endif %} · Ingresos del año {{ periodo.anio }} (según auxiliares): <strong>{{ total.ingresos|pesos }}</strong>{% if obligacion.aviso %} <span style="color:var(--gris-600)">({{ obligacion.aviso }})</span>{% endif %}</p>{% endif %}
+<p style="color:var(--gris-600);font-size:13px">{{ obligacion.norma }}. {{ obligacion.extra }}</p></div>
+{% include "impuestos/_vencimientos.html" %}
+<h2>Pagos del año {{ periodo.anio }} por tercero (base del informe)</h2>
+<p style="color:var(--gris-600);max-width:860px">Suma de costos y gastos (clases 5, 6 y 7). {% if sin_nit %}<strong>{{ sin_nit }} terceros no traen NIT</strong>: el auxiliar de World Office exporta solo el nombre; hace falta el maestro de terceros (NIT, dirección y ciudad).{% endif %}</p>
+<p><a class="btn sec" href="{% url 'anual' %}?anio={{ periodo.anio }}&exportar=xlsx">Exportar a Excel</a></p>
+<div class="tabla-scroll"><table><tr><th>NIT</th><th>Tercero</th><th class="num">Pagos del año</th></tr>
+{% for f in pagos %}<tr><td>{{ f.nit|default:"—" }}</td><td>{{ f.nombre }}</td><td class="num">{{ f.total|pesos }}</td></tr>{% empty %}<tr><td colspan="3">Sin auxiliares cargados de {{ periodo.anio }}.</td></tr>{% endfor %}</table></div>
+{% if total_pagos > 150 %}<p>Se muestran los 150 mayores de {{ total_pagos }}; el Excel trae todos.</p>{% endif %}
+{% endblock %}

@@ -7,4 +7,6 @@
 {% for f in retencion.filas %}<tr><td>{{ f.concepto }}</td><td class="num">{{ f.teorico|pesos }}</td><td class="num">{{ f.registrado|pesos }}</td><td class="num">{{ f.contabilidad|pesos }}</td><td class="num">{{ f.declarado|pesos }}</td>
 <td class="num">{{ f.dif_teorico|pesos }}</td><td class="num">{{ f.dif_contabilidad|pesos }}</td><td class="num">{{ f.dif_declarado|pesos }}</td></tr>{% endfor %}</table></div>
 {% include "conciliaciones/_calculo.html" with calculo=retencion.calculo %}
+{% include "impuestos/_vencimientos.html" %}
+<p><a href="{% url 'conceptos' %}">Conceptos de retención y sus tarifas</a></p>
 {% endblock %}

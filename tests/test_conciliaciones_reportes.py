@@ -225,7 +225,7 @@ def test_libro_auxiliar_de_todo_el_anio_se_reparte_por_mes_y_completa_la_exogena
 
     html = cliente_dueno.get("/anual/?anio=2025").content.decode()
     assert "12 de 12 meses" in html and "Exógena nacional (DIAN)" in html and "Exógena distrital (Bogotá)" in html
-    assert "Pendiente de parámetro" in html  # DIAN: falta el umbral; distrital: 3.500 UVT × UVT 2025 no se alcanza con $5.000
+    assert "Pendiente" in html  # DIAN: falta el umbral; distrital: 3.500 UVT × UVT 2025 no se alcanza con $5.000
     assert "No alcanza el umbral" in html
 
     mensual = ArchivoCargado.objects.create(tipo="auxiliar", nombre_original="m.xlsx", hash_sha256="b" * 64, tamano=1,

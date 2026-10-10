@@ -53,7 +53,7 @@ def fiscal(request):
 def renta(request):
     periodo = periodo_desde_request(request)
     r = borrador_renta(periodo.anio, periodo if periodo.saldos.exists() else None)
-    ctx = {"renta": r.como_dict(), "diferencias": DiferenciaFiscal.objects.filter(anio=periodo.anio), "titulo": "Renta", **contexto_selector(periodo)}
+    ctx = {"renta": r.como_dict(), "diferencias": DiferenciaFiscal.objects.filter(anio=periodo.anio), "vencimientos": _vencimientos(["renta_c1", "renta_c2"], periodo.anio), "titulo": "Renta", **contexto_selector(periodo)}
     return render(request, "impuestos/renta.html", ctx)
 
 
@@ -61,24 +61,65 @@ def renta(request):
 def ica(request):
     periodo = periodo_desde_request(request)
     bimestre = (periodo.mes + 1) // 2
-    ctx = {"ica": borrador_ica(periodo.anio, bimestre).como_dict(), "bimestre": bimestre, "titulo": "ICA", **contexto_selector(periodo)}
+    ctx = {"ica": borrador_ica(periodo.anio, bimestre).como_dict(), "bimestre": bimestre, "vencimientos": _vencimientos(["ica"], periodo.anio), "titulo": "ICA", **contexto_selector(periodo)}
     return render(request, "impuestos/ica.html", ctx)
 
 
+def _vencimientos(tipos, anio):
+    """Fechas límite del año de los impuestos dados (el calendario es la fuente)."""
+    from calendario.models import Obligacion
+
+    return Obligacion.objects.filter(tipo__in=tipos, fecha_limite__year=anio).order_by("fecha_limite")
+
+
 @requiere("ver_fiscal")
-def exogena(request):
+def reteica(request):
     periodo = periodo_desde_request(request)
+    ctx = {"vencimientos": _vencimientos(["reteica"], periodo.anio), "titulo": "ReteICA", **contexto_selector(periodo)}
+    return render(request, "impuestos/reteica.html", ctx)
+
+
+def _obligacion_exogena(periodo, codigo):
+    from analitica import anual
+
+    _, total = anual.resultados_por_mes(periodo.anio)
+    obligaciones, uvt, aviso_uvt = anual.obligacion_exogena(periodo.anio, total["ingresos"], solo=codigo)
+    return obligaciones[0], total, uvt, aviso_uvt
+
+
+@requiere("ver_fiscal")
+def exogena_nacional(request):
+    periodo = periodo_desde_request(request)
+    obligacion, total, uvt, aviso_uvt = _obligacion_exogena(periodo, "EXOGENA_DIAN_UMBRAL_UVT")
     t = tope(periodo.anio)
     pagos = pagos_acumulados(periodo)
     maestro = {x.nit: x for x in Tercero.objects.filter(nit__in=list(pagos))}
     filas = []
-    for nit, total in sorted(pagos.items(), key=lambda kv: -kv[1]):
+    for nit, total_pagos in sorted(pagos.items(), key=lambda kv: -kv[1]):
         ter = maestro.get(nit)
-        filas.append({"nit": nit, "nombre": ter.razon_social if ter else "", "total": total,
-                      "reportable": (t is not None and total >= t),
+        filas.append({"nit": nit, "nombre": ter.razon_social if ter else "", "total": total_pagos,
+                      "reportable": (t is not None and total_pagos >= t),
                       "faltantes": ter.faltantes_exogena() if ter else ["no está en el maestro"]})
-    ctx = {"tope_exogena": t, "exogena": filas[:100], "titulo": "Exógena", **contexto_selector(periodo)}
-    return render(request, "impuestos/exogena.html", ctx)
+    ctx = {
+        "obligacion": obligacion, "total": total, "uvt": uvt, "aviso_uvt": aviso_uvt, "tope_exogena": t, "exogena": filas[:100],
+        "vencimientos": _vencimientos(["exogena"], periodo.anio), "titulo": "Exógena nacional (DIAN)", **contexto_selector(periodo),
+    }
+    return render(request, "impuestos/exogena_nacional.html", ctx)
+
+
+@requiere("ver_fiscal")
+def exogena_distrital(request):
+    from analitica import anual
+
+    periodo = periodo_desde_request(request)
+    obligacion, total, uvt, aviso_uvt = _obligacion_exogena(periodo, "EXOGENA_DISTRITAL_UMBRAL_UVT")
+    pagos = anual.pagos_por_tercero(periodo.anio)
+    ctx = {
+        "obligacion": obligacion, "total": total, "uvt": uvt, "aviso_uvt": aviso_uvt,
+        "pagos": pagos[:150], "total_pagos": len(pagos), "sin_nit": sum(1 for f in pagos if not f["nit"]),
+        "vencimientos": _vencimientos(["exogena_distrital"], periodo.anio), "titulo": "Exógena distrital (Bogotá)", **contexto_selector(periodo),
+    }
+    return render(request, "impuestos/exogena_distrital.html", ctx)
 
 
 @requiere("ver_fiscal")

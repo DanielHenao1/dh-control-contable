@@ -6,7 +6,7 @@ from empresa.models import RegistroAuditoria, Usuario
 
 from .conftest import usuario_con_rol
 
-URLS_GET = ["/", "/hallazgos/", "/terceros/", "/facturas/", "/iva-retencion/", "/conciliaciones/", "/fiscal/",
+URLS_GET = ["/", "/hallazgos/", "/terceros/", "/facturas/", "/iva/", "/retencion/", "/conciliaciones/", "/renta/", "/ica/", "/exogena/", "/declaraciones/",
             "/fiscal/conceptos/", "/proyeccion/", "/simulador/", "/analisis/", "/calendario/", "/calendario/?vista=lista",
             "/calendario/reglas/", "/informes/", "/contratista/", "/cargas/", "/cargas/nueva/", "/configuracion/",
             "/auditoria/", "/perfiles/", "/hallazgos/catalogo/"]
@@ -50,7 +50,7 @@ def test_roles(client, datos_iniciales):
 @pytest.mark.django_db
 def test_contador_solo_lectura(client, datos_iniciales):
     client.force_login(usuario_con_rol("contador"))
-    assert client.get("/fiscal/").status_code == 200
+    assert client.get("/renta/").status_code == 200
     assert client.get("/cargas/nueva/").status_code == 403
     assert client.get("/configuracion/").status_code == 403
 
@@ -177,3 +177,12 @@ def test_bandeja_muestra_por_defecto_solo_lo_abierto(cliente_dueno, db):
 def test_menu_hamburguesa_para_celular(cliente_dueno, db):
     html = cliente_dueno.get("/").content.decode()
     assert 'id="menu-toggle"' in html and 'aria-controls="menu-principal"' in html and 'id="menu-principal"' in html
+
+
+@pytest.mark.django_db
+def test_rutas_anteriores_de_impuestos_redirigen(client, datos_iniciales):
+    client.force_login(usuario_con_rol("dueno"))
+    assert client.get("/fiscal/?anio=2026&mes=9").url == "/renta/?anio=2026&mes=9"
+    assert client.get("/iva-retencion/").url == "/iva/"
+    html = client.get("/renta/").content.decode()
+    assert "Impuestos" in html and "/retencion/" in html and "/exogena/" in html and "/declaraciones/" in html

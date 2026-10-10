@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% load utiles %}
+{% block contenido %}
+<h1>Exógena</h1>
+{% include "_selector.html" %}
+<div class="aviso">Borradores propios para contrastar con los del contratista. Nunca para presentar.</div>
+<p><a href="{% url 'anual' %}">Consolidado anual: exógena nacional (DIAN) y distrital (Bogotá) con el año completo</a></p>
+<h2>Exógena: validación durante el año</h2>
+{% if tope_exogena %}<p>Tope de reporte por tercero: <strong>{{ tope_exogena|pesos }}</strong></p>{% else %}<div class="aviso">Falta el tope de exógena (parámetro EXOGENA_TOPE_PESOS o EXOGENA_TOPE_UVT). Cárgalo desde la resolución vigente.</div>{% endif %}
+<div class="tabla-scroll"><table><tr><th>NIT</th><th>Tercero</th><th class="num">Pagos acumulados</th><th>Reportable</th><th>Datos faltantes</th></tr>
+{% for e in exogena %}<tr><td>{{ e.nit }}</td><td>{{ e.nombre }}</td><td class="num">{{ e.total|pesos }}</td><td>{% if e.reportable %}<span class="chip ambar">Sí</span>{% else %}No{% endif %}</td><td>{{ e.faltantes|join:", " }}</td></tr>{% empty %}<tr><td colspan="5">Sin pagos cargados.</td></tr>{% endfor %}</table></div>
+{% endblock %}

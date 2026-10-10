@@ -138,7 +138,7 @@ def test_tablero_con_datos(cliente_dueno, datos_iniciales):
     assert r.status_code == 200 and b"Ingresos acumulados" in r.content
     assert Empresa.actual().nit_formateado == "900.902.549-7"
     Parametro.objects.filter(codigo="RENTA_TARIFA").delete()
-    assert cliente_dueno.get("/fiscal/?anio=2026&mes=9").status_code == 200
+    assert cliente_dueno.get("/renta/?anio=2026&mes=9").status_code == 200
 
 
 def test_excel_neutraliza_formulas():

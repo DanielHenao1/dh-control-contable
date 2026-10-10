@@ -4,6 +4,10 @@ from . import views
 
 urlpatterns = [
     path("fiscal/", views.fiscal, name="fiscal"),
+    path("renta/", views.renta, name="renta"),
+    path("ica/", views.ica, name="ica"),
+    path("exogena/", views.exogena, name="exogena"),
+    path("declaraciones/", views.declaraciones, name="declaraciones"),
     path("fiscal/conceptos/", views.conceptos, name="conceptos"),
     path("fiscal/declaracion/nueva/", views.declaracion_editar, name="declaracion_nueva"),
     path("fiscal/declaracion/<int:pk>/", views.declaracion_editar, name="declaracion_editar"),

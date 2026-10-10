@@ -1,4 +1,5 @@
-from django.shortcuts import render
+from django.shortcuts import redirect, render
+from django.urls import reverse
 
 from empresa.permisos import requiere
 from empresa.utils import contexto_selector, periodo_desde_request
@@ -9,13 +10,23 @@ from . import servicios
 
 @requiere("ver_fiscal")
 def iva_retencion(request):
+    """Ruta anterior: la pantalla se separó en IVA y Retención en la fuente."""
+    return redirect(f"{reverse('iva')}?{request.GET.urlencode()}" if request.GET else reverse("iva"))
+
+
+@requiere("ver_fiscal")
+def iva(request):
     periodo = periodo_desde_request(request)
     indice, _, _ = tramo_de(periodo.anio, periodo.mes)
-    ctx = {
-        "iva": servicios.conciliar_iva(periodo.anio, indice), "indice_iva": indice,
-        "retencion": servicios.conciliar_retencion(periodo), "titulo": "IVA y retención", **contexto_selector(periodo),
-    }
-    return render(request, "conciliaciones/iva_retencion.html", ctx)
+    ctx = {"iva": servicios.conciliar_iva(periodo.anio, indice), "indice_iva": indice, "titulo": "IVA", **contexto_selector(periodo)}
+    return render(request, "conciliaciones/iva.html", ctx)
+
+
+@requiere("ver_fiscal")
+def retencion(request):
+    periodo = periodo_desde_request(request)
+    ctx = {"retencion": servicios.conciliar_retencion(periodo), "titulo": "Retención en la fuente", **contexto_selector(periodo)}
+    return render(request, "conciliaciones/retencion.html", ctx)
 
 
 @requiere("ver_fiscal")

@@ -1,12 +1,7 @@
 {% extends "base.html" %}{% load utiles %}
 {% block contenido %}
-<h1>IVA y retención</h1>
+<h1>Retención en la fuente</h1>
 {% include "_selector.html" %}
-<h2>IVA · período {{ indice_iva }} ({{ iva.meses.0 }}–{{ iva.meses.1 }}): facturas DIAN vs contabilidad vs declarado</h2>
-<div class="tabla-scroll"><table><tr><th>Concepto</th><th class="num">Propio (FE)</th><th class="num">Contabilidad</th><th class="num">Dif.</th><th class="num">Declarado</th><th class="num">Dif.</th></tr>
-{% for f in iva.filas %}<tr><td>{{ f.concepto }}</td><td class="num">{{ f.propio|pesos }}</td><td class="num">{{ f.contabilidad|pesos }}</td>
-<td class="num {% if f.dif_contabilidad %}rojo{% endif %}">{{ f.dif_contabilidad|pesos }}</td><td class="num">{{ f.declarado|pesos }}</td><td class="num">{{ f.dif_declarado|pesos }}</td></tr>{% endfor %}</table></div>
-{% include "conciliaciones/_calculo.html" with calculo=iva.calculo %}
 <h2>Retención en la fuente · {{ periodo }}</h2>
 <div class="tabla-scroll"><table><tr><th>Concepto</th><th class="num">Teórico</th><th class="num">Registrado en pagos</th><th class="num">Contabilidad</th><th class="num">Declarado</th><th class="num">Dif. pagos vs teórico</th><th class="num">Dif. pagos vs contab.</th><th class="num">Dif. vs declarado</th></tr>
 {% for f in retencion.filas %}<tr><td>{{ f.concepto }}</td><td class="num">{{ f.teorico|pesos }}</td><td class="num">{{ f.registrado|pesos }}</td><td class="num">{{ f.contabilidad|pesos }}</td><td class="num">{{ f.declarado|pesos }}</td>

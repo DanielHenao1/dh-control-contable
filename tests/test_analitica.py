@@ -198,3 +198,11 @@ def test_parte_corriente_de_obligaciones_financieras_queda_en_cero_verificada(da
 
     p = Parametro.vigente("PUC_PASIVO_FINANCIERO_CORRIENTE", date(2026, 10, 10))
     assert p.valor == "0" and not p.pendiente
+
+
+@pytest.mark.django_db
+def test_el_tope_de_iva_queda_verificado_con_el_articulo_600(datos_iniciales):
+    from datetime import date
+
+    p = Parametro.vigente("IVA_TOPE_BIMESTRAL_UVT", date(2026, 10, 10))
+    assert p.valor == "92000" and not p.pendiente and "600" in p.fuente

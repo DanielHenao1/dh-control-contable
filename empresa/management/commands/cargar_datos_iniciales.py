@@ -221,11 +221,13 @@ class Command(BaseCommand):
         self._confirmar_uvt_2025()
         asegurar_vigencias()
         self._confirmar_pasivo_financiero_2026()
+        self._confirmar_tope_iva()
         self._recalcular_controles()
         self.stdout.write(self.style.SUCCESS(f"Datos iniciales listos. Obligaciones nuevas: {n}. Marcadas como presentadas y pagadas: {n_hist}. DV del NIT: {dv}."))
 
     def _recalcular_controles(self):
         """Tras una actualización las reglas pueden haber cambiado: se vuelven a ejecutar en los periodos abiertos con datos."""
+        from analitica import estimaciones
         from controles.motor import ejecutar_reglas
         from empresa.models import ArchivoCargado, Periodo
 
@@ -233,6 +235,7 @@ class Command(BaseCommand):
         for periodo in Periodo.objects.filter(id__in=ids):
             if not periodo.cerrado:
                 ejecutar_reglas(periodo)
+                estimaciones.recalcular(periodo)  # las advertencias de la proyección dependen de los parámetros
 
     def _aplicar_plan_de_cuentas(self):
         """Pone en los parámetros PUC las cuentas reales de World Office, sin pisar lo que alguien ya editó o verificó."""
@@ -245,6 +248,12 @@ class Command(BaseCommand):
         """El dueño informó el 10-oct-2026 que ninguna obligación financiera vence en los próximos 12 meses (parte corriente = 0)."""
         Parametro.objects.filter(codigo="PUC_PASIVO_FINANCIERO_CORRIENTE", vigente_desde=date(2026, 1, 1), valor="").exclude(estado=V).update(
             valor="0", estado=V, fuente="Informado por el dueño el 10-oct-2026: ninguna deuda financiera vence en los próximos 12 meses; revisar con la contadora al cierre",
+        )
+
+    def _confirmar_tope_iva(self):
+        """Estatuto Tributario art. 600: IVA bimestral con ingresos brutos del año anterior de 92.000 UVT o más; cuatrimestral para los demás."""
+        Parametro.objects.filter(codigo="IVA_TOPE_BIMESTRAL_UVT", valor="92000").exclude(estado=V).update(
+            estado=V, fuente="Estatuto Tributario art. 600 (bimestral desde 92.000 UVT de ingresos brutos del año anterior; cuatrimestral los demás)",
         )
 
     def _confirmar_uvt_2025(self):

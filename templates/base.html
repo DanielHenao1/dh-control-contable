@@ -15,13 +15,14 @@
 {% if user.is_authenticated %}
 <div class="barra-fija">
 <header class="top">
+  <button type="button" class="menu-toggle" id="menu-toggle" aria-label="Abrir el menú" aria-expanded="false" aria-controls="menu-principal"><span></span><span></span><span></span></button>
   <a href="{% url 'tablero' %}" class="logo-enlace" aria-label="Inicio"><img class="logo" src="{% static 'img/logo-dhstore-claro.png' %}" alt="DH Store" width="74" height="40"></a>
   <div class="marca">DH Control Contable<small>{% if empresa_actual %}{{ empresa_actual.razon_social }} · NIT {{ empresa_actual.nit_formateado }}{% else %}Configura la empresa{% endif %}</small></div>
   <div class="espacio"></div>
-  <span style="font-size:13px">{{ user.nombre_visible }}</span>
+  <span class="usuario-nombre" style="font-size:13px">{{ user.nombre_visible }}</span>
   <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">Salir</button></form>
 </header>
-<nav class="menu" aria-label="Principal">
+<nav class="menu" id="menu-principal" aria-label="Principal">
   {% if user.rol != "contratista" %}<a href="{% url 'tablero' %}" {% if request.path == "/" %}class="activo"{% endif %}>Tablero</a>{% endif %}
   {% if permisos.cargar %}<a href="{% url 'cargas' %}">Cargas</a>{% endif %}
   {% if permisos.ver %}<a href="{% url 'hallazgos' %}">Hallazgos</a><a href="{% url 'terceros' %}">Terceros</a><a href="{% url 'facturas' %}">Facturas</a>{% endif %}
@@ -35,7 +36,13 @@
 <script>
 (function(){var p=location.pathname,m=null,l=0;document.querySelectorAll('nav.menu a').forEach(function(a){var h=a.getAttribute('href');
 if((h==='/'?p==='/':p.indexOf(h)===0)&&h.length>l){m=a;l=h.length;}});
-if(m){m.classList.add('activo');m.setAttribute('aria-current','page');}})();
+if(m){m.classList.add('activo');m.setAttribute('aria-current','page');}
+var b=document.getElementById('menu-toggle'),bar=document.querySelector('.barra-fija');
+function cerrar(){bar.classList.remove('abierto');b.setAttribute('aria-expanded','false');b.setAttribute('aria-label','Abrir el menú');}
+if(b&&bar){b.addEventListener('click',function(){var a=bar.classList.toggle('abierto');b.setAttribute('aria-expanded',a?'true':'false');b.setAttribute('aria-label',a?'Cerrar el menú':'Abrir el menú');});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')cerrar();});
+document.addEventListener('click',function(e){if(bar.classList.contains('abierto')&&!bar.contains(e.target))cerrar();});
+window.addEventListener('resize',function(){if(window.innerWidth>900)cerrar();});}})();
 </script>
 {% endif %}
 <main>

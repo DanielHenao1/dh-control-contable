@@ -284,3 +284,21 @@ def test_cargar_datos_iniciales_recalcula_los_controles_de_los_periodos_con_dato
     ArchivoCargado.objects.filter(tipo="auxiliar", periodo__mes=3).delete()  # el año deja de estar completo
     call_command("cargar_datos_iniciales")
     assert hallazgos(p, "TER002")[0].estado == "corregido"
+
+
+@pytest.mark.django_db
+def test_plan_de_cuentas_llena_los_parametros_sin_pisar_lo_editado(datos_iniciales):
+    from django.core.management import call_command
+
+    from empresa.models import Parametro
+
+    def p(codigo):
+        return Parametro.objects.get(codigo=codigo, vigente_hasta__isnull=True)
+
+    assert p("PUC_IVA_DESCONTABLE").valor == "240802" and p("PUC_IVA_DESCONTABLE").estado == "verificado"
+    assert p("PUC_CARTERA").valor == "1305" and p("PUC_CAJA_BANCOS").valor == "1105,1110,1120"
+    assert p("PUC_PASIVO_CORRIENTE").estado == "por_verificar" and p("PUC_PASIVO_CORRIENTE").valor  # propuesta pendiente
+    Parametro.objects.filter(codigo="PUC_INGRESOS").update(valor="41,42", estado="por_verificar")  # alguien lo editó
+    Parametro.objects.filter(codigo="PUC_CARTERA").update(valor="1305,1380", estado="verificado")
+    call_command("cargar_datos_iniciales")
+    assert p("PUC_INGRESOS").valor == "41,42" and p("PUC_CARTERA").valor == "1305,1380"

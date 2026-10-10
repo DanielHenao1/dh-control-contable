@@ -93,10 +93,15 @@ def descontable_sin_soporte(periodo):
     pref = c.usar("PUC_IVA_DESCONTABLE")
     if not pref:
         return []
-    from .reglas_facturas import norm_doc
+    from .reglas_facturas import indice_documentos, movimientos_de, norm_doc
 
-    docs = {norm_doc(f.numero_completo) for f in facturas_vigentes(periodo, "recibida")}
-    docs |= {norm_doc(f.numero) for f in facturas_vigentes(periodo, "recibida")}
+    recibidas = list(facturas_vigentes(periodo, "recibida"))
+    docs = {norm_doc(f.numero_completo) for f in recibidas} | {norm_doc(f.numero) for f in recibidas}
+    # World Office registra la compra con su propio consecutivo («(DTS) FC DHT 1315»): se cuentan como soportados los
+    # documentos contables a los que se vincula alguna factura recibida (por número, o por tercero y valor).
+    indice = indice_documentos(periodo)
+    for f in recibidas:
+        docs |= {norm_doc(m.documento) for m in movimientos_de(f, indice) if m.documento}
     salida = []
     for m in movimientos_vigentes(periodo):
         if any(m.cuenta.codigo.startswith(p) for p in pref) and m.debito > TOL and norm_doc(m.documento) not in docs:

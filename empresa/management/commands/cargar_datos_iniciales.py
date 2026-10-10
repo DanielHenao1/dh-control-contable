@@ -59,6 +59,35 @@ PARAMETROS = [
     ("CONCILIAR_GRUPOS", "Grupos de cuentas para conciliar auxiliares vs balance", "lista", "11,13,22,23,24", date(2025, 1, 1), None, V, "Criterio operativo del sistema"),
 ]
 
+# Plan de cuentas real de World Office (balance de prueba de septiembre de 2026 entregado por el contador). Cada fila:
+# (parámetro, valor, estado, nota, valores anteriores que se pueden reemplazar). Solo se reemplaza lo que sigue sin verificar y
+# con el valor de fábrica: lo que alguien ya editó o verificó en la pantalla no se toca.
+FUENTE_PLAN = "Plan de cuentas de World Office (balance de septiembre de 2026 entregado por el contador)"
+PLAN_DE_CUENTAS = [
+    ("PUC_IVA_GENERADO", "240801", V, "cuenta 240801 IVA GENERADO", {""}),
+    ("PUC_IVA_DESCONTABLE", "240802", V, "cuenta 240802 IVA DESCONTABLE (incluye 24080201 compras, 24080203 servicios, 24080209 importaciones)", {""}),
+    ("PUC_RETEFUENTE", "2365", V, "grupo 2365 RETENCION EN LA FUENTE", {"2365"}),
+    ("PUC_RETEIVA", "2367", V, "grupo 2367 IMPUESTO A LAS VENTAS RETENIDO", {"2367"}),
+    ("PUC_INGRESOS", "4", V, "clase 4 INGRESOS", {"4"}),
+    ("PUC_GASTOS", "5", V, "clase 5 GASTOS", {"5"}),
+    ("PUC_COSTOS", "6,7", PV, "clase 6 COSTOS DE VENTAS y clase 7 COSTOS DE PRODUCCION O DE OPERACION: confirmar si la 7 cuenta como costo de ventas", {"6"}),
+    ("PUC_COSTOS_GASTOS", "5,6,7", V, "clases 5, 6 y 7", {"5,6,7"}),
+    ("PUC_CAJA_BANCOS", "1105,1110,1120", V, "1105 CAJA, 1110 BANCOS y 1120 CUENTAS DE AHORRO", {"11"}),
+    ("PUC_CARTERA", "1305", V, "1305 CLIENTES (1330, 1355 y 1380 no son cartera de clientes)", {"13"}),
+    ("PUC_CUENTAS_POR_PAGAR", "22,2335", V, "22 PROVEEDORES y 2335 COSTOS Y GASTOS POR PAGAR", {"22,23"}),
+    ("PUC_INVENTARIOS", "14", V, "grupo 14 INVENTARIOS", {"14"}),
+    ("PUC_ACTIVO_CORRIENTE", "11,13,14,1705", PV, "propuesta: disponible, deudores, inventarios y gastos pagados por anticipado; confirmar con el contador", {""}),
+    ("PUC_PASIVO_CORRIENTE", "22,23,24,25,26,28", PV, "propuesta; falta decidir si las obligaciones financieras (21) vencen en menos de un año", {""}),
+    ("PUC_ACTIVOS_FIJOS", "1512,1516,1524", PV, "los grupos 1512, 1516 y 1524 tienen las cuentas depreciables (maquinaria, oficina, computación, flota, muebles); confirmar", {"1524,1528,1540"}),
+    ("PUC_GASTO_DEPRECIACION", "5160", V, "grupo 5160 DEPRECIACIONES", {"5160"}),
+    ("PUC_GASTO_PERSONAL", "5105", V, "grupo 5105 GASTOS DE PERSONAL", {"5105"}),
+    ("PUC_PROVISIONES_LABORALES", "25,2610", V, "25 OBLIGACIONES LABORALES y 2610 PARA OBLIGACIONES LABORALES (cesantías, intereses, vacaciones, prima)", {"25"}),
+    ("PUC_NO_DEDUCIBLES", "539540", PV, "539540 GASTOS NO DEDUCIBLES; confirmar si 531520 IMPUESTOS ASUMIDOS también lo es", {""}),
+    ("PUC_IMPUESTO_RENTA", "5405", PV, "el balance no tiene cuentas de la clase 54: confirmar dónde se registra el gasto por impuesto de renta", {"5405"}),
+    ("PUC_CUENTAS_CONTRA", "1592,4175,2408", V, "1592 DEPRECIACION ACUMULADA, 4175 DEVOLUCIONES EN VENTAS y 2408 IVA llevan saldo contrario por diseño",
+     {"1299,1399,1499,1592,1597,1599,4175,2408"}),
+]
+
 FUENTE_DECRETO = "Decreto 2229 de 2023 (normograma DIAN); VenciApp y Actualícese; cálculo con festivos"
 REGLAS = [
     ("retefuente", 9, 15, "regla", FUENTE_DECRETO),
@@ -184,6 +213,7 @@ class Command(BaseCommand):
                 "estado_dian": "Estado", "sentido": "Grupo",
             }),
         )
+        self._aplicar_plan_de_cuentas()
         self._recalcular_controles()
         self.stdout.write(self.style.SUCCESS(f"Datos iniciales listos. Obligaciones nuevas: {n}. Marcadas como presentadas y pagadas: {n_hist}. DV del NIT: {dv}."))
 
@@ -196,3 +226,10 @@ class Command(BaseCommand):
         for periodo in Periodo.objects.filter(id__in=ids):
             if not periodo.cerrado:
                 ejecutar_reglas(periodo)
+
+    def _aplicar_plan_de_cuentas(self):
+        """Pone en los parámetros PUC las cuentas reales de World Office, sin pisar lo que alguien ya editó o verificó."""
+        for codigo, valor, estado, nota, anteriores in PLAN_DE_CUENTAS:
+            Parametro.objects.filter(codigo=codigo, vigente_hasta__isnull=True).exclude(estado=V).filter(
+                valor__in=anteriores,
+            ).update(valor=valor, estado=estado, fuente=f"{FUENTE_PLAN}: {nota}")

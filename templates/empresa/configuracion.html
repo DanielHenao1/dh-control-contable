@@ -3,6 +3,9 @@
 <h1>Configuración</h1>
 <h2>Parámetros con vigencia</h2>
 <p><a class="btn" href="{% url 'parametro_nuevo' %}">Nuevo parámetro</a> <a class="btn sec" href="{% url 'conceptos' %}">Conceptos de retención y tarifas ICA</a> <a class="btn sec" href="{% url 'perfiles' %}">Perfiles de importación</a></p>
+<p><a class="btn {% if ver != 'vigentes' %}sec{% endif %}" href="?ver=vigentes">Vigentes ({{ n_vigentes }})</a>
+<a class="btn {% if ver != 'pendientes' %}sec{% endif %}" href="?ver=pendientes">Por verificar o vacíos ({{ n_pendientes }})</a>
+<a class="btn {% if ver != 'historico' %}sec{% endif %}" href="?ver=historico">Con vigencias anteriores ({{ n_historico }})</a></p>
 <div class="tabla-scroll"><table><tr><th>Código</th><th>Valor</th><th>Vigencia</th><th>Estado</th><th>Fuente</th><th></th></tr>
 {% for p in parametros %}<tr>
 <td><strong>{{ p.codigo }}</strong><br><small>{{ p.descripcion }}</small></td>

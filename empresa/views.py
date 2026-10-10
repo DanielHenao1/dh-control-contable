@@ -7,6 +7,7 @@ from django.contrib.auth.views import LoginView
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django_otp import devices_for_user
 from django_otp import login as otp_login
@@ -273,8 +274,14 @@ def perfiles_lista(request):
 # ---------- Configuración ----------
 @requiere("administrar")
 def configuracion(request):
+    hoy = timezone.localdate()
+    todos = list(Parametro.objects.all())
+    vigentes = [p for p in todos if p.vigente_desde <= hoy and (p.vigente_hasta is None or p.vigente_hasta >= hoy)]
+    pendientes = [p for p in vigentes if p.pendiente]
+    ver = request.GET.get("ver", "vigentes")
+    lista = {"pendientes": pendientes, "historico": todos}.get(ver, vigentes)
     return render(request, "empresa/configuracion.html", {
-        "parametros": Parametro.objects.all(), "titulo": "Configuración", "anuales": set(POLITICAS_ANUALES),
+        "parametros": lista, "ver": ver, "n_vigentes": len(vigentes), "n_pendientes": len(pendientes), "n_historico": len(todos), "titulo": "Configuración", "anuales": set(POLITICAS_ANUALES),
         "ultimos": {Parametro.objects.filter(codigo=c).order_by("-vigente_desde").values_list("pk", flat=True).first() for c in POLITICAS_ANUALES},
         "usuarios": Usuario.objects.all(), "periodos": Periodo.objects.all()[:24],
     })

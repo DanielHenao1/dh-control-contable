@@ -46,7 +46,21 @@ def importar_balance(archivo, filas):
 
 
 def importar_auxiliar(archivo, filas):
-    cache, objetos, nuevos = {}, [], 0
+    from empresa.models import Periodo
+
+    cache, objetos, nuevos, periodos = {}, [], 0, {}
+
+    def periodo_de(fecha):
+        """Un libro auxiliar de varios meses (por ejemplo todo un año) reparte cada movimiento en el mes de su fecha."""
+        if not archivo.varios_meses:
+            return archivo.periodo
+        clave = (fecha.year, fecha.month)
+        if clave not in periodos:
+            p = Periodo.obtener(*clave)
+            p.verificar_abierto()  # un mes cerrado no admite movimientos nuevos
+            periodos[clave] = p
+        return periodos[clave]
+
     for f in filas:
         nit, _dv = separar_nit_dv(f.get("nit", ""))
         nit = limpiar_nit(nit)
@@ -57,7 +71,7 @@ def importar_auxiliar(archivo, filas):
             nuevos += int(creado)
         objetos.append(
             Movimiento(
-                periodo=archivo.periodo, archivo=archivo, fecha=f["fecha"],
+                periodo=periodo_de(f["fecha"]), archivo=archivo, fecha=f["fecha"],
                 comprobante=f.get("comprobante", ""), documento=f.get("documento", ""),
                 cuenta=_cuenta(f["cuenta"], f.get("cuenta_nombre", ""), cache=cache), nit=nit,
                 tercero_nombre=f.get("tercero_nombre", "")[:250], descripcion=f.get("descripcion", "")[:300],
@@ -65,4 +79,7 @@ def importar_auxiliar(archivo, filas):
             )
         )
     Movimiento.objects.bulk_create(objetos, batch_size=2000)
-    return {"movimientos": len(objetos), "terceros_nuevos": nuevos}
+    resumen = {"movimientos": len(objetos), "terceros_nuevos": nuevos}
+    if archivo.varios_meses:
+        resumen["meses"] = sorted(f"{a}-{m:02d}" for a, m in periodos)
+    return resumen

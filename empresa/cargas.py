@@ -122,6 +122,28 @@ def _verificar_conflicto_de_meses(archivo, filas):
         )
 
 
+def _verificar_conflicto_de_meses_auxiliar(archivo, filas):
+    """Evita duplicar movimientos entre un libro auxiliar de varios meses y los auxiliares mensuales."""
+    from contabilidad.models import Movimiento
+
+    reemplazados = ArchivoCargado.objects.filter(
+        tipo="auxiliar", periodo=archivo.periodo, vigente=True, varios_meses=archivo.varios_meses
+    ).exclude(pk=archivo.pk)
+    meses = {(f["fecha"].year, f["fecha"].month) for f in filas} if archivo.varios_meses else {(archivo.periodo.anio, archivo.periodo.mes)}
+    ocupados = set()
+    for anio, mes in sorted(meses):
+        consulta = Movimiento.objects.filter(archivo__vigente=True, periodo__anio=anio, periodo__mes=mes)
+        if not archivo.varios_meses:
+            consulta = consulta.filter(archivo__varios_meses=True)  # entre auxiliares mensuales manda el reemplazo normal
+        if consulta.exclude(archivo__in=reemplazados).exclude(archivo=archivo).exists():
+            ocupados.add(f"{mes:02d}/{anio}")
+    if ocupados:
+        raise ConflictoDeMeses(
+            f"Ya hay movimientos de {', '.join(sorted(ocupados))} en otro libro auxiliar vigente: cargar este los duplicaría. "
+            "Usa un solo libro de varios meses o auxiliares mensuales, no ambos (borra primero los que sobren)."
+        )
+
+
 def confirmar(archivo: ArchivoCargado, usuario, omitir_filas_con_error=False):
     """Importa en una transacción. El archivo no cambia; las filas quedan ligadas a él."""
     archivo.periodo.verificar_abierto()
@@ -150,6 +172,8 @@ def confirmar(archivo: ArchivoCargado, usuario, omitir_filas_con_error=False):
         return archivo
     if archivo.tipo in ("facturas_dian", "facturas_xml"):
         _verificar_conflicto_de_meses(archivo, lectura.filas)
+    elif archivo.tipo == "auxiliar":
+        _verificar_conflicto_de_meses_auxiliar(archivo, lectura.filas)
     with transaction.atomic():
         resumen = _importadores()[archivo.tipo](archivo, lectura.filas)
         resumen["filas_omitidas"] = len(lectura.errores)

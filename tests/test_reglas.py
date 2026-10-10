@@ -309,3 +309,11 @@ def test_plan_de_cuentas_llena_los_parametros_sin_pisar_lo_editado(datos_inicial
     Parametro.objects.filter(codigo="PUC_CARTERA").update(valor="1305,1380", estado="verificado")
     call_command("cargar_datos_iniciales")
     assert p("PUC_INGRESOS").valor == "41,42" and p("PUC_CARTERA").valor == "1305,1380"
+
+
+def test_las_fuentes_del_plan_de_cuentas_caben_en_el_campo():
+    """Parametro.fuente admite 300 caracteres; SQLite no lo exige pero PostgreSQL sí."""
+    from empresa.management.commands.cargar_datos_iniciales import FUENTE_PLAN, PLAN_DE_CUENTAS
+
+    largos = [c for c, _, _, nota, _ in PLAN_DE_CUENTAS if len(f"{FUENTE_PLAN}: {nota}") > 300]
+    assert not largos, largos

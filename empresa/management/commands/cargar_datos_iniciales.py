@@ -77,7 +77,7 @@ PLAN_DE_CUENTAS = [
     ("PUC_CUENTAS_POR_PAGAR", "22,2335", V, "22 PROVEEDORES y 2335 COSTOS Y GASTOS POR PAGAR", {"22,23"}),
     ("PUC_INVENTARIOS", "14", V, "grupo 14 INVENTARIOS", {"14"}),
     ("PUC_ACTIVO_CORRIENTE", "11,13,14,1705", V, "11 DISPONIBLE, 13 DEUDORES, 14 INVENTARIOS y 1705 GASTOS PAGADOS POR ANTICIPADO (el balance no tiene inversiones del grupo 12)", {"", "11,13,14,1705"}),
-    ("PUC_PASIVO_CORRIENTE", "22,23,24,25,26,28", PV, "pasivos de operación (22 a 26 y 28). Las obligaciones financieras (21: créditos bancarios y de socios) son casi todo el pasivo y el balance no dice su vencimiento: el contador debe indicar cuáles vencen en menos de un año para sumarlas aquí", {"", "22,23,24,25,26,28"}),
+    ("PUC_PASIVO_CORRIENTE", "22,23,24,25,26,28", PV, "pasivos de operación (22 a 26 y 28). Falta decidir cuáles obligaciones financieras (21, casi todo el pasivo) vencen en menos de un año: el balance no trae el vencimiento", {"", "22,23,24,25,26,28"}),
     ("PUC_ACTIVOS_FIJOS", "1512,1516,1524", V, "grupos 1512 (maquinaria, oficina, computación, flota), 1516 (edificios y oficinas) y 1524 (muebles y enseres), que tienen su depreciación acumulada en 1592; los terrenos (1504) no se deprecian", {"1524,1528,1540", "1512,1516,1524"}),
     ("PUC_GASTO_DEPRECIACION", "5160", V, "grupo 5160 DEPRECIACIONES", {"5160"}),
     ("PUC_GASTO_PERSONAL", "5105", V, "grupo 5105 GASTOS DE PERSONAL", {"5105"}),
@@ -232,4 +232,4 @@ class Command(BaseCommand):
         for codigo, valor, estado, nota, anteriores in PLAN_DE_CUENTAS:
             Parametro.objects.filter(codigo=codigo, vigente_hasta__isnull=True).exclude(estado=V).filter(
                 valor__in=anteriores,
-            ).update(valor=valor, estado=estado, fuente=f"{FUENTE_PLAN}: {nota}")
+            ).update(valor=valor, estado=estado, fuente=f"{FUENTE_PLAN}: {nota}"[:300])  # el campo admite 300

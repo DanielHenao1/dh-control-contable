@@ -176,3 +176,25 @@ def test_liquidez_suma_la_parte_corriente_de_las_obligaciones_financieras(datos_
     assert indicadores_mes(p)["actual"]["liquidez"] == Decimal("2.5")  # 1000 / 400
     Parametro.objects.filter(codigo="PUC_PASIVO_FINANCIERO_CORRIENTE").update(valor="100", estado="verificado")
     assert indicadores_mes(p)["actual"]["liquidez"] == Decimal("2")  # 1000 / (400 + 100)
+
+
+@pytest.mark.django_db
+def test_el_aviso_cuenta_cada_parametro_una_sola_vez(datos_iniciales, client, django_user_model):
+    from django.test import RequestFactory
+
+    from empresa.context_processors import global_
+
+    usuario = django_user_model.objects.create_user("u", password="x")
+    req = RequestFactory().get("/terceros/")
+    req.user = usuario
+    codigos = set(Parametro.objects.values_list("codigo", flat=True))
+    assert global_(req)["parametros_pendientes"] <= len(codigos)
+    assert global_(req)["parametros_pendientes"] < 21
+
+
+@pytest.mark.django_db
+def test_parte_corriente_de_obligaciones_financieras_queda_en_cero_verificada(datos_iniciales):
+    from datetime import date
+
+    p = Parametro.vigente("PUC_PASIVO_FINANCIERO_CORRIENTE", date(2026, 10, 10))
+    assert p.valor == "0" and not p.pendiente

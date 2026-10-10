@@ -220,6 +220,7 @@ class Command(BaseCommand):
         self._aplicar_plan_de_cuentas()
         self._confirmar_uvt_2025()
         asegurar_vigencias()
+        self._confirmar_pasivo_financiero_2026()
         self._recalcular_controles()
         self.stdout.write(self.style.SUCCESS(f"Datos iniciales listos. Obligaciones nuevas: {n}. Marcadas como presentadas y pagadas: {n_hist}. DV del NIT: {dv}."))
 
@@ -239,6 +240,12 @@ class Command(BaseCommand):
             Parametro.objects.filter(codigo=codigo, vigente_hasta__isnull=True).exclude(estado=V).filter(
                 valor__in=anteriores,
             ).update(valor=valor, estado=estado, fuente=f"{FUENTE_PLAN}: {nota}"[:300])  # el campo admite 300
+
+    def _confirmar_pasivo_financiero_2026(self):
+        """El dueño informó el 10-oct-2026 que ninguna obligación financiera vence en los próximos 12 meses (parte corriente = 0)."""
+        Parametro.objects.filter(codigo="PUC_PASIVO_FINANCIERO_CORRIENTE", vigente_desde=date(2026, 1, 1), valor="").exclude(estado=V).update(
+            valor="0", estado=V, fuente="Informado por el dueño el 10-oct-2026: ninguna deuda financiera vence en los próximos 12 meses; revisar con la contadora al cierre",
+        )
 
     def _confirmar_uvt_2025(self):
         """UVT 2025 = $49.799 (Resolución DIAN 000193 de 2024), confirmada por la empresa el 10-oct-2026; coherente con la UVT 2026."""

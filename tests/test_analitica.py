@@ -58,7 +58,8 @@ def test_indicadores_y_anomalias(datos_iniciales):
     a = r["actual"]
     assert a["ingresos"] == Decimal("5000") and a["utilidad"] == Decimal("2000")
     assert a["margen_neto"] == Decimal("0.4") and a["endeudamiento"] == Decimal("0.4")
-    assert any("PUC_ACTIVO_CORRIENTE" in x for x in r["advertencias"])
+    assert any("PUC_PASIVO_CORRIENTE" in x for x in r["advertencias"])  # sigue por verificar: falta el vencimiento de las obligaciones financieras
+    assert not any("PUC_ACTIVO_CORRIENTE" in x for x in r["advertencias"])
     filas = [(date(2026, 6, 1 + i % 20), "C", f"D{i}", "5195", "900111", 100 + i % 3, 0) for i in range(30)]
     filas.append((date(2026, 6, 2), "C", "DX", "5195", "900111", 90000, 0))
     auxiliar(p, filas)

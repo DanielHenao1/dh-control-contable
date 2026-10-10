@@ -1,0 +1,17 @@
+{% load utiles %}<!doctype html><html lang="es-CO"><head><meta charset="utf-8"><title>Borrador formulario 350 {{ periodo }}</title>
+<style>
+@page{size:Letter;margin:14mm}
+body{font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#111}
+h1{font-size:15px;margin:0 0 2px}
+.marca{color:#b00020;font-weight:bold;font-size:12px;letter-spacing:.5px}
+table{border-collapse:collapse;width:100%;margin-top:8px}
+th,td{border:1px solid #888;padding:3px 5px}th{background:#e8ecf4}
+.num{text-align:right}small{color:#555;margin-right:4px}
+.aviso{border:1px solid #c9a300;background:#fff8dc;padding:6px;margin-top:8px}
+</style></head><body>
+<div class="marca">BORRADOR · NO PRESENTAR</div>
+<h1>Formulario 350 · Declaración de retención en la fuente</h1>
+<div>{{ empresa.razon_social }} · NIT {{ empresa.nit_formateado }} · Periodo {{ periodo.anio }}-{{ periodo.mes|stringformat:"02d" }}</div>
+<div>Generado por DH Control Contable con el balance y los auxiliares cargados. Valores aproximados al múltiplo de mil.</div>
+{% include "impuestos/_borrador_350.html" %}
+</body></html>

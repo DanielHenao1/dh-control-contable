@@ -5,7 +5,7 @@ from empresa.models import Parametro, ParametroPendiente
 from impuestos.models import ConceptoRetencion, Declaracion, Retencion
 from terceros.models import Tercero
 
-from .comun import CERO, Calculo, hojas, movimiento_neto
+from .comun import CERO, Calculo, credito_del_mes, hojas
 
 
 def redondear(valor):
@@ -58,7 +58,7 @@ def borrador_retefuente(periodo):
     if not rets:
         c.advertencias.append("No hay retenciones cargadas para el período.")
     pref = c.usar("PUC_RETEFUENTE", periodo.fin)
-    contable = movimiento_neto(periodo, pref, "C") if pref else None
+    contable = credito_del_mes(periodo, pref) if pref else None  # retención practicada: los débitos son el pago del mes anterior
     c.valores["contabilidad"] = contable
     return c
 
@@ -70,7 +70,7 @@ def declarado_retefuente(periodo):
 
 def reteiva_contable(periodo):
     pref = Parametro.obtener_o("PUC_RETEIVA")
-    return movimiento_neto(periodo, pref, "C") if pref else None
+    return credito_del_mes(periodo, pref) if pref else None
 
 
 def saldo_cuentas(periodo, prefijos):

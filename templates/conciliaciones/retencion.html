@@ -2,6 +2,7 @@
 {% block contenido %}
 <h1>Retención en la fuente</h1>
 {% include "_selector.html" %}
+<p><a class="btn" href="{% url 'borrador_350' %}?anio={{ periodo.anio }}&mes={{ periodo.mes }}">Ver y descargar borrador del formulario 350</a></p>
 <h2>Retención en la fuente · {{ periodo }}</h2>
 <div class="tabla-scroll"><table><tr><th>Concepto</th><th class="num">Teórico</th><th class="num">Registrado en pagos</th><th class="num">Contabilidad</th><th class="num">Declarado</th><th class="num">Dif. pagos vs teórico</th><th class="num">Dif. pagos vs contab.</th><th class="num">Dif. vs declarado</th></tr>
 {% for f in retencion.filas %}<tr><td>{{ f.concepto }}</td><td class="num">{{ f.teorico|pesos }}</td><td class="num">{{ f.registrado|pesos }}</td><td class="num">{{ f.contabilidad|pesos }}</td><td class="num">{{ f.declarado|pesos }}</td>

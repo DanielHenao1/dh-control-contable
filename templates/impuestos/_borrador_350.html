@@ -1,0 +1,15 @@
+{% load utiles %}
+<table class="f350">
+<tr><th rowspan="2">Concepto</th><th colspan="2">A personas jurídicas</th><th colspan="2">A personas naturales</th></tr>
+<tr><th>Base</th><th>Retención</th><th>Base</th><th>Retención</th></tr>
+{% for f in datos.filas %}{% if f.j.base or f.j.retencion or f.n.base or f.n.retencion %}
+<tr><td>{{ f.etiqueta }}</td>
+<td class="num">{% if f.j %}<small>{{ f.j.casilla_base }}</small> {{ f.j.base|pesos }}{% endif %}</td><td class="num">{% if f.j %}<small>{{ f.j.casilla_ret }}</small> {{ f.j.retencion|pesos }}{% endif %}</td>
+<td class="num">{% if f.n %}<small>{{ f.n.casilla_base }}</small> {{ f.n.base|pesos }}{% endif %}</td><td class="num">{% if f.n %}<small>{{ f.n.casilla_ret }}</small> {{ f.n.retencion|pesos }}{% endif %}</td></tr>
+{% endif %}{% endfor %}
+<tr><th colspan="4">130 · Total retenciones renta y complementario</th><th class="num">{{ datos.total_renta|pesos }}</th></tr>
+<tr><td colspan="4">{{ datos.casilla_reteiva }} · Retenciones a título de IVA (a responsables del impuesto sobre las ventas)</td><td class="num">{{ datos.reteiva|pesos }}</td></tr>
+<tr><th colspan="4">136 · Total retenciones</th><th class="num">{{ datos.total_retenciones|pesos }}</th></tr>
+</table>
+{% if datos.calculo.advertencias %}<div class="aviso"><strong>Ojo:</strong><ul>{% for a in datos.calculo.advertencias %}<li>{{ a }}</li>{% endfor %}</ul></div>{% endif %}
+<details><summary>Supuestos del cálculo</summary><ul>{% for a in datos.calculo.supuestos %}<li>{{ a }}</li>{% endfor %}</ul></details>

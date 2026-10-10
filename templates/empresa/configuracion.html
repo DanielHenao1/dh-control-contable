@@ -9,7 +9,8 @@
 <td>{% if p.valor %}{{ p.valor }}{% else %}<span class="chip rojo">vacío</span>{% endif %}</td>
 <td>{{ p.vigente_desde|date:"d/m/Y" }} → {{ p.vigente_hasta|date:"d/m/Y"|default:"abierta" }}</td>
 <td><span class="chip {% if p.estado == 'verificado' %}verde{% else %}ambar{% endif %}">{{ p.get_estado_display }}</span></td>
-<td><small>{{ p.fuente }}</small></td><td><a href="{% url 'parametro_editar' p.pk %}">Editar</a></td></tr>{% endfor %}</table></div>
+<td><small>{{ p.fuente }}</small></td><td><a href="{% url 'parametro_editar' p.pk %}">Editar</a>{% if p.pk in ultimos %}<form method="post" action="{% url 'parametro_siguiente_anio' p.pk %}" style="margin-top:6px">{% csrf_token %}<button class="btn sec" type="submit" title="Crea la vigencia del año siguiente de este parámetro">+ año siguiente</button></form>{% endif %}</td></tr>{% endfor %}</table></div>
+<p style="color:var(--gris-600);max-width:860px">Los parámetros que cambian cada año (UVT, topes de exógena, anticipo de renta, tarifas) tienen una fila por año: el 1 de enero el sistema crea la del año nuevo y deja el valor por verificar, y cada cálculo usa el valor que regía en su fecha. Con «+ año siguiente» la adelantas.</p>
 <h2>Periodos</h2>
 <div class="tabla-scroll"><table><tr><th>Periodo</th><th>Estado</th><th>Cambiar</th></tr>
 {% for p in periodos %}<tr><td>{{ p }}</td><td>{{ p.get_estado_display }}</td><td>

@@ -12,9 +12,12 @@ def global_(request):
     if not request.user.is_authenticated:
         return ctx
     ctx["empresa_actual"] = Empresa.actual()
+    # Un parámetro cuenta una sola vez, por el valor que rige hoy (no por cada vigencia histórica o futura).
+    hoy = timezone.localdate()
     pendientes = 0
-    for p in Parametro.objects.all():
-        if p.pendiente:
+    for codigo in Parametro.objects.values_list("codigo", flat=True).distinct():
+        actual = Parametro.vigente(codigo, hoy) or Parametro.objects.filter(codigo=codigo).order_by("-vigente_desde").first()
+        if actual is not None and actual.pendiente:
             pendientes += 1
     ctx["parametros_pendientes"] = pendientes
     ctx["permisos"] = {

@@ -4,6 +4,7 @@ import qrcode
 import qrcode.image.svg
 from django.contrib import messages
 from django.contrib.auth.views import LoginView
+from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
@@ -28,6 +29,7 @@ from .models import (
 from .permisos import requiere
 from .seguridad import FormularioIngreso
 from .utils import contexto_selector, periodo_desde_request
+from .vigencias import POLITICAS as POLITICAS_ANUALES
 
 
 class Ingreso(LoginView):
@@ -272,9 +274,29 @@ def perfiles_lista(request):
 @requiere("administrar")
 def configuracion(request):
     return render(request, "empresa/configuracion.html", {
-        "parametros": Parametro.objects.all(), "titulo": "Configuración",
+        "parametros": Parametro.objects.all(), "titulo": "Configuración", "anuales": set(POLITICAS_ANUALES),
+        "ultimos": {Parametro.objects.filter(codigo=c).order_by("-vigente_desde").values_list("pk", flat=True).first() for c in POLITICAS_ANUALES},
         "usuarios": Usuario.objects.all(), "periodos": Periodo.objects.all()[:24],
     })
+
+
+@requiere("administrar")
+@require_POST
+def parametro_siguiente_anio(request, pk):
+    """Crea la vigencia del año siguiente de un parámetro anual (queda por verificar)."""
+    from .vigencias import POLITICAS, crear_vigencia
+
+    base = get_object_or_404(Parametro, pk=pk)
+    if base.codigo not in POLITICAS:
+        raise PermissionDenied
+    ultimo = Parametro.objects.filter(codigo=base.codigo).order_by("-vigente_desde").first()
+    anio = ultimo.vigente_desde.year + 1
+    nuevo = crear_vigencia(base.codigo, anio, request.user)
+    if nuevo:
+        messages.success(request, f"Vigencia {anio} de {base.codigo} creada: carga el valor oficial y márcala como verificada.")
+        return redirect("parametro_editar", pk=nuevo.pk)
+    messages.info(request, f"{base.codigo} ya tiene vigencia para {anio}.")
+    return redirect("configuracion")
 
 
 @requiere("administrar")

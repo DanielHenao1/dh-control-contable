@@ -163,3 +163,16 @@ def test_comparativo_y_notas(datos_iniciales):
     ingresos = next(f for f in r["filas"] if f["clase"] == "4")
     assert ingresos["var_anio"] == Decimal("0.5")
     assert any("aumentó 50%" in n for n in r["notas"])
+
+
+@pytest.mark.django_db
+def test_liquidez_suma_la_parte_corriente_de_las_obligaciones_financieras(datos_iniciales):
+    from empresa.models import Parametro
+
+    p = periodo(2026, 6)
+    balance(p, [("1105", "Caja", 0, 0, 0, 1000), ("2205", "Proveedores", 0, 0, 0, 400), ("2105", "Bancos", 0, 0, 0, 600)])
+    Parametro.objects.filter(codigo="PUC_ACTIVO_CORRIENTE").update(valor="11", estado="verificado")
+    Parametro.objects.filter(codigo="PUC_PASIVO_CORRIENTE").update(valor="22", estado="verificado")
+    assert indicadores_mes(p)["actual"]["liquidez"] == Decimal("2.5")  # 1000 / 400
+    Parametro.objects.filter(codigo="PUC_PASIVO_FINANCIERO_CORRIENTE").update(valor="100", estado="verificado")
+    assert indicadores_mes(p)["actual"]["liquidez"] == Decimal("2")  # 1000 / (400 + 100)

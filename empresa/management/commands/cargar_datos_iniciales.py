@@ -12,6 +12,7 @@ from calendario.generador import generar_obligaciones
 from calendario.models import Obligacion, ReglaVencimiento
 from contratistas.models import Contratista
 from empresa.models import Empresa, Parametro, PerfilImportacion
+from empresa.vigencias import asegurar_vigencias
 from terceros.nit import calcular_dv
 
 V, PV = "verificado", "por_verificar"
@@ -31,6 +32,7 @@ PARAMETROS = [
     ("EXOGENA_TOPE_UVT", "Tope por tercero para exógena (en UVT), alternativo al de pesos", "decimal", "", date(2025, 1, 1), None, PV, "Resolución DIAN de exógena del año gravable: cargar"),
     ("EXOGENA_DIAN_UMBRAL_UVT", "Umbral en UVT de ingresos brutos desde el cual hay que reportar la exógena nacional (DIAN)", "decimal", "", date(2025, 1, 1), None, PV, "Resolución 000227 de 2025 de la DIAN y sus modificaciones: cargar el valor que corresponda a la empresa (las fuentes secundarias no coinciden)"),
     ("EXOGENA_DISTRITAL_UMBRAL_UVT", "Umbral en UVT de ingresos brutos desde el cual hay que reportar la exógena distrital de Bogotá", "decimal", "3500", date(2025, 1, 1), None, PV, "Resolución DDI-024115 de 2026 (Secretaría Distrital de Hacienda), según prensa especializada: 3.500 UVT; verificar en la resolución"),
+    ("PUC_PASIVO_FINANCIERO_CORRIENTE", "Parte de las obligaciones financieras (grupo 21) que vence en menos de 12 meses, en pesos; se suma al pasivo corriente", "decimal", "", date(2025, 1, 1), None, PV, "Definir con el contador según el vencimiento de cada crédito; el balance no trae vencimientos"),
     ("PUC_IVA_GENERADO", "Prefijos de cuentas de IVA generado (separados por coma)", "lista", "", date(2025, 1, 1), None, PV, "Definir según el plan de cuentas de World Office (el plan menciona la cuenta 2408)"),
     ("PUC_IVA_DESCONTABLE", "Prefijos de cuentas de IVA descontable", "lista", "", date(2025, 1, 1), None, PV, "Definir según el plan de cuentas de World Office (el plan menciona la cuenta 2408)"),
     ("PUC_RETEFUENTE", "Prefijos de cuentas de retención en la fuente por pagar", "lista", "2365", date(2025, 1, 1), None, PV, "PUC comercial; confirmar contra el plan de cuentas real"),
@@ -216,6 +218,8 @@ class Command(BaseCommand):
             }),
         )
         self._aplicar_plan_de_cuentas()
+        self._confirmar_uvt_2025()
+        asegurar_vigencias()
         self._recalcular_controles()
         self.stdout.write(self.style.SUCCESS(f"Datos iniciales listos. Obligaciones nuevas: {n}. Marcadas como presentadas y pagadas: {n_hist}. DV del NIT: {dv}."))
 
@@ -235,3 +239,9 @@ class Command(BaseCommand):
             Parametro.objects.filter(codigo=codigo, vigente_hasta__isnull=True).exclude(estado=V).filter(
                 valor__in=anteriores,
             ).update(valor=valor, estado=estado, fuente=f"{FUENTE_PLAN}: {nota}"[:300])  # el campo admite 300
+
+    def _confirmar_uvt_2025(self):
+        """UVT 2025 = $49.799 (Resolución DIAN 000193 de 2024), confirmada por la empresa el 10-oct-2026; coherente con la UVT 2026."""
+        Parametro.objects.filter(codigo="UVT", vigente_desde=date(2025, 1, 1), valor="49799").exclude(estado=V).update(
+            estado=V, fuente="Resolución DIAN 000193 de 2024 ($49.799); confirmada por la empresa el 10-oct-2026; la UVT 2026 sube 5,17 % sobre este valor",
+        )

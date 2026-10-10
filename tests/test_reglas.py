@@ -317,3 +317,44 @@ def test_las_fuentes_del_plan_de_cuentas_caben_en_el_campo():
 
     largos = [c for c, _, _, nota, _ in PLAN_DE_CUENTAS if len(f"{FUENTE_PLAN}: {nota}") > 300]
     assert not largos, largos
+
+
+@pytest.mark.django_db
+def test_vigencias_anuales_se_crean_solas_sin_tocar_los_calculos_del_pasado(datos_iniciales):
+    from datetime import date as d
+
+    from empresa.models import Parametro
+    from empresa.vigencias import asegurar_vigencias, crear_vigencia
+
+    # UVT: 2025 y 2026 ya existen; 2027 no se hereda (queda vacía hasta cargar el valor oficial)
+    nuevo = crear_vigencia("UVT", 2027)
+    assert nuevo.valor == "" and nuevo.estado == "por_verificar" and nuevo.vigente_desde == d(2027, 1, 1)
+    assert Parametro.vigente("UVT", d(2026, 6, 1)).valor == "52374" and Parametro.vigente("UVT", d(2025, 6, 1)).valor == "49799"
+    assert Parametro.vigente("UVT", d(2027, 6, 1)) == nuevo and crear_vigencia("UVT", 2027) is None
+    # tarifa de renta: se hereda como punto de partida y cierra la fila anterior el 31 de diciembre
+    asegurar_vigencias(2027)
+    anterior = Parametro.objects.get(codigo="RENTA_TARIFA", vigente_desde=d(2026, 1, 1))
+    assert anterior.vigente_hasta == d(2026, 12, 31)
+    assert Parametro.vigente("RENTA_TARIFA", d(2027, 3, 1)).valor == "0.35"
+    assert Parametro.vigente("RENTA_TARIFA", d(2025, 3, 1)).valor == "0.35"
+    # los topes de exógena de cada año son filas distintas y vacías
+    assert Parametro.vigente("EXOGENA_TOPE_PESOS", d(2026, 12, 31)).vigente_desde == d(2026, 1, 1)
+    assert Parametro.vigente("EXOGENA_TOPE_PESOS", d(2026, 12, 31)).valor == ""
+
+
+@pytest.mark.django_db
+def test_uvt_2025_verificada_aviso_por_parametro_y_boton_de_anio_siguiente(datos_iniciales, cliente_dueno):
+    import re
+
+    from empresa.models import Parametro
+
+    uvt = Parametro.objects.get(codigo="UVT", vigente_desde="2025-01-01")
+    assert uvt.estado == "verificado" and "000193" in uvt.fuente
+    n = int(re.search(r"(\d+) parámetro", cliente_dueno.get("/").content.decode()).group(1))
+    assert n <= Parametro.objects.values("codigo").distinct().count()  # una vez por parámetro, no por cada vigencia
+    assert "+ año siguiente" in cliente_dueno.get("/configuracion/").content.decode()
+    ultimo = Parametro.objects.filter(codigo="UVT").order_by("-vigente_desde").first()
+    r = cliente_dueno.post(f"/configuracion/parametro/{ultimo.pk}/siguiente-anio/")
+    assert r.status_code == 302 and Parametro.objects.filter(codigo="UVT", vigente_desde=f"{ultimo.vigente_desde.year + 1}-01-01").exists()
+    sin_anual = Parametro.objects.get(codigo="PUC_CARTERA")
+    assert cliente_dueno.post(f"/configuracion/parametro/{sin_anual.pk}/siguiente-anio/").status_code == 403

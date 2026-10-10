@@ -5,7 +5,7 @@ from collections import Counter
 from decimal import Decimal
 
 from contabilidad.models import Movimiento, saldos_vigentes
-from empresa.models import Periodo
+from empresa.models import Parametro, Periodo
 from impuestos.reglas.comun import CERO, Calculo, total_clase
 
 
@@ -43,7 +43,9 @@ def indicadores_mes(periodo):
             "endeudamiento": _div(pasivo, activo),
         }
         if ac and pc:
-            r["liquidez"] = _div(total_clase(p, ac), total_clase(p, pc))
+            # Las obligaciones financieras (21) solo cuentan como corrientes por la parte que vence en menos de 12 meses.
+            financiero = Parametro.obtener_o("PUC_PASIVO_FINANCIERO_CORRIENTE", CERO, fecha=p.fin) or CERO
+            r["liquidez"] = _div(total_clase(p, ac), total_clase(p, pc) + financiero)
         if cartera:
             r["rotacion_cartera_dias"] = _div(total_clase(p, cartera) * Decimal(30 * p.mes), ingresos)
         if prov:

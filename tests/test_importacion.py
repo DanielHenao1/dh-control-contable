@@ -194,3 +194,48 @@ def test_norm_nombre_trata_sas_con_puntos_igual_que_sas():
 
     assert norm_nombre("PROVEEDOR UNO S.A.S.") == norm_nombre("Proveedor Uno SAS") == "PROVEEDORUNO"
     assert norm_nombre("Comercial Dos S.A.") == norm_nombre("COMERCIAL DOS SA")
+
+
+def _xlsx(columnas):
+    import io
+
+    import pandas as pd
+
+    b = io.BytesIO()
+    pd.DataFrame(columnas).to_excel(b, index=False)
+    return b.getvalue()
+
+
+@pytest.mark.django_db
+def test_extracto_en_excel_con_debitos_y_creditos_separados(dueno, datos_iniciales):
+    from conciliaciones.models import MovimientoBanco
+
+    p = Periodo.obtener(2026, 9)
+    contenido = _xlsx({"FECHA": ["2026-09-02", "2026-09-03"], "DESCRIPCION": ["PAGO PROVEEDOR", "ABONO CLIENTE"],
+                       "DEBITOS": [1000.0, 0.0], "CREDITOS": [0.0, 2500.0], "SALDO": [4000.0, 6500.0]})
+    a = cargas.registrar_archivo(SimpleUploadedFile("extracto.xlsx", contenido), "extracto_banco", p, dueno)
+    a = cargas.confirmar(a, dueno)
+    assert a.estado == "importado", a.errores
+    valores = sorted(MovimientoBanco.objects.filter(archivo=a).values_list("valor", flat=True))
+    assert valores == [Decimal("-1000"), Decimal("2500")]  # los cargos restan y los abonos suman
+
+
+@pytest.mark.django_db
+def test_extracto_en_excel_con_una_columna_de_valor_y_pantalla_con_boton(cliente_dueno, dueno, datos_iniciales):
+    from conciliaciones.models import MovimientoBanco
+
+    p = Periodo.obtener(2026, 9)
+    contenido = _xlsx({"Fecha": ["2026-09-02"], "Descripción": ["PAGO"], "Valor": [-1000.0], "Saldo": [5000.0]})
+    a = cargas.confirmar(cargas.registrar_archivo(SimpleUploadedFile("e2.xlsx", contenido), "extracto_banco", p, dueno), dueno)
+    assert MovimientoBanco.objects.get(archivo=a).valor == Decimal("-1000")
+    assert "Cargar extracto bancario" in cliente_dueno.get("/conciliaciones/").content.decode()
+    assert "extracto" in cliente_dueno.get("/cargas/nueva/?tipo=extracto_banco").content.decode().lower()
+
+
+@pytest.mark.django_db
+def test_declaraciones_incluyen_reteica_y_las_dos_exogenas(cliente_dueno, datos_iniciales):
+    from empresa.forms import CargaForm
+
+    claves = {k for k, _ in CargaForm().fields["formulario"].choices}
+    assert {"ica", "reteica", "350", "300", "110", "exo_dist", "exo_dian"} <= claves
+    assert all(len(k) <= 10 for k in claves)  # cabe en ArchivoCargado.formulario

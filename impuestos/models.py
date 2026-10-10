@@ -70,15 +70,17 @@ class Declaracion(models.Model):
         RETEFUENTE = "retefuente", "Retención en la fuente"
         IVA = "iva", "IVA"
         ICA = "ica", "ICA Bogotá"
+        RETEICA = "reteica", "ReteICA Bogotá"
         RENTA = "renta", "Renta y complementarios"
-        EXOGENA = "exogena", "Información exógena"
+        EXOGENA = "exogena", "Información exógena nacional (DIAN)"
+        EXOGENA_DISTRITAL = "exogena_distrital", "Información exógena distrital (Bogotá)"
 
     class Estado(models.TextChoices):
         BORRADOR = "borrador", "Borrador propio"
         PRESENTADA = "presentada", "Presentada"
         PAGADA = "pagada", "Pagada"
 
-    tipo = models.CharField(max_length=12, choices=Tipo.choices)
+    tipo = models.CharField(max_length=20, choices=Tipo.choices)
     anio = models.PositiveSmallIntegerField()
     indice = models.PositiveSmallIntegerField(
         default=1, help_text="Mes (retención), cuatrimestre/bimestre (IVA, ICA) o 1 (renta)"

@@ -259,7 +259,7 @@ class ArchivoCargado(models.Model):
     vigente = models.BooleanField(default=False)
     resumen = models.JSONField(default=dict, blank=True)
     errores = models.JSONField(default=list, blank=True)
-    formulario = models.CharField(max_length=10, blank=True)  # declaraciones: 300, 350, 110, ica, otro
+    formulario = models.CharField(max_length=10, blank=True)  # declaraciones: ica, reteica, 350, 300, 110, exo_dist, exo_dian, otro
     varios_meses = models.BooleanField(default=False, help_text="Facturas de varios meses: se reparten por su fecha de emisión")
     verificaciones = models.JSONField(default=dict, blank=True)  # avisos de la revisión previa y si se forzó
 

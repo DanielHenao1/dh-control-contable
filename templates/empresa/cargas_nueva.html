@@ -9,6 +9,7 @@
 <form method="post" enctype="multipart/form-data">{% csrf_token %}
   <p>{{ form.tipo.label_tag }} {{ form.tipo }}{{ form.tipo.errors }}</p>
   <p id="fila-terceros" style="display:none;color:var(--gris-600)">El maestro de terceros no depende de un mes: es un catálogo permanente (NIT, razón social, tipo de persona, dirección, ciudad…). Actualiza por NIT, no duplica y solo llena lo que esté vacío. <a href="{% url 'terceros_plantilla' %}">Descargar plantilla de Excel</a>.</p>
+  <p id="fila-extracto" style="display:none;color:var(--gris-600)">Extracto bancario: sube el <strong>PDF de Bancolombia</strong> o un <strong>Excel/CSV</strong> con las columnas Fecha, Descripción y Valor (+ entradas / − salidas), o con Débitos y Créditos separados. Si las columnas tienen otros nombres, elige un perfil de mapeo.</p>
   <p id="fila-periodo">{{ form.anio.label_tag }} {{ form.anio }} {{ form.mes.label_tag }} {{ form.mes }}{{ form.anio.errors }}{{ form.mes.errors }}</p>
   <p id="fila-sentido">{{ form.sentido.label_tag }} {{ form.sentido }}{{ form.sentido.errors }}</p>
   <p id="fila-varios">{{ form.varios_meses }} {{ form.varios_meses.label_tag }}<br><small>{{ form.varios_meses.help_text }}</small>{{ form.varios_meses.errors }}</p>
@@ -22,7 +23,7 @@
 <script>
 (function(){var t=document.getElementById('id_tipo');if(!t)return;
 function ver(){var v=t.value;document.getElementById('fila-formulario').style.display=v==='declaracion'?'':'none';
-document.getElementById('fila-terceros').style.display=v==='terceros'?'':'none';document.getElementById('fila-periodo').style.display=v==='terceros'?'none':'';
+document.getElementById('fila-extracto').style.display=v==='extracto_banco'?'':'none';document.getElementById('fila-terceros').style.display=v==='terceros'?'':'none';document.getElementById('fila-periodo').style.display=v==='terceros'?'none':'';
 var f=(v==='facturas_dian'||v==='facturas_xml');document.getElementById('fila-sentido').style.display=f?'':'none';document.getElementById('fila-varios').style.display=(f||v==='auxiliar')?'':'none';}
 var pf=document.getElementById('id_perfil');
 function filtrar(){if(!pf)return;var sel=pf.options[pf.selectedIndex];

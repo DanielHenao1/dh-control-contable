@@ -213,6 +213,11 @@ def carga_eliminar(request, pk):
         ejecutar_reglas_periodo.delay(p.pk)
     filas = sum(detalle["filas_borradas"].values())
     messages.success(request, f"Carga «{detalle['nombre']}» eliminada ({filas} registro(s) importado(s) borrados). Quedó en la auditoría.")
+    from terceros.servicios import sin_movimiento
+
+    sueltos = len(sin_movimiento())
+    if sueltos:
+        messages.info(request, f"{sueltos} tercero(s) quedaron sin movimiento en ningún archivo. Puedes limpiarlos en Terceros → «Eliminar los sin movimiento».")
     return redirect("cargas")
 
 

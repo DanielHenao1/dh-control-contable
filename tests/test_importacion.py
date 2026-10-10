@@ -114,3 +114,28 @@ def test_errores_bloquean_salvo_omitir(dueno):
     assert a.estado == "error" and a.errores
     a = cargas.confirmar(a, dueno, omitir_filas_con_error=True)
     assert a.estado == "importado" and a.resumen["filas_omitidas"] == 1
+
+
+@pytest.mark.django_db
+def test_terceros_sueltos_se_filtran_y_se_limpian(cliente_dueno, dueno, datos_iniciales):
+    from empresa.models import Periodo, RegistroAuditoria
+
+    Tercero.objects.create(nit="800111222", razon_social="Proveedor Suelto", origen="factura")
+    Tercero.objects.create(nit="800333444", razon_social="Proveedor Activo", origen="factura")
+    p = Periodo.obtener(2026, 9)
+    from tests.helpers import factura
+
+    factura(p, "recibida", "1", date(2026, 9, 5), "800333444", "900902549", 1000, 190)
+    html = cliente_dueno.get("/terceros/?anio=sin_movimiento").content.decode()
+    assert "Proveedor Suelto" in html and "Proveedor Activo" not in html
+    assert "Proveedor Activo" in cliente_dueno.get("/terceros/?anio=2026").content.decode()
+    assert "Proveedor Suelto" not in cliente_dueno.get("/terceros/?anio=2026").content.decode()
+    assert Tercero.objects.filter(nit="800111222").exists()
+    cliente_dueno.post("/terceros/limpiar/")  # sin confirmar no borra
+    assert Tercero.objects.filter(nit="800111222").exists()
+    cliente_dueno.post("/terceros/limpiar/", {"entiendo": "1"})
+    assert not Tercero.objects.filter(nit="800111222").exists() and Tercero.objects.filter(nit="800333444").exists()
+    assert RegistroAuditoria.objects.filter(accion="eliminar", descripcion__contains="sin movimiento").exists()
+    t = Tercero.objects.get(nit="800333444")
+    cliente_dueno.post(f"/terceros/{t.pk}/eliminar/")
+    assert not Tercero.objects.filter(nit="800333444").exists()

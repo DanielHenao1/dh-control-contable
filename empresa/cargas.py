@@ -21,6 +21,7 @@ def _importadores():
     from contabilidad.importadores import importar_auxiliar, importar_balance
     from facturacion.importadores import importar_facturas
     from impuestos.importadores import importar_retenciones
+    from terceros.importadores import importar_terceros
 
     return {
         "balance": importar_balance,
@@ -29,10 +30,12 @@ def _importadores():
         "facturas_xml": importar_facturas,
         "retenciones": importar_retenciones,
         "extracto_banco": importar_extracto,
+        "terceros": importar_terceros,
     }
 
 
-TIPOS_CON_FILAS = {"balance", "auxiliar", "facturas_dian", "facturas_xml", "retenciones", "extracto_banco"}
+TIPOS_CON_FILAS = {"balance", "auxiliar", "facturas_dian", "facturas_xml", "retenciones", "extracto_banco", "terceros"}
+TIPOS_SIN_PERIODO = {"terceros"}  # catálogo permanente: no depende de un mes ni lo bloquea un mes cerrado
 
 
 def registrar_archivo(subido, tipo, periodo: Periodo, usuario, perfil=None, sentido="", formulario="", verificaciones=None, varios_meses=False):
@@ -41,7 +44,8 @@ def registrar_archivo(subido, tipo, periodo: Periodo, usuario, perfil=None, sent
     existente = ArchivoCargado.objects.filter(tipo=tipo, hash_sha256=huella).first()
     if existente:
         raise ArchivoDuplicado(existente)
-    periodo.verificar_abierto()
+    if tipo not in TIPOS_SIN_PERIODO:
+        periodo.verificar_abierto()
     a = ArchivoCargado(
         tipo=tipo, nombre_original=subido.name, hash_sha256=huella, tamano=len(contenido),
         periodo=periodo, perfil=perfil, usuario=usuario, sentido=sentido, origen="web",
@@ -146,7 +150,8 @@ def _verificar_conflicto_de_meses_auxiliar(archivo, filas):
 
 def confirmar(archivo: ArchivoCargado, usuario, omitir_filas_con_error=False):
     """Importa en una transacción. El archivo no cambia; las filas quedan ligadas a él."""
-    archivo.periodo.verificar_abierto()
+    if archivo.tipo not in TIPOS_SIN_PERIODO:
+        archivo.periodo.verificar_abierto()
     if archivo.estado == ArchivoCargado.Estado.IMPORTADO:
         return archivo
     if archivo.tipo not in TIPOS_CON_FILAS:
@@ -196,7 +201,7 @@ def eliminar(archivo: ArchivoCargado, usuario):
     """
     from django.db import models as dj_models
 
-    periodos = {archivo.periodo}
+    periodos = set() if archivo.tipo in TIPOS_SIN_PERIODO else {archivo.periodo}
     hijos = []
     for rel in ArchivoCargado._meta.related_objects:
         if rel.on_delete is not dj_models.PROTECT:

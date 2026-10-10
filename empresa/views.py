@@ -107,10 +107,11 @@ def cargas_lista(request):
 @requiere("cargar")
 def cargas_nueva(request):
     periodo = periodo_desde_request(request)
-    form = CargaForm(request.POST or None, request.FILES or None, initial={"anio": periodo.anio, "mes": periodo.mes})
+    form = CargaForm(request.POST or None, request.FILES or None,
+                     initial={"anio": periodo.anio, "mes": periodo.mes, "tipo": request.GET.get("tipo", "")})
     if request.method == "POST" and form.is_valid():
         d = form.cleaned_data
-        p = Periodo.obtener(d["anio"], d["mes"])
+        p = Periodo.obtener(timezone.localdate().year, timezone.localdate().month) if d["tipo"] == "terceros" else Periodo.obtener(d["anio"], d["mes"])
         sentido, formulario = d.get("sentido") or "", d.get("formulario") or ""
         varios = bool(d.get("varios_meses"))
         revision = cargas.verificar_subido(d["archivo"], d["tipo"], p, d.get("perfil"), sentido, formulario, varios)

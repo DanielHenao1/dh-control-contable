@@ -67,12 +67,41 @@ CAMPOS_POR_TIPO = {
         Campo("tarifa_aplicada", "Tarifa aplicada (%)", "numero"),
         Campo("retenido", "Valor retenido", "numero", True),
     ],
+    "terceros": [
+        Campo("nit", "NIT o cédula", "texto", True),
+        Campo("dv", "DV (dígito de verificación)"),
+        Campo("razon_social", "Razón social o nombre", "texto", True),
+        Campo("tipo_persona", "Tipo de persona (jurídica o natural)"),
+        Campo("direccion", "Dirección"),
+        Campo("ciudad", "Ciudad"),
+        Campo("email", "Correo electrónico"),
+        Campo("telefono", "Teléfono"),
+        Campo("regimen", "Régimen"),
+        Campo("ciiu", "CIIU"),
+    ],
     "extracto_banco": [
         Campo("fecha", "Fecha", "fecha", True),
         Campo("descripcion", "Descripción"),
         Campo("referencia", "Referencia"),
         Campo("valor", "Valor (+ ingreso / - egreso)", "numero", True),
     ],
+}
+
+
+# Otros nombres con que los exportes suelen llamar a cada campo (se comparan ya normalizados).
+ALIAS_POR_TIPO = {
+    "terceros": {
+        "nit": ("nit", "identificacion", "numero de identificacion", "nit cedula", "nit o cedula", "cedula nit", "documento", "no identificacion", "cc nit"),
+        "dv": ("dv", "digito verificacion", "digito de verificacion"),
+        "razon_social": ("razon social", "nombre", "nombre tercero", "tercero", "nombre o razon social", "razon social nombre", "nombre completo"),
+        "tipo_persona": ("tipo de persona", "tipo persona", "tipo tercero", "naturaleza"),
+        "direccion": ("direccion", "direccion principal"),
+        "ciudad": ("ciudad", "municipio", "ciudad municipio"),
+        "email": ("email", "e mail", "correo", "correo electronico"),
+        "telefono": ("telefono", "telefono 1", "celular", "tel"),
+        "regimen": ("regimen", "tipo de regimen"),
+        "ciiu": ("ciiu", "codigo ciiu", "actividad economica"),
+    },
 }
 
 
@@ -207,7 +236,8 @@ def sugerir_mapeo(tipo, columnas):
     sugerido = {}
     normas = {normalizar(c): c for c in columnas}
     for campo in CAMPOS_POR_TIPO.get(tipo, []):
-        for clave in (normalizar(campo.nombre), normalizar(campo.etiqueta)):
+        alias = ALIAS_POR_TIPO.get(tipo, {}).get(campo.nombre, ())
+        for clave in (normalizar(campo.nombre), normalizar(campo.etiqueta), *alias):
             if clave in normas:
                 sugerido[campo.nombre] = normas[clave]
                 break

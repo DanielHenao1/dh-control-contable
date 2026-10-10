@@ -139,3 +139,58 @@ def test_terceros_sueltos_se_filtran_y_se_limpian(cliente_dueno, dueno, datos_in
     t = Tercero.objects.get(nit="800333444")
     cliente_dueno.post(f"/terceros/{t.pk}/eliminar/")
     assert not Tercero.objects.filter(nit="800333444").exists()
+
+
+def _csv_terceros(filas):
+    cab = "NIT,DV,Razón social,Tipo de persona,Dirección,Ciudad,Correo electrónico\n"
+    return (cab + "\n".join(filas) + "\n").encode()
+
+
+@pytest.mark.django_db
+def test_maestro_de_terceros_completa_datos_vincula_nombres_y_no_pisa(dueno, datos_iniciales):
+    from empresa.models import RegistroAuditoria
+
+    p = Periodo.obtener(2026, 9)
+    cargas_aux = SimpleUploadedFile("aux.csv", "fecha,cuenta,nit,tercero_nombre,debito,credito,documento\n2026-09-02,5195,,PROVEEDOR UNO S.A.S.,100,0,FE-1\n".encode())
+    a = cargas.registrar_archivo(cargas_aux, "auxiliar", p, dueno)
+    cargas.confirmar(a, dueno)
+    assert Movimiento.objects.get(documento="FE-1").nit == ""
+    Tercero.objects.create(nit="900111222", razon_social="Nombre editado a mano", direccion="CL 9 # 9-9", origen="factura")
+    contenido = _csv_terceros([
+        "900.123.456-8,,Proveedor Uno SAS,Jurídica,CL 1 # 2-3,Bogotá D.C.,uno@example.com",
+        "900111222,,Otro nombre del maestro,Jurídica,CR 5 # 6-7,Medellín,",
+        "sin-nit,,Fila mala,,,,",
+    ])
+    t = cargas.registrar_archivo(SimpleUploadedFile("terceros.csv", contenido), "terceros", p, dueno)
+    t = cargas.confirmar(t, dueno, omitir_filas_con_error=True)
+    assert t.estado == "importado", t.errores
+    nuevo = Tercero.objects.get(nit="900123456")
+    assert nuevo.dv == "8" and nuevo.ciudad == "Bogotá D.C." and nuevo.tipo_persona == "juridica" and nuevo.origen == "maestro"
+    previo = Tercero.objects.get(nit="900111222")
+    assert previo.razon_social == "Nombre editado a mano" and previo.direccion == "CL 9 # 9-9"  # no pisa lo que ya tenía
+    assert previo.ciudad == "Medellín" and previo.tipo_persona == "juridica"  # sí llena lo vacío
+    r = t.resumen
+    assert r["terceros_nuevos"] == 1 and r["terceros_actualizados"] == 1 and r["con_datos_distintos_no_cambiados"] == 1
+    assert r["movimientos_con_nit"] == 1 and Movimiento.objects.get(documento="FE-1").nit == "900123456"
+    assert RegistroAuditoria.objects.filter(descripcion__contains="NIT del maestro").exists()
+    # un auxiliar que se cargue después ya trae el NIT por el nombre
+    aux2 = SimpleUploadedFile("aux2.csv", "fecha,cuenta,nit,tercero_nombre,debito,credito,documento\n2026-09-03,5195,,Proveedor Uno SAS,50,0,FE-2\n".encode())
+    cargas.confirmar(cargas.registrar_archivo(aux2, "auxiliar", p, dueno), dueno)
+    assert Movimiento.objects.get(documento="FE-2").nit == "900123456"
+
+
+@pytest.mark.django_db
+def test_carga_de_terceros_no_pide_mes_y_rechaza_archivos_de_otro_tipo(cliente_dueno, datos_iniciales):
+    ok = cliente_dueno.post("/cargas/nueva/", {"tipo": "terceros", "archivo": SimpleUploadedFile("t.csv", _csv_terceros(["900123456,8,Uno SAS,Jurídica,CL 1,Bogotá,"]))})
+    assert ok.status_code == 302 and "/cargas/" in ok.url
+    mal = cliente_dueno.post("/cargas/nueva/", {"tipo": "terceros", "archivo": SimpleUploadedFile("m.csv", b"fecha,cuenta,debito,credito\n2026-09-01,5195,10,0\n")})
+    assert mal.status_code == 200 and "débitos y créditos" in mal.content.decode()
+    assert cliente_dueno.get("/terceros/plantilla/").status_code == 200
+    assert "Cargar maestro de terceros" in cliente_dueno.get("/terceros/").content.decode()
+
+
+def test_norm_nombre_trata_sas_con_puntos_igual_que_sas():
+    from controles.reglas_facturas import norm_nombre
+
+    assert norm_nombre("PROVEEDOR UNO S.A.S.") == norm_nombre("Proveedor Uno SAS") == "PROVEEDORUNO"
+    assert norm_nombre("Comercial Dos S.A.") == norm_nombre("COMERCIAL DOS SA")

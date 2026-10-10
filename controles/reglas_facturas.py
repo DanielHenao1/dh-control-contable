@@ -44,6 +44,9 @@ _SUFIJOS_SOCIETARIOS = {"SAS", "SA", "LTDA", "ESP", "SCA", "ZOMAC", "EU", "CIA",
 def norm_nombre(texto):
     """Nombre de tercero comparable: sin tildes ni puntuación, sin sufijos societarios y sin espacios."""
     t = unicodedata.normalize("NFKD", str(texto or "")).encode("ascii", "ignore").decode().upper()
+    t = re.sub(r"\bS\s*\.\s*A\s*\.\s*S\b\.?", " SAS ", t)  # «S.A.S.» es el mismo sufijo que «SAS»
+    t = re.sub(r"\bS\s*\.\s*A\b\.?", " SA ", t)
+    t = re.sub(r"\bE\s*\.\s*U\b\.?", " EU ", t)
     palabras = [w for w in re.sub(r"[^A-Z0-9]+", " ", t).split() if w not in _SUFIJOS_SOCIETARIOS]
     return "".join(palabras)
 

@@ -23,6 +23,7 @@ EXTENSIONES = {
     "extracto_banco": (".xlsx", ".xlsm", ".xls", ".csv", ".txt", ".pdf"),
     "facturas_xml": (".xml", ".zip"),
     "declaracion": (".pdf",),
+    "terceros": (".xlsx", ".xlsm", ".xls", ".csv", ".txt"),
 }
 NOMBRES = {
     "balance": "balance de prueba", "auxiliar": "auxiliares", "facturas_dian": "facturas electrónicas (Excel DIAN)",
@@ -256,11 +257,43 @@ def _revisar_declaracion(contenido, formulario, empresa, res):
         res.avisos.append(f"No encontré el NIT {empresa.nit_formateado} en el PDF: confirma que es de la empresa.")
 
 
+def _revisar_terceros(nombre, contenido, perfil, res):
+    from .importacion import normalizar
+
+    try:
+        df = leer_dataframe(contenido, nombre, perfil)
+    except Exception as exc:  # noqa: BLE001 - archivos dañados o de otro formato
+        res.errores.append(f"No se pudo leer el archivo ({exc}). ¿Está dañado o es de otro formato?")
+        return
+    columnas = [str(c).strip() for c in df.columns]
+    if df.dropna(how="all").empty:
+        res.errores.append("El archivo no tiene filas con datos.")
+        return
+    normas = {normalizar(c) for c in columnas}
+    if {"debito", "credito"} <= normas or {"debitos", "creditos"} <= normas:
+        res.errores.append("Este archivo trae débitos y créditos: parece un balance o un auxiliar, no un maestro de terceros.")
+        return
+    if not (perfil and perfil.mapeo):
+        mapeo = sugerir_mapeo("terceros", columnas)
+        faltan = [c.etiqueta for c in CAMPOS_POR_TIPO["terceros"] if c.requerido and c.nombre not in mapeo]
+        if faltan:
+            res.errores.append(
+                f"No encontré las columnas obligatorias ({', '.join(faltan)}). Columnas del archivo: {', '.join(columnas[:15])}. "
+                "Usa la plantilla de terceros o crea un perfil de mapeo."
+            )
+            return
+        sin = [c.etiqueta for c in CAMPOS_POR_TIPO["terceros"] if not c.requerido and c.nombre not in mapeo]
+        if sin:
+            res.avisos.append(f"El archivo no trae: {', '.join(sin)}. Esos datos quedarán como están.")
+
+
 def verificar(tipo, nombre, contenido, periodo, empresa, perfil=None, sentido="", formulario="", varios_meses=False):
     res = Resultado()
     if not _revisar_extension(tipo, nombre, res):
         return res
-    if tipo in TABULARES:
+    if tipo == "terceros":
+        _revisar_terceros(nombre, contenido, perfil, res)
+    elif tipo in TABULARES:
         _revisar_tabular(tipo, nombre, contenido, perfil, periodo, sentido, empresa, res, varios_meses)
     elif tipo == "facturas_xml":
         _revisar_xml(nombre, contenido, sentido, empresa, res)

@@ -61,9 +61,15 @@ def importar_auxiliar(archivo, filas):
             periodos[clave] = p
         return periodos[clave]
 
+    from controles.reglas_facturas import norm_nombre
+    from terceros.servicios import indice_por_nombre
+
+    por_nombre = indice_por_nombre()  # nombre -> NIT del maestro de terceros (el auxiliar de World Office solo trae el nombre)
     for f in filas:
         nit, _dv = separar_nit_dv(f.get("nit", ""))
         nit = limpiar_nit(nit)
+        if not nit and f.get("tercero_nombre"):
+            nit = por_nombre.get(norm_nombre(f["tercero_nombre"]), "")
         if nit:
             t, creado = Tercero.objects.get_or_create(
                 nit=nit, defaults={"razon_social": f.get("tercero_nombre", ""), "origen": "auxiliar"}

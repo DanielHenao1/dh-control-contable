@@ -19,8 +19,8 @@ class SelectPerfil(forms.Select):
 
 class CargaForm(forms.Form):
     tipo = forms.ChoiceField(choices=[c for c in ArchivoCargado.Tipo.choices])
-    anio = forms.IntegerField(label="Año", min_value=2015, max_value=2100)
-    mes = forms.IntegerField(label="Mes", min_value=1, max_value=12)
+    anio = forms.IntegerField(label="Año", min_value=2015, max_value=2100, required=False)
+    mes = forms.IntegerField(label="Mes", min_value=1, max_value=12, required=False)
     sentido = forms.ChoiceField(
         label="Sentido (solo facturas; vacío si el archivo trae la columna Emitido/Recibido)", required=False,
         choices=[("", "—"), ("recibida", "Recibidas (compras)"), ("emitida", "Emitidas (ventas)")],
@@ -52,6 +52,10 @@ class CargaForm(forms.Form):
 
     def clean(self):
         d = super().clean()
+        if d.get("tipo") != "terceros":
+            for campo, etiqueta in (("anio", "el año"), ("mes", "el mes")):
+                if not d.get(campo):
+                    self.add_error(campo, f"Indica {etiqueta} del archivo.")
         if d.get("varios_meses") and d.get("tipo") not in ("facturas_dian", "facturas_xml", "auxiliar"):
             self.add_error("varios_meses", "La carga de varios meses solo aplica a facturas electrónicas y al libro auxiliar.")
         if d.get("tipo") == "declaracion" and not d.get("formulario"):

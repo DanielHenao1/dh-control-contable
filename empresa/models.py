@@ -240,6 +240,7 @@ class ArchivoCargado(models.Model):
         FACTURAS_XML = "facturas_xml", "Facturas electrónicas (XML)"
         RETENCIONES = "retenciones", "Retenciones practicadas"
         EXTRACTO_BANCO = "extracto_banco", "Extracto bancario"
+        TERCEROS = "terceros", "Maestro de terceros (World Office o plantilla)"
         DECLARACION = "declaracion", "Declaración / borrador del contratista"
         OTRO = "otro", "Otro soporte"
 

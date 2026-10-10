@@ -94,3 +94,16 @@ def editar(request, pk):
         messages.success(request, "Tercero actualizado.")
         return redirect("terceros")
     return render(request, "empresa/formulario.html", {"form": form, "titulo": f"Tercero {t.nit}"})
+
+
+COLUMNAS_PLANTILLA = ["NIT", "DV", "Razón social", "Tipo de persona", "Dirección", "Ciudad", "Correo electrónico", "Teléfono", "Régimen", "CIIU"]
+
+
+@requiere("cargar")
+def plantilla(request):
+    """Excel vacío con las columnas que entiende la carga del maestro de terceros (una fila de ejemplo con datos ficticios)."""
+    ejemplo = ("900000000", "0", "EMPRESA DE EJEMPLO SAS", "Jurídica", "CL 1 # 2-3", "Bogotá D.C.", "contacto@ejemplo.com", "6010000000", "Común", "4651")
+    datos = tabla_a_excel("Terceros", COLUMNAS_PLANTILLA, [ejemplo])
+    r = HttpResponse(datos, content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    r["Content-Disposition"] = 'attachment; filename="plantilla-terceros.xlsx"'
+    return r

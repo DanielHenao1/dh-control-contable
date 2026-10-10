@@ -154,6 +154,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "calendario.tasks.resumen_semanal_pendientes",
         "schedule": crontab(day_of_week=1, hour=7, minute=0),  # lunes 7:00 (hora de Bogotá)
     },
+    "vigencias-anuales-de-parametros": {
+        "task": "empresa.tasks.asegurar_vigencias_anuales",
+        "schedule": 60 * 60 * 24,
+    },
     "generar-calendario": {
         "task": "calendario.tasks.generar_calendario_automatico",
         "schedule": 60 * 60 * 24,

@@ -25,6 +25,7 @@ urlpatterns = [
     path("configuracion/", views.configuracion, name="configuracion"),
     path("configuracion/parametro/nuevo/", views.parametro_editar, name="parametro_nuevo"),
     path("configuracion/parametro/<int:pk>/", views.parametro_editar, name="parametro_editar"),
+    path("configuracion/parametro/<int:pk>/siguiente-anio/", views.parametro_siguiente_anio, name="parametro_siguiente_anio"),
     path("configuracion/usuario/nuevo/", views.usuario_nuevo, name="usuario_nuevo"),
     path("configuracion/usuario/<int:pk>/invitar/", views.usuario_invitar, name="usuario_invitar"),
     path("configuracion/periodo/<int:pk>/estado/", views.periodo_estado, name="periodo_estado"),

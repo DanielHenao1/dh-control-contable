@@ -1,0 +1,17 @@
+{% load utiles %}<!doctype html><html lang="es-CO"><head><meta charset="utf-8"><title>Borrador formulario 302 {{ texto }}</title>
+<style>
+@page{size:Letter;margin:14mm}
+body{font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#111}
+h1{font-size:15px;margin:0 0 2px}h3{font-size:12px;margin:12px 0 0}
+.marca{color:#b00020;font-weight:bold;font-size:12px;letter-spacing:.5px}
+table{border-collapse:collapse;width:100%;margin-top:8px}
+th,td{border:1px solid #888;padding:3px 5px}th{background:#e8ecf4}
+.num{text-align:right}small{color:#555}
+.aviso{border:1px solid #c9a300;background:#fff8dc;padding:6px;margin-top:8px}
+</style></head><body>
+<div class="marca">BORRADOR · NO PRESENTAR</div>
+<h1>Formulario 302 · Declaración del impuesto de industria y comercio, avisos y tableros (Bogotá)</h1>
+<div>{{ empresa.razon_social }} · NIT {{ empresa.nit_formateado }} · {{ texto }}</div>
+<div>Generado por DH Control Contable con los balances cargados. Valores aproximados al múltiplo de mil.</div>
+{% include "impuestos/_borrador_302.html" %}
+</body></html>

@@ -4,6 +4,7 @@ Es idempotente. Solo UVT 2026 y la periodicidad del IVA están confirmadas por l
 carga 'por verificar' o vacío para que el sistema lo muestre con aviso. No se inventan tarifas ni normas.
 """
 from datetime import date
+from decimal import Decimal
 
 from django.core.management.base import BaseCommand
 
@@ -38,6 +39,14 @@ PARAMETROS = [
     ("RETEFUENTE_MAPA_CUENTAS", "Concepto del formulario 350 de cada subcuenta de retención en la fuente (prefijo=concepto)", "lista",
      "236505=rentas_trabajo,236515=honorarios,236520=comisiones,236525=servicios,236530=arrendamientos,236535=rendimientos,236540=compras,23657501=auto_ventas,23657502=auto_servicios",
      date(2025, 1, 1), None, V, "Subcuentas 2365 del balance de World Office de septiembre de 2026 y declaración 350 presentada de agosto de 2026 (los montos cuadran)"),
+    ("ICA_MAPA_INGRESOS", "Actividad de ICA de cada cuenta de ingreso (prefijo=principal, un CIIU o ignorar); gana el prefijo más largo", "lista", "4=principal",
+     date(2025, 1, 1), None, V, "Por defecto todos los ingresos van a la actividad principal. Si hay actividades secundarias, asigne sus subcuentas aquí (por ejemplo 41454=5210)"),
+    ("ICA_CUENTAS_DEVOLUCIONES", "Cuentas de devoluciones, rebajas y descuentos en ventas (renglón 12 del formulario de ICA)", "lista", "4175", date(2025, 1, 1), None, V,
+     "Plan de cuentas de World Office: 4175 DEVOLUCIONES EN VENTAS"),
+    ("ICA_CUENTAS_RETENCION_SUFRIDA", "Cuentas donde se registra la retención de ICA que le practican a la empresa (renglón 21)", "lista", "135518", date(2025, 1, 1), None, V,
+     "Plan de cuentas de World Office: 135518 RETENCION DE ICA (por venta de productos y de servicios, tarjetas)"),
+    ("ICA_AVISOS_PORCENTAJE", "Avisos y tableros como porcentaje del impuesto de ICA (Bogotá)", "decimal", "15", date(2025, 1, 1), None, V,
+     "Formulario 302 de ICA de Bogotá, renglón 18: 15 % del renglón 17 (declaración presentada del 4.º bimestre de 2026)"),
     ("PUC_RETEFUENTE", "Prefijos de cuentas de retención en la fuente por pagar", "lista", "2365", date(2025, 1, 1), None, PV, "PUC comercial; confirmar contra el plan de cuentas real"),
     ("PUC_RETEIVA", "Prefijos de cuentas de retención de IVA", "lista", "2367", date(2025, 1, 1), None, PV, "PUC comercial; confirmar contra el plan de cuentas real"),
     ("PUC_INGRESOS", "Prefijos de ingresos", "lista", "4", date(2025, 1, 1), None, PV, "PUC: clase 4"),
@@ -221,6 +230,7 @@ class Command(BaseCommand):
             }),
         )
         self._aplicar_plan_de_cuentas()
+        self._cargar_tarifas_ica()
         self._confirmar_uvt_2025()
         asegurar_vigencias()
         self._confirmar_pasivo_financiero_2026()
@@ -248,6 +258,19 @@ class Command(BaseCommand):
             Parametro.objects.filter(codigo=codigo, vigente_hasta__isnull=True).exclude(estado=V).filter(
                 valor__in=anteriores,
             ).update(valor=valor, estado=estado, fuente=f"{FUENTE_PLAN}: {nota}"[:300])  # el campo admite 300
+
+    def _cargar_tarifas_ica(self):
+        """Tarifas de ICA de Bogotá, por mil. Salen del plan de cuentas de World Office (nombres de las subcuentas de retención de ICA)
+        y cuadran con la declaración presentada; falta confirmarlas con la tabla del Acuerdo 65 de 2002."""
+        from impuestos.models import TarifaICA
+
+        fuente = "Subcuentas 135518 de World Office («… VENTA DE PRODUCTOS 11,04», «… VENTA DE SERVICIOS 9,66») y declaración de ICA presentada del 4.º bimestre de 2026; confirmar con la tabla de tarifas del Distrito"
+        for ciiu, descripcion, tarifa in (("4651", "Comercio al por mayor de computadores, equipos periféricos y programas de informática", "11.04"),
+                                          ("6399", "Otras actividades de servicio de información n.c.p.", "9.66")):
+            TarifaICA.objects.get_or_create(
+                ciiu=ciiu, vigente_desde=date(2025, 1, 1),
+                defaults=dict(descripcion=descripcion, tarifa_por_mil=Decimal(tarifa), estado="por_verificar", fuente=fuente[:300]),
+            )
 
     def _confirmar_pasivo_financiero_2026(self):
         """El dueño informó el 10-oct-2026 que ninguna obligación financiera vence en los próximos 12 meses (parte corriente = 0)."""

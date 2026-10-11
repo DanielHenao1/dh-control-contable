@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% load utiles %}
+{% block contenido %}
+<h1>Borrador del formulario 302 · ICA Bogotá</h1>
+{% include "_selector.html" %}
+<p><strong>{{ texto }}</strong></p>
+<div class="aviso"><strong>BORRADOR · NO PRESENTAR.</strong> Armado con los balances de los dos meses del bimestre para contrastarlo con el que presenta el contratista.</div>
+<p>{% if permisos.exportar %}<a class="btn" href="?anio={{ periodo.anio }}&mes={{ periodo.mes }}&formato=pdf">Descargar PDF</a> <a class="btn sec" href="?anio={{ periodo.anio }}&mes={{ periodo.mes }}&formato=xlsx">Descargar Excel</a>{% endif %}
+{% if permisos.administrar %} <a class="btn sec" href="{% url 'ajuste_ica' %}?anio={{ periodo.anio }}&bimestre={{ bimestre }}">Datos manuales del bimestre</a>{% endif %}</p>
+{% include "impuestos/_borrador_302.html" %}
+<p><a href="{% url 'ica' %}?anio={{ periodo.anio }}&mes={{ periodo.mes }}">Volver a ICA</a></p>
+{% endblock %}

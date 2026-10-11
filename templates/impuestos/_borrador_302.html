@@ -1,0 +1,11 @@
+{% load utiles %}
+<table class="f350">
+<tr><th>Renglón</th><th>Concepto</th><th class="num">Valor</th></tr>
+{% for f in datos.filas %}<tr><td>{{ f.renglon }} <small>{{ f.codigo }}</small></td><td>{{ f.concepto }}{% if f.manual %} <small>(dato manual)</small>{% endif %}</td><td class="num">{{ f.valor|pesos }}</td></tr>{% endfor %}
+</table>
+<h3>Base gravable por actividad</h3>
+<table class="f350"><tr><th>Actividad (CIIU)</th><th class="num">Base</th><th class="num">Tarifa por mil</th><th class="num">Impuesto sin aproximar</th></tr>
+{% for a in datos.actividades %}<tr><td>{{ a.ciiu }}{% if a.principal %} · principal{% endif %} <small>{{ a.descripcion }}</small></td><td class="num">{{ a.base|pesos }}</td><td class="num">{{ a.tarifa|default_if_none:"—" }}</td><td class="num">{{ a.impuesto|pesos }}</td></tr>{% endfor %}
+</table>
+{% if datos.calculo.advertencias %}<div class="aviso"><strong>Ojo:</strong><ul>{% for a in datos.calculo.advertencias %}<li>{{ a }}</li>{% endfor %}</ul></div>{% endif %}
+<details><summary>Supuestos del cálculo</summary><ul>{% for a in datos.calculo.supuestos %}<li>{{ a }}</li>{% endfor %}</ul></details>

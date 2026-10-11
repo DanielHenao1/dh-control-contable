@@ -159,3 +159,26 @@ class TarifaICA(models.Model):
 
     def __str__(self):
         return f"{self.ciiu} {self.tarifa_por_mil}‰"
+
+
+class AjusteICA(models.Model):
+    """Datos del bimestre que no salen de la contabilidad y se escriben en la declaración de ICA (formulario 302)."""
+
+    anio = models.PositiveSmallIntegerField()
+    bimestre = models.PositiveSmallIntegerField(help_text="1 a 6")
+    ingresos_fuera_distrito = models.DecimalField("Ingresos fuera del Distrito Capital (renglón 10)", max_digits=20, decimal_places=2, default=CERO)
+    exportaciones = models.DecimalField("Ingresos por exportaciones (renglón 13)", max_digits=20, decimal_places=2, default=CERO)
+    activos_fijos = models.DecimalField("Ingresos por venta de activos fijos (renglón 14)", max_digits=20, decimal_places=2, default=CERO)
+    deducciones = models.DecimalField("Deducciones, exenciones y actividades no sujetas (renglón 15)", max_digits=20, decimal_places=2, default=CERO)
+    unidades_adicionales = models.DecimalField("Valor por unidades comerciales adicionales (renglón 19)", max_digits=20, decimal_places=2, default=CERO)
+    sanciones = models.DecimalField("Sanciones (renglón 22)", max_digits=20, decimal_places=2, default=CERO)
+    descuento = models.DecimalField("Descuento tributario (renglón 23)", max_digits=20, decimal_places=2, default=CERO)
+    intereses_mora = models.DecimalField("Intereses de mora (renglón 26)", max_digits=20, decimal_places=2, default=CERO)
+    nota = models.CharField(max_length=300, blank=True)
+
+    class Meta:
+        unique_together = [("anio", "bimestre")]
+        ordering = ["-anio", "-bimestre"]
+
+    def __str__(self):
+        return f"ICA {self.anio} bimestre {self.bimestre}"

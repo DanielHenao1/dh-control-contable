@@ -11,7 +11,8 @@ from empresa.permisos import requiere
 from empresa.utils import contexto_selector, periodo_desde_request
 from terceros.models import Tercero
 
-from .models import ConceptoRetencion, Declaracion, DiferenciaFiscal, TarifaICA
+from .models import AjusteICA, ConceptoRetencion, Declaracion, DiferenciaFiscal, TarifaICA
+from .reglas.formulario_302 import borrador_302
 from .reglas.formulario_350 import borrador_350 as calcular_350
 from .reglas.ica import borrador_ica
 from .reglas.renta import borrador_renta
@@ -37,6 +38,13 @@ class DiferenciaForm(forms.ModelForm):
     class Meta:
         model = DiferenciaFiscal
         fields = ["anio", "concepto", "tipo", "valor", "soporte", "explicada"]
+
+
+class AjusteICAForm(forms.ModelForm):
+    class Meta:
+        model = AjusteICA
+        fields = ["ingresos_fuera_distrito", "exportaciones", "activos_fijos", "deducciones", "unidades_adicionales",
+                  "sanciones", "descuento", "intereses_mora", "nota"]
 
 
 class TarifaICAForm(forms.ModelForm):
@@ -239,3 +247,89 @@ def borrador_350(request):
         except Exception:  # noqa: BLE001 - sin WeasyPrint se entrega el HTML imprimible
             return HttpResponse(html)
     return render(request, "impuestos/borrador_350.html", ctx)
+
+
+def _excel_302(datos, periodo_texto):
+    from openpyxl import Workbook
+    from openpyxl.styles import Font
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Formulario 302"
+    ws.append([f"BORRADOR · NO PRESENTAR · Formulario 302 (ICA Bogotá) · {periodo_texto}"])
+    ws["A1"].font = Font(bold=True, size=13)
+    ws.append(["Renglón", "Código", "Concepto", "Valor"])
+    for celda in ws[2]:
+        celda.font = Font(bold=True)
+    for f in datos["filas"]:
+        ws.append([f["renglon"], f["codigo"], f["concepto"] + (" (dato manual)" if f["manual"] else ""), float(f["valor"])])
+    ws.append([])
+    ws.append(["", "", "Base por actividad", "Tarifa por mil"])
+    for a in datos["actividades"]:
+        ws.append(["", a["ciiu"], f"Base {'(principal)' if a['principal'] else ''} {a['descripcion']}".strip(), float(a["base"]), float(a["tarifa"]) if a["tarifa"] is not None else None])
+    ws.append([])
+    for aviso in datos["calculo"]["advertencias"] + datos["calculo"]["supuestos"]:
+        ws.append([aviso])
+    for col, ancho in zip("ABCDE", (10, 10, 70, 18, 14)):
+        ws.column_dimensions[col].width = ancho
+    for fila in ws.iter_rows(min_row=3):
+        if isinstance(fila[3].value, float):
+            fila[3].number_format = "#,##0"
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
+
+
+@requiere("ver_fiscal")
+@auditar_lectura("Borrador del formulario 302 (ICA)")
+def borrador_ica_302(request):
+    """Borrador del formulario 302 de ICA con los balances del bimestre; se descarga en PDF o Excel."""
+    from django.core.exceptions import PermissionDenied
+    from django.http import HttpResponse
+    from django.template.loader import render_to_string
+
+    from empresa.models import Empresa
+
+    periodo = periodo_desde_request(request)
+    bimestre = (periodo.mes + 1) // 2
+    datos = borrador_302(periodo.anio, bimestre)
+    formato = request.GET.get("formato", "")
+    if formato in ("pdf", "xlsx") and not request.user.puede("exportar"):
+        raise PermissionDenied
+    texto = f"{periodo.anio} · bimestre {bimestre} ({datos['etiqueta']})"
+    ctx = {"datos": datos, "periodo": periodo, "bimestre": bimestre, "texto": texto, "empresa": Empresa.actual(),
+           "titulo": "Borrador formulario 302", **contexto_selector(periodo)}
+    nombre = f"borrador-302-{periodo.anio}-b{bimestre}"
+    if formato == "xlsx":
+        r = HttpResponse(_excel_302(datos, texto), content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        r["Content-Disposition"] = f'attachment; filename="{nombre}.xlsx"'
+        return r
+    if formato == "pdf":
+        html = render_to_string("impuestos/borrador_302_pdf.html", ctx, request=request)
+        try:
+            from weasyprint import HTML
+
+            r = HttpResponse(HTML(string=html).write_pdf(), content_type="application/pdf")
+            r["Content-Disposition"] = f'attachment; filename="{nombre}.pdf"'
+            return r
+        except Exception:  # noqa: BLE001 - sin WeasyPrint se entrega el HTML imprimible
+            return HttpResponse(html)
+    return render(request, "impuestos/borrador_302.html", ctx)
+
+
+@requiere("administrar")
+def ajuste_ica_editar(request):
+    """Datos del bimestre que no salen de la contabilidad (ingresos fuera de Bogotá, exportaciones, sanciones…)."""
+    try:
+        anio, bimestre = int(request.GET.get("anio")), int(request.GET.get("bimestre"))
+    except (TypeError, ValueError):
+        return redirect("ica")
+    if not 1 <= bimestre <= 6:
+        return redirect("ica")
+    obj = AjusteICA.objects.filter(anio=anio, bimestre=bimestre).first() or AjusteICA(anio=anio, bimestre=bimestre)
+    form = AjusteICAForm(request.POST or None, instance=obj)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Datos del bimestre guardados.")
+        return redirect(f"{reverse('borrador_ica')}?anio={anio}&mes={bimestre * 2}")
+    return render(request, "empresa/formulario.html", {"form": form, "titulo": f"Datos manuales del ICA · {anio} bimestre {bimestre}"})

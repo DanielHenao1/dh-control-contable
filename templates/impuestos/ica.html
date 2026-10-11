@@ -2,6 +2,7 @@
 {% block contenido %}
 <h1>ICA Bogotá</h1>
 {% include "_selector.html" %}
+<p><a class="btn" href="{% url 'borrador_ica' %}?anio={{ periodo.anio }}&mes={{ periodo.mes }}">Ver y descargar borrador del formulario 302</a></p>
 <div class="aviso">Borradores propios para contrastar con los del contratista. Nunca para presentar.</div>
 <h2>ICA Bogotá · bimestre {{ bimestre }}</h2>
 <div class="tabla-scroll"><table>{% for k, v in ica.valores.items %}<tr><th style="width:320px">{{ k|etiqueta }}</th><td class="num">{% if k == "corte" %}{{ v }}{% else %}{{ v|cifra:k }}{% endif %}</td></tr>{% empty %}<tr><td>Sin datos.</td></tr>{% endfor %}</table></div>

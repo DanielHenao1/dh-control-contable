@@ -9,7 +9,7 @@ MODELOS_AUDITADOS = {
     "empresa.ArchivoCargado", "empresa.Usuario",
     "terceros.Tercero",
     "facturacion.Factura",
-    "impuestos.ConceptoRetencion", "impuestos.Declaracion", "impuestos.DiferenciaFiscal",
+    "impuestos.ConceptoRetencion", "impuestos.Declaracion", "impuestos.DiferenciaFiscal", "impuestos.AjusteICA",
     "calendario.ReglaVencimiento", "calendario.Obligacion", "calendario.Festivo",
     "controles.Hallazgo",
     "analitica.Simulacion",
